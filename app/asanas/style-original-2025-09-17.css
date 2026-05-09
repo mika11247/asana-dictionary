@@ -1,0 +1,2955 @@
+/*
+ Theme Name:   Twenty Twenty-Five Child
+ Template:     twentytwentyfive
+ Version:      1.0.0
+*/
+
+/* ========================================================
+   ▼ カスタムCSSプラグインからの移行（2025/08/01）
+======================================================== */
+
+
+
+/* =============================
+   ▼ パスワード保護ページ
+============================= */
+.custom-password-form {
+  background: #f7f7f7;
+  border: 2px dashed #ccc;
+  padding: 2em;
+  text-align: center;
+  max-width: 400px;
+  margin: 2em auto;
+  border-radius: 12px;
+}
+
+.custom-password-form p {
+  font-size: 1.1em;
+  margin-bottom: 1em;
+}
+
+.custom-password-form input[type="password"] {
+  padding: 0.5em;
+  width: 80%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.custom-password-form input[type="submit"] {
+  background: #333;
+  color: #fff;
+  padding: 0.7em 2em;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.custom-password-form input[type="submit"]:hover {
+  background: #555;
+}
+
+/* =============================
+   ▼ Monthly投稿用ベース
+============================= */
+.uranai-box {
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 40px;
+  font-family: 'Yu Gothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.uranai-box h2 {
+  font-size: 1.5em;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.uranai-box h3 {
+  font-size: 1.2em;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  border-bottom: 1px dashed;
+  padding-bottom: 4px;
+}
+
+.uranai-box p, .uranai-box li {
+  line-height: 1.8;
+  color: #444;
+}
+
+.uranai-box .lucky ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.uranai-box .lucky li::before {
+  content: "💫 ";
+  margin-right: 4px;
+}
+
+.uranai-box .message p {
+  font-weight: bold;
+  text-align: center;
+  margin-top: 10px;
+}
+
+/* =============================
+   ▼ Monthly投稿　星座別カラー
+============================= */
+/* 牡羊座 */
+.uranai-box.aries {
+  background: #fff0f0;
+  border: 2px solid #f9b8c4;
+}
+.uranai-box.aries h2 { color: #e05252; }
+.uranai-box.aries h3 { color: #c03030; border-bottom-color: #f6a2a2; }
+.uranai-box.aries .message p { color: #d13d3d; }
+
+/* 牡牛座 */
+.uranai-box.taurus {
+  background: #f9fff4;
+  border: 2px solid #cde4b1;
+}
+.uranai-box.taurus h2 { color: #7a9f2f; }
+.uranai-box.taurus h3 { color: #5c7d25; border-bottom-color: #bddc96; }
+.uranai-box.taurus .message p { color: #6b8d2a; }
+
+/* 双子座 */
+.uranai-box.gemini {
+  background: #f4fbff;
+  border: 2px solid #bde0f6;
+}
+.uranai-box.gemini h2 { color: #49a1d2; }
+.uranai-box.gemini h3 { color: #3379a3; border-bottom-color: #a7d4f0; }
+.uranai-box.gemini .message p { color: #3c8db6; }
+
+/* 蟹座 */
+.uranai-box.cancer {
+  background: #fff0fa;
+  border: 2px solid #f4b6e8;
+}
+.uranai-box.cancer h2 { color: #d24fa4; }
+.uranai-box.cancer h3 { color: #b83785; border-bottom-color: #f3a4da; }
+.uranai-box.cancer .message p { color: #c04091; }
+
+/* 獅子座 */
+.uranai-box.leo {
+  background: #fffbe8;
+  border: 2px solid #f5da8d;
+}
+.uranai-box.leo h2 { color: #e5a200; }
+.uranai-box.leo h3 { color: #c58500; border-bottom-color: #f1ce6e; }
+.uranai-box.leo .message p { color: #d09400; }
+
+/* 乙女座 */
+.uranai-box.virgo {
+  background: #f3fff8;
+  border: 2px solid #b7e9d2;
+}
+.uranai-box.virgo h2 { color: #30a77a; }
+.uranai-box.virgo h3 { color: #248c65; border-bottom-color: #a4e0c3; }
+.uranai-box.virgo .message p { color: #2f976f; }
+
+/* 天秤座 */
+.uranai-box.libra {
+  background: #f8f4ff;
+  border: 2px solid #d8c3f1;
+}
+.uranai-box.libra h2 { color: #855cc7; }
+.uranai-box.libra h3 { color: #6c3ea5; border-bottom-color: #c8b2e8; }
+.uranai-box.libra .message p { color: #7740b3; }
+
+/* 蠍座 */
+.uranai-box.scorpio {
+  background: #fff0f7;
+  border: 2px solid #f1add8;
+}
+.uranai-box.scorpio h2 { color: #c63691; }
+.uranai-box.scorpio h3 { color: #a3246e; border-bottom-color: #ee9bcc; }
+.uranai-box.scorpio .message p { color: #bb2b7d; }
+
+/* 射手座 */
+.uranai-box.sagittarius {
+  background: #f0fbff;
+  border: 2px solid #aee5f3;
+}
+.uranai-box.sagittarius h2 { color: #3a97b9; }
+.uranai-box.sagittarius h3 { color: #2b7fa0; border-bottom-color: #97d8ec; }
+.uranai-box.sagittarius .message p { color: #3b8fb3; }
+
+/* 山羊座 */
+.uranai-box.capricorn {
+  background: #f9f9f9;
+  border: 2px solid #cccccc;
+}
+.uranai-box.capricorn h2 { color: #666; }
+.uranai-box.capricorn h3 { color: #444; border-bottom-color: #bbb; }
+.uranai-box.capricorn .message p { color: #555; }
+
+/* 水瓶座 */
+.uranai-box.aquarius {
+  background: #f0faff;
+  border: 2px solid #a6d9f2;
+}
+.uranai-box.aquarius h2 { color: #399fd9; }
+.uranai-box.aquarius h3 { color: #2d7fb0; border-bottom-color: #90cbee; }
+.uranai-box.aquarius .message p { color: #368bc8; }
+
+/* 魚座 */
+.uranai-box.pisces {
+  background: #f4f9ff;
+  border: 2px solid #c4d9f6;
+}
+.uranai-box.pisces h2 { color: #5689d6; }
+.uranai-box.pisces h3 { color: #3e6ab3; border-bottom-color: #b3cdf1; }
+.uranai-box.pisces .message p { color: #4e78c6; }
+
+/* =============================
+   ▼ アーサナ辞書シリーズ（2025/08/01移行）
+============================= */
+/* ▼ アーサナ辞書用 */
+/* 全体カードレイアウト */
+.asana-entry {
+  background: #fff;
+  border: 1px solid #e0dada;  /* やさしいグレージュ枠 */
+  border-radius: 16px;
+  padding: 24px;
+  margin: 40px auto;
+  max-width: 800px;
+  font-family: 'Yu Gothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+  position: relative;
+  box-shadow: none;  /* 念のためシャドウをオフに */
+}
+
+/* 見出し */
+.asana-entry h1 {
+  font-size: 1.8em;
+  color: #d64f84;
+  margin-bottom: 0.3em;
+  text-align: center;
+}
+.asana-entry h2 {
+  font-size: 1.3em;
+  margin-top: 1.6em;
+  margin-bottom: 0.4em;
+  border-bottom: 1px dashed #f5c0d8;
+  color: #b43c6f;
+  padding-bottom: 0.3em;
+}
+
+/* サンスクリット名 */
+.sanskrit-name {
+  text-align: center;
+  color: #888;
+  font-size: 0.95em;
+  margin-bottom: 1em;
+}
+
+/* ポラロイド画像風 */
+.polaroid {
+  background: #fff;
+  border: 6px solid #eee;
+  padding: 8px;
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.08);
+  margin: 20px 0;
+  text-align: center;
+  border-radius: 8px;
+}
+.polaroid img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 4px;
+}
+
+/* チャクラ丸アイコン */
+.chakra-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+.chakra-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.chakra-1 { background-color: #ff4b4b; }   /* ムーラダーラ（赤） */
+.chakra-2 { background-color: #ff7f2a; }   /* スヴァディシュターナ（橙） */
+.chakra-3 { background-color: #f8e100; }   /* マニプーラ（黄） */
+.chakra-4 { background-color: #33cc99; }   /* アナーハタ（緑） */
+.chakra-5 { background-color: #33aaff; }   /* ヴィシュッダ（青） */
+.chakra-6 { background-color: #0067c0; }   /* アージュニャー（藍） */
+.chakra-7 { background-color: #5c50e6; }   /* サハスラーラ（紫） */
+
+/* コンテンツ部分 */
+.asana-entry section p {
+  line-height: 1.8;
+  color: #444;
+}
+
+/* --- 分類別カラー背景 or 装飾 --- */
+
+/* 立位（ピンク系） */
+.asana-entry.standing {
+  background: #fff0f5;
+  border-left: 6px solid #f8bbd0;
+}
+
+/* 座位（ミント系） */
+.asana-entry.seated {
+  background: #f0fff5;
+  border-left: 6px solid #a5d6a7;
+}
+
+/* 逆転（青系） */
+.asana-entry.inversion {
+  background: #f4f9ff;         
+  border: 2px solid #c4d9f6;    
+}
+
+/* 前屈（水色系） */
+.asana-entry.forward-bend {
+  background: #e0f7fa;
+  border-left: 6px solid #009688;
+}
+
+/* 後屈（オレンジ系） */
+.asana-entry.backbend {
+  background: #fff3e0;
+  border-left: 6px solid #ffb74d;
+}
+
+/* バランス（黄緑系） */
+.asana-entry.balance {
+  background: #f4ffef;
+  border-left: 6px solid #aed581;
+}
+
+/* ツイスト（ラベンダー〜グレイッシュ） */
+.asana-entry.twist {
+  background: #ede7f6;
+  border-left: 6px solid #9575cd;
+}
+
+.asana-entry.standing h2 {
+  color: #f06292; /* ピンク系 */
+  border-bottom: 1px dashed #f06292;
+}
+.asana-entry.seated h2 {
+  color: #81c784; /* ミント系グリーン */
+  border-bottom: 1px dashed #81c784;
+}
+.asana-entry.inversion h2 {
+ color: #4a77aa;               /* 青系 */
+  border-bottom-color: #c4d9f6; 
+}
+.asana-entry.forward-bend h2 {
+  color: #4db6ac; /* 水色系 */
+  border-bottom: 1px dashed #4db6ac;
+}
+.asana-entry.backbend h2 {
+  color: #ffb74d; /* オレンジ系 */
+  border-bottom: 1px dashed #ffb74d;
+}
+.asana-entry.balance h2 {
+  color: #aed581; /* 黄緑系 */
+  border-bottom: 1px dashed #aed581;
+}
+.asana-entry.twist h2 {
+  color: #9575cd; /* ラベンダー〜グレイッシュ */
+  border-bottom: 1px dashed #9575cd;
+}
+
+/* 混合分類の時はグレー系で */
+.asana-entry.standing.forward-bend h2,
+.asana-entry.balance.twist h2,
+.asana-entry.seated.backbend h2 {
+  color: #888;
+  border-bottom: 1px dashed #888;
+}
+
+/* タイトルの色 */
+.asana-entry.standing h1 {
+  color: #d81b60; /* 立位ピンク強め */
+}
+.asana-entry.seated h1 {
+  color: #388e3c; /* 座位ミントグリーン */
+}
+.asana-entry.inversion h1 {
+ color: #4a77aa;               /* 逆転青 */
+}
+.asana-entry.forward-bend h1 {
+  color: #009688; /* 前屈水色系 */
+}
+.asana-entry.backbend h1 {
+  color: #fb8c00; /* 後屈オレンジ */
+}
+.asana-entry.balance h1 {
+  color: #8bc34a; /* バランス黄緑 */
+}
+.asana-entry.twist h1 {
+  color: #673ab7; /* ツイストラベンダー */
+}
+
+/* 混合の場合は無難にグレー系で */
+.asana-entry.standing.forward-bend h1,
+.asana-entry.balance.twist h1,
+.asana-entry.seated.backbend h1 {
+  color: #555;
+}
+
+/* 立位 */
+.asana-entry.standing {
+  border: 2px solid #f8bbd0; /* ピンク */
+}
+
+/* 座位 */
+.asana-entry.seated {
+  border: 2px solid #a5d6a7; /* ミント */
+}
+
+/* 逆転 */
+.asana-entry.inversion {
+  border: 2px solid #c4d9f6; /* 青 */
+}
+
+/* 前屈 */
+.asana-entry.forward-bend {
+  border: 2px solid #4dd0e1; /* 水色 */
+}
+
+/* 後屈 */
+.asana-entry.backbend {
+  border: 2px solid #ffb74d; /* オレンジ */
+}
+
+/* バランス */
+.asana-entry.balance {
+  border: 2px solid #aed581; /* 黄緑 */
+}
+
+/* ツイスト */
+.asana-entry.twist {
+  border: 2px solid #9575cd; /* ラベンダー */
+}
+
+/* ポラロイド枠の色も分類に合わせて */
+.asana-entry.standing .polaroid {
+  border-color: #f8bbd0;
+}
+.asana-entry.seated .polaroid {
+  border-color: #a5d6a7;
+}
+.asana-entry.inversion .polaroid {
+  border-color: #c4d9f6;        
+}
+.asana-entry.forward-bend .polaroid {
+  border-color: #4dd0e1;
+}
+.asana-entry.backbend .polaroid {
+  border-color: #ffb74d;
+}
+.asana-entry.balance .polaroid {
+  border-color: #aed581;
+}
+.asana-entry.twist .polaroid {
+  border-color: #9575cd;
+}
+.asana-entry.inversion h2 {
+  color: #4a77aa !important;
+  border-bottom: 1px dashed #c4d9f6 !important;
+}
+.asana-entry.forward-bend h2 {
+  color: #4dd0e1 !important;
+  border-bottom: 1px dashed #4dd0e1 !important;
+}
+
+/* ▼ アーサナ辞書　ポーズ複数分類用 */
+/* 複数分類時の背景（淡い虹色グラデーション） */
+.asana-entry.multiple-types {
+  background: linear-gradient(
+    135deg,
+    #ffebee 0%,
+    #fff3e0 17%,
+    #fffde7 34%,
+    #e8f5e9 51%,
+    #e3f2fd 68%,
+    #ede7f6 85%,
+    #fce4ec 100%
+  );
+  border: 2px solid #aaa; /* 枠はグレー系に */
+  color: #444; /* 文字も少し暗めのグレー */
+}
+
+/* 複数分類時のタイトル */
+.asana-entry.multiple-types h1 {
+  color: #555 !important;
+}
+
+/* 複数分類時の見出し */
+.asana-entry.multiple-types h2 {
+  color: #666 !important;
+  border-bottom-color: #666 !important; /* 点線の色もグレー */
+}
+
+/* ポラロイド枠もグレー系に */
+.asana-entry.multiple-types .polaroid {
+  border-color: #aaa !important;
+}
+/* ▼ アーサナ辞書　▲▼用 */
+/* トグルボタンのスタイル */
+.toggle-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  font-size: 0.85em;
+  color: #666;
+  cursor: pointer;
+  z-index: 10;
+  padding: 4px 8px;
+}
+
+.toggle-button:hover {
+  text-decoration: underline;
+}
+/* ▼ アーサナ辞書　▲▼装飾用 */
+.toggle-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #fce4ec;
+  color: #d81b60;
+  border: 1px solid #f8bbd0;
+  border-radius: 20px;
+  font-size: 0.85em;
+  font-weight: bold;
+  padding: 6px 12px;
+  box-shadow: 1px 1px 4px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggle-button:hover {
+  background: #f8bbd0;
+  color: #fff;
+  box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+}
+
+/* ▼ アーサナ辞書　免責注意用用 */
+.disclaimer-text {
+  text-align: center;
+  font-size: 0.75em;
+  color: #888;
+  margin-top: -16px;
+  margin-bottom: 40px;
+  padding-right: 8px;
+}
+
+/* =============================
+   ▼ Blog用
+============================= */
+.blog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.blog-card {
+  display: flex;
+  gap: 1.5rem;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 1.5rem;
+}
+
+.blog-thumb img {
+  width: 200px;
+  height: auto;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.blog-content {
+  flex: 1;
+}
+
+.blog-content h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+}
+
+.blog-meta {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 0.5rem;
+}
+
+.blog-content p {
+  margin: 0 0 1rem;
+}
+
+.read-more {
+  display: inline-block;
+  color: #0073aa;
+  text-decoration: underline;
+  font-size: 0.9rem;
+}
+
+.read-more:hover {
+  text-decoration: none;
+}
+
+.pagination {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .blog-card {
+    flex-direction: column;
+  }
+  .blog-thumb img {
+    width: 100%;
+    height: auto;
+  }
+}
+/* ---- ブログ記事一覧 ---- */
+.blog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.blog-card {
+  display: flex;
+  gap: 1.5rem;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 1.5rem;
+}
+
+.blog-thumb img {
+  width: 200px;
+  height: auto;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.blog-content {
+  flex: 1;
+}
+
+.blog-content h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+}
+
+.blog-meta {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 0.5rem;
+}
+
+.blog-content p {
+  margin: 0 0 1rem;
+}
+
+.read-more {
+  display: inline-block;
+  color: #0073aa;
+  text-decoration: underline;
+  font-size: 0.9rem;
+}
+
+.read-more:hover {
+  text-decoration: none;
+}
+
+.pagination {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+/* スマホ調整！ */
+@media (max-width: 768px) {
+  .blog-card {
+    flex-direction: row; /* 念のため横並びを明示 */
+  }
+  .blog-thumb img {
+    width: 120px; /* ← 200px から小さく！ */
+    height: auto;
+  }
+}
+
+/* ---- ブログページヘッダー ---- */
+.blog-page-header {
+  text-align: center;
+  margin: 2rem 0 3rem;
+}
+
+.blog-page-header h1 {
+  font-size: 2.4rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.blog-page-header p {
+  font-size: 1.1rem;
+  color: #555;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ---- 旧ブログリンク ---- */
+.old-blog-link {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-weight: 600;
+  color: #777;
+  font-size: 1rem;
+}
+
+.old-blog-link a {
+  color: #d6336c;
+  text-decoration: underline;
+}
+
+.old-blog-link a:hover {
+  color: #a02040;
+  text-decoration: none;
+}
+
+/* ---- カテゴリフィルター ---- */
+.category-filter ul {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  list-style: none;
+  padding: 0;
+  margin-bottom: 2rem;
+}
+
+.category-filter li a {
+  padding: 0.4rem 0.8rem;
+  background: #f0f0f0;
+  border-radius: 20px;
+  color: #555;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.category-filter li a:hover,
+.category-filter li a.current-cat {
+  background: #d6336c;
+  color: #fff;
+}
+/* 一覧の一番上の区切り線 */
+.blog-divider {
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 2rem;
+}
+
+.blog-page-header {
+  margin: 0;
+  padding: 0;
+  text-align: center; /* 真ん中寄せの場合 */
+}
+
+.blog-page-header .blog-top-image img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+
+.blog-page-header p {
+  margin-top: 1rem; /* 説明文との間を少し開けたい場合だけ */
+}
+
+/* =============================
+   ▼ オラクルカード
+============================= */
+/* Google Fonts 読み込み */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Parisienne&family=Allura&family=Satisfy&display=swap');
+
+/* 共通設定 */
+.deck-single {
+  background: #fdfdfd;
+  padding: 40px 20px;
+  font-family: 'Noto Serif JP', serif;
+  color: #444;
+  line-height: 1.8;
+}
+
+/* ★ Parisienne */
+.deck-title {
+  font-family: 'Parisienne', cursive;
+  text-align: center;
+  font-size: 3.2em;
+  margin-bottom: 30px;
+  color: #222;
+  letter-spacing: 1px;
+}
+
+/* カード画像 */
+.deck-card-image img {
+  display: block;
+  margin: 0 auto 30px;
+  width: auto;
+  max-width: 300px;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+}
+
+/* 本文 */
+.deck-card-content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.deck-card-content h2 {
+  position: relative;
+  margin-top: 30px;
+  margin-bottom: 10px;
+  font-size: 1.4em;
+  border-bottom: 2px dotted #ccc;
+  padding-bottom: 5px;
+  font-weight: bold;
+}
+
+.deck-card-content p,
+.deck-card-content ul {
+  font-size: 1em;
+  color: #555;
+}
+
+.deck-card-content ul {
+  margin-left: 20px;
+  list-style: disc;
+}
+
+@media (max-width: 768px) {
+  .deck-title {
+    font-size: 2.2em;
+  }
+  .deck-card-content {
+    padding: 0 15px;
+  }
+}
+
+/* =============================
+   ▼ オラクルデッキ一覧
+============================= */
+.deck-archive {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.deck-archive-title {
+  font-family: 'Parisienne', cursive;
+  font-size: 3em;
+  margin-bottom: 40px;
+}
+
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 30px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.deck-item {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+.deck-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+}
+
+.deck-item img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.deck-item h2 {
+  margin: 15px 0;
+  font-size: 1.2em;
+  color: #333;
+}
+
+/* =============================
+   ▼ オラクル結果ページ（選択画面含む）
+============================= */
+/* === 全体ラップ === */
+.oracle-result {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 20px 15px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #333;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+/* === 選択肢テキスト === */
+.oracle-choice {
+  text-align: center;
+  color: #e0669e;
+  font-weight: bold;
+  font-size: 1.2em;
+  margin-bottom: 20px;
+}
+
+/* === 見出し === */
+.oracle-result h2.message-heading {
+  font-size: 1.4em;
+  margin: 30px 0 10px;
+  color: #b56edc;
+  padding-left: 10px;
+  border-left: 5px solid #b56edc;
+}
+
+/* === 画像表示 === */
+.oracle-result .image-wrapper {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.oracle-result img.card-image {
+  display: inline-block;
+  max-width: 300px;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1), 0 8px 20px rgba(0,0,0,0.1);
+  border: 1px solid #eee;
+  cursor: pointer;
+}
+
+/* === 本文・チャクラテキスト === */
+.oracle-result .message-content,
+.oracle-result .message-content p,
+.oracle-result .chakra-info {
+  margin-top: 0;
+  text-align: left;
+  white-space: pre-wrap;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #444;
+  padding-bottom: 20px;
+}
+
+.oracle-result .message-content p {
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+/* === スマホ対応 === */
+@media (max-width: 600px) {
+  .oracle-result img.card-image {
+    max-width: 150px;
+  }
+
+  .oracle-result .message-content,
+  .oracle-result .message-content p,
+  .oracle-result .chakra-info {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+}
+
+/* =============================
+   ▼ Lillyヨガ占い 用 CSS（クラス名変更版）
+============================= */
+.oracle-cards {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+}
+
+.lilly-oracle-card {
+  text-align: center;
+  width: 30%;
+  min-width: 90px;
+  max-width: 120px;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.lilly-oracle-card img {
+  display: block;
+  margin: 0 auto 30px;
+  width: auto;
+  max-width: 120px;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+  background-color: transparent;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.lilly-oracle-card img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+}
+
+.lilly-oracle-card:active::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.8) 50%,
+    rgba(255,255,255,0) 100%
+  );
+  transform: skewX(-25deg);
+  animation: shine 0.6s ease-out;
+  pointer-events: none;
+}
+
+@keyframes shine {
+  0% { left: -75%; }
+  100% { left: 125%; }
+}
+
+.oracle-label {
+  margin-top: 6px;
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #333;
+}
+
+.profile-box {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 12px;
+  max-width: 500px;
+  margin: 15px auto;
+  text-align: left;
+  font-size: 0.65em;
+}
+
+.profile-box p {
+  margin: 0 0 8px;
+  font-weight: bold;
+  font-size: 1em;
+  text-align: center;
+}
+
+.profile-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-block img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-text {
+  color: #555;
+  line-height: 1.4;
+}
+
+@media (max-width: 600px) {
+  .lilly-oracle-card {
+    width: 30%;
+  }
+  .profile-block {
+    flex-direction: row;
+    text-align: left;
+  }
+}
+
+/* =============================
+   ▼ アストロダイス用
+============================= */
+.astro-dice {
+  background: linear-gradient(135deg, #ffe0f7, #e0f7ff);
+  text-align: center;
+  padding: 40px;
+}
+
+.astro-dice button {
+  background: #ffb3e6;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 30px;
+  color: white;
+  font-size: 1.2em;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.astro-dice .result {
+  margin-top: 30px;
+  padding: 20px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.astro-dice .item {
+  margin: 10px 0;
+  font-size: 1.2em;
+}
+
+.astro-dice .label {
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #ff69b4;
+}
+
+/* =============================
+   ▼ サイコロツール用
+============================= */
+#dice-tool {
+  text-align: center;
+}
+
+#dice-image {
+  width: 150px;
+  height: 150px;
+  transition: transform 0.2s;
+}
+
+#dice-button {
+  background: linear-gradient(135deg, #ffb6c1, #ffe4e1);
+  border: none;
+  padding: 15px 30px;
+  font-size: 20px;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* =============================
+   ▼ ルーレット用
+============================= */
+/* ルーレット全体の親コンテナ */
+.roulette-container {
+  text-align: center;
+  /* font-family: 'Arial Rounded MT Bold', 'Hiragino Maru Gothic ProN', sans-serif; */
+  background: #ffffff;
+  padding: 30px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.roulette-container .desc {
+  max-width: 400px;
+  margin: 0 auto 20px;
+  font-size: 16px;
+  color: #333;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.roulette-container input {
+  width: 90%;
+  max-width: 400px;
+  padding: 15px;
+  font-size: 18px;
+  border: 2px solid #d63384;
+  border-radius: 8px;
+  margin-top: 20px;
+  box-sizing: border-box;
+}
+
+.roulette-container canvas {
+  border: 4px solid #fff;
+  border-radius: 50%;
+  width: 90%;
+  max-width: 400px;
+  height: auto;
+  display: block;
+  margin: 20px auto;
+}
+
+.roulette-container button {
+  padding: 15px 40px;
+  font-size: 20px;
+  background: #ff69b4;
+  border: none;
+  border-radius: 30px;
+  color: #fff;
+  margin-top: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px #c71585;
+  transition: transform 0.1s ease;
+}
+
+.roulette-container button:active {
+  box-shadow: none;
+  transform: translateY(2px);
+}
+
+/* =============================
+   ▼ デイリーオラクル用
+============================= */
+
+.daily-oracle-card {
+  width: 240px;
+  height: 360px;
+  perspective: 1000px;
+  cursor: pointer;
+  margin: 10px;
+}
+
+.daily-oracle-card .card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s;
+}
+
+.daily-oracle-card.flipped .card-inner {
+  transform: rotateY(180deg);
+}
+
+.card-front,
+.card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+}
+
+.card-front {
+  z-index: 2;
+}
+
+.card-back {
+  transform: rotateY(180deg);
+}
+
+.daily-oracle-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.detail-button {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 10px 20px;
+  background: #333;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background 0.3s;
+}
+
+.detail-button:hover {
+  background: #555;
+}
+
+/* =============================
+   ▼ Weekly用カード表示
+============================= */
+.weekly-oracle-wrapper .oracle-cards {
+  display: flex;
+  justify-content: center;
+  gap: 10px; /* スマホでの余白を少し狭める */
+  flex-wrap: wrap;
+  padding: 10px 0;
+}
+
+.weekly-oracle-wrapper .oracle-card {
+  text-align: center;
+  width: 150px;
+  flex: 0 0 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.weekly-oracle-wrapper .oracle-card img {
+  display: block;
+  width: 100%;
+  max-width: 120px;
+  height: auto;
+  margin: 0 auto 10px;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  background-color: transparent;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.weekly-oracle-wrapper .oracle-card img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+.weekly-oracle-wrapper .oracle-label {
+  margin-top: 6px;
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #333;
+}
+
+@media (max-width: 600px) {
+  .weekly-oracle-wrapper .oracle-card {
+    width: 30%; /* ←スマホではカード幅を1/3にする */
+  }
+
+  .weekly-oracle-wrapper .oracle-cards {
+    gap: 6px; /* gapも少し詰める */
+  }
+
+  .weekly-oracle-wrapper .oracle-card img {
+    max-width: 100%;
+  }
+}
+
+/* =============================
+   ▼ ヒプノセラピー用
+============================= */
+.hypnotherapy-block {
+  max-width: 700px;
+  margin: 30px auto;
+  padding: 20px;
+  background: #f0fff4;
+  border-radius: 12px;
+  box-shadow: 0 6px 15px rgba(100, 180, 120, 0.3);
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  color: #2a5a2a;
+  line-height: 1.6;
+}
+
+.hypnotherapy-block h1 {
+  font-size: 2rem;
+  margin-bottom: 15px;
+  text-align: center;
+  color: #3a8d3a;
+}
+
+.hypnotherapy-block h2 {
+  font-size: 1.3rem;
+  margin-top: 25px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid #a0d8a0;
+  padding-bottom: 4px;
+}
+
+.hypnotherapy-block ul {
+  list-style-type: disc;
+  padding-left: 20px;
+}
+
+.hypnotherapy-block .contact-links {
+  list-style-type: none;
+  padding-left: 0;
+  margin-top: 10px;
+}
+
+.hypnotherapy-block .contact-links li {
+  margin-bottom: 8px;
+}
+
+.hypnotherapy-block .contact-links a {
+  color: #3a8d3a;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* =============================
+   ▼ 個人鑑定用
+============================= */
+section {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 0 20px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  line-height: 1.8;
+  color: #333;
+}
+
+section h1 {
+  font-size: 1.5rem; /* h2と同じサイズに */
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+section h2 {
+  font-size: 1.5rem;
+  margin-top: 40px;
+  border-left: 5px solid #f7a7c6;
+  padding-left: 10px;
+}
+
+section h3 {
+  font-size: 1.2rem;
+  margin-top: 30px;
+  color: #cc6699;
+}
+
+section p {
+  margin: 15px 0;
+}
+
+section ul {
+  margin: 10px 0 20px 20px;
+  padding-left: 20px;
+}
+
+section ul li {
+  margin-bottom: 10px;
+}
+
+section ol {
+  margin: 10px 0 20px 30px;
+}
+
+section a {
+  color: #cc6699;
+  text-decoration: underline;
+}
+
+section a:hover {
+  opacity: 0.8;
+}
+
+section strong {
+  font-weight: bold;
+}
+
+section p:last-child {
+  margin-bottom: 0;
+}
+
+/* =============================
+   ▼ ネイル料金表
+============================= */
+.nail-service,
+.nail-order {
+  border: 1px solid #ccc;
+  padding: 15px;
+  background: #ffe6f0;
+  line-height: 1.8;
+  font-size: 15px;
+  font-family: 'Hiragino Kaku Gothic ProN', sans-serif;
+  margin-bottom: 20px;
+}
+
+.nail-service h3,
+.nail-order h3 {
+  margin-top: 0;
+  text-align: center;
+  font-weight: normal;
+}
+
+.nail-service h3 {
+  color: #d63384;
+}
+
+.nail-order h3 {
+  color: #c71585;
+}
+
+.note {
+  color: #666;
+}
+
+.nail-hr {
+  border: none;
+  border-top: 1px dashed #d63384;
+  margin: 15px 0;
+}
+
+.order-hr {
+  border: none;
+  border-top: 1px dashed #c71585;
+  margin: 15px 0;
+}
+
+.price-note {
+  font-size: 13px;
+  color: #888;
+  margin-top: 5px;
+}
+
+/* =============================
+   ▼ Stickers用
+============================= */
+/* LINEスタンプ料金表 */
+.line-stamp-menu {
+  border: 2px solid #a2d9ff;
+  padding: 20px;
+  border-radius: 10px;
+  background-color: #f0fbff;
+  margin-bottom: 40px;
+}
+
+.line-stamp-menu h2 {
+  color: #00aaff;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-weight: normal;
+}
+
+.line-stamp-menu table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  font-size: 16px;
+}
+
+.line-stamp-menu th,
+.line-stamp-menu td {
+  padding: 10px;
+  border: 1px solid #a2d9ff;
+}
+
+.line-stamp-menu thead {
+  background-color: #d3efff;
+}
+
+.notice {
+  color: #ff0055;
+  font-weight: bold;
+  margin-top: 20px;
+}
+
+/* スタンプサンプル画像 */
+.stamp-sample-text {
+  text-align: center;
+  margin-bottom: 40px;
+  font-size: 16px;
+}
+
+.stamp-sample {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.stamp-sample img {
+  max-width: 100%;
+  height: auto;
+  border: none;
+}
+
+/* LINEスタンプオーダーの流れ */
+.line-stamp-flow {
+  padding: 20px;
+  border-left: 4px solid #00aaff;
+  background: #f7fdff;
+  margin-bottom: 50px;
+}
+
+.line-stamp-flow h3 {
+  color: #00aaff;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-weight: normal;
+}
+
+.line-stamp-flow ol {
+  padding-left: 20px;
+}
+
+.line-stamp-flow li {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.line-stamp-flow .highlight {
+  color: #00aaff;
+  display: block;
+  margin-top: 6px;
+  margin-left: 15px;
+}
+
+.line-stamp-flow .warning {
+  color: #ff0055;
+  display: block;
+  margin-top: 6px;
+  margin-left: 15px;
+  font-weight: bold;
+}
+
+/* 名刺作成相談 */
+.business-card-suggestion {
+  text-align: center;
+  font-size: 16px;
+  margin-top: 30px;
+  color: #66c3b8;
+}
+
+/* 名刺デザインメニュー */
+.business-card-menu {
+  border: 2px solid #a2e0d6;
+  padding: 20px;
+  border-radius: 10px;
+  background-color: #f0fffd;
+  margin-top: 40px;
+}
+
+.business-card-menu h2 {
+  color: #66c3b8;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-weight: normal;
+}
+
+.business-card-item {
+  margin-bottom: 15px;
+  padding: 10px;
+  border: 1px solid #a2e0d6;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.business-card-item p {
+  margin: 0;
+}
+
+.business-card-menu .notice {
+  color: #ff0055;
+  font-weight: bold;
+  margin-top: 20px;
+}
+
+/* =============================
+   ▼ チャクラ占いボタン用
+============================= */
+.chakra-uranai-btn-wrapper {
+  text-align: center;
+  margin: 30px 0;
+}
+
+.chakra-uranai-btn {
+  display: inline-block;
+  background: linear-gradient(to bottom, #ff99cc, #ff66aa);
+  color: #ffffff;
+  padding: 14px 32px;
+  font-size: 1.3em;
+  font-weight: bold;
+  border-radius: 40px;
+  text-decoration: none;
+  box-shadow: 0 8px 20px rgba(255, 105, 180, 0.5);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.chakra-uranai-btn:hover {
+  transform: translateY(-4px);
+}
+
+/* =============================
+   ▼ About用
+============================= */
+.about-profile-card {
+  display: flex;
+  flex-wrap: wrap;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+  gap: 24px;
+  margin-bottom: 2rem;
+  max-width: 900px;
+  margin-inline: auto;
+  align-items: center;
+}
+
+.about-profile-card img {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 4px solid #f3e9f6;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.about-profile-text {
+  flex: 1;
+}
+
+.about-profile-text h2 {
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+  color: #b478c5;
+}
+
+.about-profile-text p {
+  line-height: 1.7;
+  margin-bottom: 1em;
+}
+
+.about-profile-section {
+  background: #f9f7fb;
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 2rem;
+  max-width: 900px;
+  margin-inline: auto;
+}
+
+.about-profile-section h3 {
+  font-size: 1.3rem;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  color: #b478c5;
+}
+
+.about-profile-section ul {
+  padding-left: 1.2em;
+  list-style-type: disc;
+}
+
+/* ========== About（はじめての方へ） ========== */
+.about-wrap{
+  max-width:960px; margin:0 auto; padding:48px 16px; line-height:1.85;
+}
+.about-wrap h2{ font-size:clamp(20px,3.2vw,26px); margin:1.2rem 0 .6rem; }
+
+.profile{
+  display:grid; gap:18px; grid-template-columns:160px 1fr; align-items:start; margin-top:.5rem;
+}
+.profile__media img{ width:100%; height:auto; border-radius:10px; display:block; }
+.profile__body .note{ opacity:.8; margin:.25rem 0 .5rem; }
+@media(max-width:720px){
+  .about-wrap{ padding:32px 14px; }
+  .profile{ grid-template-columns:1fr; }
+  .profile__media{ max-width:220px; margin:0 auto; }
+}
+
+/* ===== About：CTA（3色ボタン）完全版 ===== */
+
+/* 共通 */
+.cta-buttons{
+  --gap: 16px;
+  display: flex;
+  gap: var(--gap);
+  justify-content: center;       /* PC中央揃え */
+  align-items: stretch;
+  max-width: 960px;              /* 3つ並べる土台幅 */
+  margin: 16px auto 0;
+}
+
+.cta-buttons > a{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity .15s ease, transform .15s ease;
+}
+
+/* 信号カラー */
+.cta-buttons > .btn-1{ background:#FF7FB3; color:#fff; }
+.cta-buttons > .btn-2{ background:#FFD93D; color:#5a4a00; }
+.cta-buttons > .btn-3{ background:#7FB4FF; color:#fff; }
+
+.cta-buttons > a:hover{ opacity:.9; transform: translateY(-1px); }
+
+/* --- PC（900px以上）：3つを1列固定＆中央揃え --- */
+@media (min-width: 900px){
+  .cta-buttons{
+    flex-wrap: nowrap; /* ← ここが肝：折り返さない */
+  }
+  .cta-buttons > a{
+    flex: 0 0 calc((100% - (var(--gap) * 2)) / 3); /* 3等分 */
+    max-width: none;
+    min-width: 0;
+    font-size: 16px;
+  }
+}
+
+/* --- スマホ（〜899px）：縦並び＆余白少なめ・最大幅300px --- */
+@media (max-width: 899px){
+  .cta-buttons{
+    flex-direction: column;
+    gap: 8px;                 /* ボタン間の余白を小さく */
+    align-items: center;      /* 中央寄せ */
+    margin-top: 12px;
+  }
+  .cta-buttons > a{
+    width: 100%;
+    max-width: 300px;         /* 短めで中央寄せ */
+    padding: 8px 10px;        /* 余白ギュッと */
+    font-size: 15px;
+    border-radius: 12px;
+  }
+}
+
+
+/* ====== スマホ ====== */
+@media (max-width: 768px){
+  .cta-buttons {
+    flex-direction: column;  /* 縦並び */
+    gap: 8px;                /* ボタン間の余白をギュッと */
+    align-items: center;     /* 中央寄せ */
+    margin-top: 12px;
+  }
+  .cta-buttons > a {
+    width: 100%;
+    max-width: 300px;        /* 中央寄せで短め */
+    margin: 0 auto;
+    padding: 10px 12px;      /* コンパクトな余白 */
+    font-size: 15px;
+    border-radius: 12px;     /* 丸み控えめ */
+  }
+}
+
+/* =============================
+   ▼ ネイル予約コピーボックス
+============================= */
+.copy-box-container {
+  position: relative;
+  max-width: 100%;
+  margin-bottom: 10px;
+}
+.copy-box {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  resize: none;
+}
+.copy-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s ease;
+}
+.copy-button:hover {
+  background-color: #45a049;
+}
+
+/* =============================
+   ▼ デッキカード一覧用　反映されてないっぽい
+============================= */
+
+.mg-deck-cards-list {
+  margin: 2rem 0;
+}
+
+.mg-deck-cards-list h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: #333;
+}
+
+.mg-cards-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+  list-style: none;
+  padding: 0;
+}
+
+.mg-card-item {
+  background: #fff;
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  overflow: hidden;
+  text-align: center;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.mg-card-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.mg-card-item img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.mg-card-item h3 {
+  font-size: 1.2rem;
+  margin: 0.8rem 0;
+}
+
+.mg-card-item h3 a {
+  color: #6C63FF; /* おしゃれなパープル */
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.mg-card-item h3 a:hover {
+  color: #FF6584; /* ホバーでピンクに変化 */
+}
+
+/* =============================
+   ▼ NEW TOP
+============================= */
+/* ベース */
+.chakra-portal { --gap: clamp(16px, 3vw, 32px); }
+.hero {
+  min-height: 70svh; display: grid; place-items: center; text-align: center;
+  background: radial-gradient(80% 60% at 50% 40%, #ffffff 0%, #f7f7ff 55%, #f1f1ff 100%);
+  padding: 6rem 1.5rem;
+}
+.hero__title { font-size: clamp(28px, 5vw, 44px); line-height: 1.2; margin-bottom: .75rem; }
+.hero__lead  { opacity: .8; margin-bottom: 1.5rem; }
+
+.btn { display:inline-block; padding:.75rem 1.25rem; border-radius:999px; border:1px solid currentColor; text-decoration:none; }
+.btn--ghost { background: transparent; }
+.badge--soon { display:inline-block; padding:.4rem .7rem; border-radius:999px; background:#eee; font-size:.85rem; }
+
+/* セクション */
+.chakra-section {
+  display: grid; grid-template-columns: 1.1fr 1.2fr; gap: var(--gap); align-items: center;
+  padding: clamp(40px, 7vw, 96px) 1.25rem;
+  opacity: 0; transform: translateY(24px); transition: .7s ease;
+}
+.chakra-section.is-inview { opacity: 1; transform: translateY(0); }
+.chakra-section.is-reverse { grid-template-columns: 1.2fr 1.1fr; }
+.chakra-section.is-reverse .chakra-section__media { order: 2; }
+.chakra-section.is-reverse .chakra-section__body  { order: 1; }
+
+.chakra-section__media img {
+  width: 100%; height: auto; object-fit: contain; filter: drop-shadow(0 6px 24px rgba(0,0,0,.08));
+}
+.chakra-section__title { font-size: clamp(22px, 3.6vw, 32px); margin: .25rem 0 .5rem; }
+.chakra-section__copy { margin-bottom: 1rem; opacity: .9; }
+.chakra-section__sns .link { margin-right: 1rem; font-size: .95rem; }
+
+/* チャクラ別の淡いグラデ（必要なら好みで変更してね） */
+.chakra-root   { background: linear-gradient(180deg, #fff 0%, #fff5f5 100%); }
+.chakra-sacral { background: linear-gradient(180deg, #fff 0%, #fff7f0 100%); }
+.chakra-solar  { background: linear-gradient(180deg, #fff 0%, #fffbe8 100%); }
+.chakra-heart  { background: linear-gradient(180deg, #fff 0%, #f2fff5 100%); }
+.chakra-throat { background: linear-gradient(180deg, #fff 0%, #f0fffd 100%); }
+.chakra-third-eye { background: linear-gradient(180deg, #fff 0%, #f0f8ff 100%); }
+.chakra-crown  { background: linear-gradient(180deg, #fff 0%, #faf2ff 100%); }
+
+/* フッター＆★ */
+.portal-footer { 
+  padding: 56px 1.25rem 80px; 
+  text-align: center; 
+  position: relative; 
+}
+.portal-links a { margin: 0 .75rem; }
+
+/* Soulstar ★ */
+.eighth-star {
+  position: absolute; 
+  right: clamp(12px, 3vw, 28px); 
+  bottom: clamp(12px, 3vw, 28px);
+  font-size: clamp(20px, 4vw, 28px);
+  text-decoration: none;
+  opacity: .65;
+  color: #9aa; /* 通常はグレー */
+  transition: color .25s ease, opacity .25s ease, transform .25s ease, text-shadow .25s ease;
+}
+
+.eighth-star:hover {
+  color: #A78BFA; /* ホバー時ラベンダー */
+  transform: rotate(-6deg) scale(1.06);
+  opacity: 1;
+  text-shadow: 0 0 10px rgba(167,139,250,.5);
+}
+
+/* キーボード操作にも対応 */
+.eighth-star:focus-visible {
+  outline: 2px solid #A78BFA;
+  outline-offset: 2px;
+}
+
+/* レスポンシブ */
+@media (max-width: 900px) {
+  .chakra-section { grid-template-columns: 1fr; }
+  .chakra-section.is-reverse .chakra-section__media,
+  .chakra-section.is-reverse .chakra-section__body { order: initial; }
+}
+
+/* ▼ チャクラ：キャッチ＋補足の見た目 */
+.chakra-copy__lead{
+  font-size: clamp(1.02rem, 1.2vw, 1.15rem);
+  font-weight: 500;
+  color: #222;           /* キャッチは濃いめ */
+  letter-spacing: .01em;
+  margin: .15rem 0 .3rem;
+}
+
+.chakra-copy__note{
+  font-size: .95rem;     /* 補足は小さめ */
+  color: #777;           /* 補足は淡色 */
+  line-height: 1.75; 
+  max-width: 560px;      /* 読みやすい横幅に制限 */
+  margin: 0 0 1.25rem;
+}
+
+@media (max-width: 900px){
+  .chakra-copy__lead{ text-align: center; }
+  .chakra-copy__note{ 
+    margin-left: auto; 
+    margin-right: auto; 
+    text-align: center;  /* モバイルは中央寄せでやさしく */
+  }
+}
+
+/* ===== HERO (First View) ===== */
+.hero.hero--chakra{
+  position: relative;
+  min-height: 78svh;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: clamp(48px, 6vw, 96px) 1.5rem;
+  overflow: hidden;
+  /* やわらかい背景（淡い放射＋微細ノイズ） */
+  background:
+    radial-gradient(120% 90% at 50% 20%, #ffffff 0%, #f8f8ff 55%, #f2f2ff 100%);
+  isolation: isolate;
+}
+.hero__inner{
+  max-width: 860px;
+  margin: 0 auto;
+}
+.hero__eyebrow{
+  display:inline-block;
+  font-size:.9rem;
+  letter-spacing:.08em;
+  color:#8a88b5;
+  background: rgba(255,255,255,.6);
+  border:1px solid rgba(138,136,181,.25);
+  padding:.35rem .65rem;
+  border-radius:999px;
+  margin-bottom: .85rem;
+  backdrop-filter: blur(6px);
+}
+.hero__title{
+  font-size: clamp(28px, 5.2vw, 44px);
+  line-height:1.25;
+  color:#222;
+  margin-bottom:.65rem;
+}
+.hero__lead{
+  font-size: clamp(.98rem, 1.25vw, 1.1rem);
+  color:#666;
+  line-height:1.8;
+  max-width: 720px;
+  margin: 0 auto 1.2rem;
+}
+
+/* CTAボタン */
+.hero__ctas{
+  display:flex; gap:.75rem; justify-content:center; flex-wrap:wrap;
+  margin: 1rem 0 0.4rem;
+}
+.btn--primary{
+  background: #3b7df0;
+  color:#fff;
+  border:1px solid transparent;
+}
+.btn--primary:hover{ opacity:.95; transform: translateY(-1px); }
+.btn{ transition: transform .15s ease, opacity .15s ease; }
+
+/* ミニリンク（控えめ） */
+.hero__mini-links{
+  margin-top:.25rem;
+  font-size:.9rem;
+  color:#888;
+}
+.hero__mini-links a{ color:#777; text-decoration: none; }
+.hero__mini-links a:hover{ text-decoration: underline; }
+
+/* やわらかい色のオーブ（背景の丸い光） */
+.hero__orb{
+  position:absolute; inset:auto;
+  width: 44vmax; height: 44vmax;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity:.35; z-index:-1;
+}
+.hero__orb--pink{
+  background: radial-gradient(closest-side, #ff7fc1 0%, transparent 70%);
+  left: -12vmax; top: -10vmax;
+}
+.hero__orb--blue{
+  background: radial-gradient(closest-side, #7fb4ff 0%, transparent 70%);
+  right: -14vmax; bottom: -12vmax;
+}
+
+/* スクロール誘導 */
+.hero__scroll{
+  position:absolute; left:50%; bottom:12px; transform:translateX(-50%);
+  font-size:.85rem; color:#9aa; text-decoration:none;
+  padding-left: 18px;
+}
+.hero__scroll::before{
+  content:"";
+  position:absolute; left:0; top:50%; transform: translateY(-50%);
+  width:10px; height:16px; border:1.8px solid #9aa; border-radius:8px;
+}
+.hero__scroll::after{
+  content:""; position:absolute; left:4px; top: calc(50% - 4px);
+  width:2px; height:6px; background:#9aa; border-radius:2px;
+  animation: scrollDot 1.8s infinite ease;
+}
+@keyframes scrollDot{
+  0%{ transform: translateY(-6px); opacity:0; }
+  25%{ opacity:1; }
+  100%{ transform: translateY(6px); opacity:0; }
+}
+
+/* モーション配慮 */
+@media (prefers-reduced-motion: reduce){
+  .btn, .hero__scroll::after{ animation:none !important; transform:none !important; }
+  .hero__orb{ filter:none; opacity:.25; }
+}
+
+/* モバイル微調整 */
+@media (max-width: 600px){
+  .hero.hero--chakra{ padding-top: 64px; padding-bottom: 72px; }
+  .hero__eyebrow{ font-size:.85rem; }
+  .hero__mini-links{ font-size:.85rem; }
+}
+
+.hero__logo img{
+  max-width: 600px;   /* ロゴサイズ調整 */
+  height: auto;
+  margin: 0 auto 1rem;
+  display: block;
+}
+@media(max-width:600px){
+  .hero__logo img{
+    width: 100%;       /* 横幅いっぱいに */
+    max-width: none;   /* 制限を外す */
+    margin-bottom: 1rem;
+  }
+}
+
+/* =============================
+   ▼ チャクラ別テーマカラー（CSS変数）
+   各セクションに既に付いている .chakra-<slug> クラスに色を割当
+============================= */
+
+/* デフォ（念のため） */
+.chakra-section { --chakra-color: #ff7fc1; } /* 既存のピンクを初期値に */
+
+/* 第1～第7チャクラの代表色 */
+.chakra-root      { --chakra-color: #d7003a; } /* 第1：赤 */
+.chakra-sacral    { --chakra-color: #E67E22; } /* 第2：橙 */
+.chakra-solar     { --chakra-color: #F1C40F; } /* 第3：黄 */
+.chakra-heart     { --chakra-color: #27AE60; } /* 第4：緑 */
+.chakra-throat    { --chakra-color: #3498DB; } /* 第5：青 */
+.chakra-third-eye { --chakra-color: #5B6ACF; } /* 第6：藍 */
+.chakra-crown     { --chakra-color: #9B59B6; } /* 第7：紫 */
+
+/* =============================
+   ▼ 縦棒（タイトル左のアクセント）
+============================= */
+.chakra-section__title{
+  position: relative;
+  padding-left: .65em;
+}
+.chakra-section__title::before{
+  content:"";
+  position: absolute;
+  left: 0; top: .15em;
+  width: .28em; 
+  height: 1.05em; 
+  border-radius: 3px;
+  background: var(--chakra-color);
+}
+
+/* =============================
+   ▼ リンク・ボタンの色（各チャクラ色に）
+============================= */
+.chakra-section .link{
+  color: var(--chakra-color);
+  text-decoration: underline;
+  text-decoration-color: var(--chakra-color);
+  text-underline-offset: .15em;
+}
+.chakra-section .link:hover{
+  opacity: .9;
+}
+
+/* 詳しく見るボタン：アウトライン → ホバーで同色塗り */
+.chakra-section .btn{
+  color: var(--chakra-color);
+  border-color: var(--chakra-color);
+  background: transparent;
+}
+.chakra-section .btn:hover{
+  background: var(--chakra-color);
+  color: #fff;
+  border-color: var(--chakra-color);
+}
+
+/* Coming soon のバッジは読みやすさ優先でそのまま */
+
+/* =============================
+   ▼ Chakra Portal 内だけのリセット／上書き
+   （テンプレートの <main class="chakra-portal"> に作用）
+============================= */
+
+/* 個人鑑定用の「ピンク縦棒」を無効化して、
+   ポータルのタイトル用 ::before 縦棒だけを使う */
+.chakra-portal section h2 {
+  border-left: none;
+  padding-left: 0;
+}
+
+/* 個人鑑定用のリンク色（#cc6699）が被るのを防ぐ */
+.chakra-portal section a {
+  color: inherit;                     /* 基本は継承 */
+  text-decoration-color: currentColor;
+}
+
+/* SNSリンクとボタンは、各チャクラ色を必ず使う */
+.chakra-portal .chakra-section .link {
+  color: var(--chakra-color);
+  text-decoration-color: var(--chakra-color);
+}
+
+.chakra-portal .chakra-section .btn {
+  color: var(--chakra-color);
+  border-color: var(--chakra-color);
+  background: transparent;
+}
+.chakra-portal .chakra-section .btn:hover {
+  background: var(--chakra-color);
+  color: #fff;
+  border-color: var(--chakra-color);
+}
+
+/* タイトルの縦棒（チャクラ色）をしっかり表示 */
+.chakra-portal .chakra-section__title{
+  position: relative;
+  padding-left: .65em;
+}
+.chakra-portal .chakra-section__title::before{
+  content:"";
+  position: absolute;
+  left: 0; top: .15em;
+  width: .28em; 
+  height: 1.05em; 
+  border-radius: 3px;
+  background: var(--chakra-color);
+}
+
+/* =============================
+   ▼ Hero CTAボタン：見やすいパステル調
+============================= */
+.chakra-portal .hero__ctas .btn--primary {
+  background: linear-gradient(
+    90deg,
+    #FF6B6B 0%,   /* 赤コーラル */
+    #FFA85C 15%,  /* オレンジ */
+    #FFD93D 30%,  /* イエロー */
+    #6EE7B7 45%,  /* グリーン */
+    #60A5FA 60%,  /* ブルー */
+    #A78BFA 75%,  /* ラベンダー */
+    #C084FC 100%  /* パープル */
+  );
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  transition: transform .2s ease, opacity .2s ease;
+}
+
+.chakra-portal .hero__ctas .btn--primary:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+/* ゴーストボタン：枠に同じパステルグラデ */
+.chakra-portal .hero__ctas .btn--ghost {
+  border: 2px solid transparent;
+  background: linear-gradient(#fff, #fff) padding-box,
+              linear-gradient(
+                90deg,
+                #FF6B6B, #FFA85C, #FFD93D,
+                #6EE7B7, #60A5FA, #A78BFA, #C084FC
+              ) border-box;
+  color: #555;
+  font-weight: 500;
+}
+
+.chakra-portal .hero__ctas .btn--ghost:hover {
+  color: #000;
+  opacity: .85;
+}
+
+/* ================================
+   SP専用：チャクラセクション縦並び
+   PCは現状維持、SPだけ1カラムにする
+================================ */
+@media (max-width: 900px) {
+  /* レイアウトを1列に・左右交互は解除 */
+  .chakra-portal .chakra-section {
+    grid-template-columns: 1fr !important;
+    align-items: start;
+    gap: 14px;
+    padding: 28px 16px;    /* ほどよい余白に */
+  }
+
+  /* 交互レイアウト用クラスが付いていても順序を揃える（画像→本文） */
+  .chakra-portal .chakra-section.is-reverse .chakra-section__media { order: 0 !important; }
+  .chakra-portal .chakra-section.is-reverse .chakra-section__body  { order: 0 !important; }
+
+  /* 画像は中央寄せ・横幅は親にフィット */
+  .chakra-portal .chakra-section__media {
+    margin: 0 auto;
+    max-width: 520px;      /* 画像の上限（お好みで） */
+    width: 100%;
+  }
+  .chakra-portal .chakra-section__media img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+
+  /* 本文側は読みやすい行間・サイズに調整 */
+  .chakra-portal .chakra-section__body {
+    display: grid;
+    gap: 10px;
+    text-align: left;      /* 中央寄せだと読みにくいので左揃えに */
+  }
+  .chakra-portal .chakra-section__title {
+    font-size: clamp(18px, 5.2vw, 22px);
+    margin: 4px 0 2px;
+    line-height: 1.35;
+  }
+  .chakra-portal .chakra-section__copy {
+    font-size: 15px;
+    line-height: 1.8;
+    margin: 0 0 6px;
+  }
+
+  /* ボタンははみ出さないように幅管理＆タップしやすく */
+  .chakra-portal .btn {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 360px;      /* お好みで 320〜400px */
+    padding: 12px 16px;
+    text-align: center;
+    justify-self: start;   /* 左寄せ（中央にしたければ center に） */
+  }
+
+  /* SNSリンクは折り返してもきれいに並ぶように */
+  .chakra-portal .chakra-section__sns .link {
+    display: inline-block;
+    margin: .3rem .6rem .2rem 0;
+  }
+
+  /* ヒーローがヘッダーに隠れない/余白最適化（任意） */
+  .chakra-portal .hero {
+    padding: 56px 16px 40px;
+    text-align: center;
+  }
+  .chakra-portal .hero__title { font-size: clamp(22px, 6vw, 28px); line-height: 1.25; }
+  .chakra-portal .hero__lead  { font-size: 14.5px; line-height: 1.7; }
+}
+
+/* はみ出し/横スクロール事故の保険（軽め） */
+.chakra-portal { overflow-x: hidden; }
+
+/* ===== Footer base ===== */
+.portal-footer { padding: 56px 1.25rem 80px; text-align: center; }
+.portal-footer__inner { max-width: 1100px; margin: 0 auto; }
+
+/* ===== Stars row ===== */
+.portal-stars{
+  display: flex;
+  justify-content: center;
+  gap: clamp(8px, 1.8vw, 16px);
+  margin-bottom: clamp(10px, 2.2vw, 16px);
+  line-height: 1;
+}
+.star{
+  font-size: clamp(22px, 4.2vw, 30px);
+  text-decoration: none;
+  user-select: none;
+  transition: transform .18s ease, opacity .18s ease, color .18s ease;
+  opacity: .9;
+}
+.star:hover { transform: rotate(-6deg) scale(1.06); }
+
+/* 第1〜第7（パステル単色） */
+.star--root      { color: #f39a9a; }  /* 赤みピンク */
+.star--sacral    { color: #f5b27a; }  /* パステル橙 */
+.star--solar     { color: #f6d365; }  /* パステル黄 */
+.star--heart     { color: #7fd8a6; }  /* パステル緑 */
+.star--throat    { color: #7fc7f3; }  /* パステル青 */
+.star--third-eye { color: #8ea0f0; }  /* パステル藍 */
+.star--crown     { color: #c59ae6; }  /* パステル紫 */
+
+/* 第8：普段はグレー、ホバーでラベンダー */
+.star--soul{
+  color: #9aa;            /* 隠しリンク感のグレー */
+  opacity: .7;
+}
+.star--soul:hover{
+  color: #B57EDC;         /* ラベンダー（第8） */
+  opacity: 1;
+}
+
+/* ===== Links row ===== */
+.portal-links{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .75rem 1rem;
+}
+.portal-links a{ text-decoration: none; }
+
+/* 小さめ端末の微調整 */
+@media (max-width: 560px){
+  .portal-stars{ gap: 10px; }
+  .star{ font-size: 24px; }
+}
+
+/* =============================
+   ▼ TOPナビ文字サイズ余白調整用（スマホ）
+============================= */
+
+@media (max-width: 600px){
+  .portal-links{
+    display: flex;
+    justify-content: center;      /* ←中央寄せでもOKなら center */
+    align-items: center;
+    gap: clamp(12px, 4vw, 20px);      /* ←余白をさらに広めに */
+    flex-wrap: nowrap;                /* 折り返さない！ */
+    overflow-x: auto;                 /* 横スクロールで逃がす */
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 6px;                 /* ←全体の余白も少し増 */
+    scrollbar-width: none;
+  }
+  .portal-links::-webkit-scrollbar{ display: none; }
+
+  .portal-links a{
+    white-space: nowrap;
+    font-size: clamp(18px, 5.2vw, 22px); /* ←さらに大きめに */
+    line-height: 1.35;
+    margin: 0;
+  }
+
+  .portal-footer{
+    padding-right: clamp(32px, 9vw, 60px);
+    padding-bottom: clamp(90px, 12vw, 110px);
+  }
+}
+
+/* =============================
+   ▼ ヘッダー用(header-portal.php)
+============================= */
+/* =====================================================
+   M.glitter ヘッダー & モバイルメニュー 完全版 CSS
+   - 下までスクロールできる
+   - ハッシュ(#)リンクもスムースに飛ぶ前提
+   - 既存のヘッダーCSSは無効化/削除してね
+===================================================== */
+
+/* ---------- 基本レイアウト ---------- */
+.mg-header {
+  position: sticky;
+  top: 0;
+  z-index: 10000;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+.mg-header__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.mg-header__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+  text-decoration: none;
+  font-weight: 700;
+  line-height: 1;
+}
+.mg-header__logo img {
+  display: block;
+  height: 28px;
+  width: auto;
+}
+
+/* PCナビ */
+.mg-menu {
+  display: flex;
+  gap: 20px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mg-menu li a {
+  display: inline-block;
+  padding: 8px 4px;
+  color: #333;
+  text-decoration: none;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.mg-menu li a:hover { opacity: .8; }
+
+/* ハンバーガー（PCは非表示） */
+.mg-header__toggle {
+  display: none;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 6px;
+  cursor: pointer;
+  line-height: 1;
+}
+.mg-header__toggle img {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+
+/* オーバーレイ（メニュー背面の暗幕） */
+#mg-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+  z-index: 9997;
+}
+#mg-overlay.is-show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ---------- スマホ（幅900px以下） ---------- */
+@media (max-width: 900px) {
+  /* トグルを出す */
+  .mg-header__toggle { display: inline-flex; }
+
+  /* 右スライドのパネル化（PCでは通常のフローのまま） */
+  #mg-nav {
+    position: fixed;
+    top: 0;
+    right: -100%;                        /* 初期は画面外 */
+    width: min(80%, 360px);
+    /* 高さは“最低”画面いっぱい。内容が長くなれば伸びてスクロール可 */
+    min-height: 100dvh;                  /* 100vh より 100dvh がモバイルで安定 */
+    height: auto;
+
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 80px 24px calc(80px + env(safe-area-inset-bottom, 0px));
+    box-shadow: -8px 0 24px rgba(0,0,0,.08);
+    transition: right .3s ease;
+    z-index: 9998;
+
+    /* メニュー内はスクロールOK（背景はJSでロック） */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #mg-nav.is-open { right: 0; }
+
+  /* 縦並びメニュー */
+  .mg-menu {
+    flex-direction: column;
+    gap: 18px;
+  }
+  .mg-menu li a {
+    padding: 12px 0;
+    font-size: 18px;
+  }
+}
+
+/* ---------- 背面スクロールロック（メニュー開時） ---------- */
+html.menu-open,
+body.menu-open {
+  overflow: hidden;     /* PC/Android */
+  height: 100%;
+}
+body.menu-open {
+  position: fixed;      /* iOS対策 */
+  width: 100%;
+}
+
+/* ---------- 既存コンテンツを壊さない保険 ---------- */
+html, body { overflow-x: hidden; }      /* 横スクロール事故防止 */
+.hero { scroll-margin-top: 72px; }      /* 内リンクでヘッダー分ずれない */
+
+.chakra-section__media img {
+  display: block;
+  width: min(520px, 100%);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 24px rgba(0,0,0,.08));
+}
+@media (max-width: 900px) {
+  .chakra-section { grid-template-columns: 1fr; padding: 40px 16px; }
+  .chakra-section__media { margin-bottom: 10px; }
+  .chakra-section__title { font-size: clamp(18px, 5.2vw, 22px); }
+  .chakra-section__copy  { font-size: 14.5px; line-height: 1.8; }
+  .btn { width: 100%; text-align: center; }
+}
+
+/* ====== モバイルメニュー：コンパクト版（詰める） ====== */
+@media (max-width: 900px) {
+  /* パネルの内側余白を縮める */
+  #mg-nav {
+    padding: 64px 16px 16px;       /* 80px→64px / 24px→16px */
+    width: min(78%, 320px);        /* ちょい細く */
+  }
+
+  /* メニュー行間/余白/サイズを圧縮 */
+  .mg-menu {
+    gap: 10px;                     /* 18px→10px */
+  }
+  .mg-menu li a {
+    padding: 6px 0;                /* 12px→6px */
+    font-size: 16px;               /* 18px→16px */
+    line-height: 1.25;             /* 1.2→1.25（読みやすさ確保） */
+    letter-spacing: 0.01em;
+  }
+
+  /* 行が多い時の“保険”：必要な時だけ内側をスクロール可能に */
+  #mg-nav .mg-menu {
+    max-height: calc(100dvh - 64px - 16px - 24px); /* 上64 + 下(16+下部余白想定) */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ロゴ横の余白も少しだけ詰めたい時（任意） */
+.mg-header__inner { gap: 10px; }
+
+/* =============================
+   ▼ Soulstarハンバーガー確率表示用
+============================= */
+
+.menu-soulstar.is-hidden { display: none !important; }
+
+/* =============================
+   ▼ 各ブランドトップ（共通）
+============================= */
+
+/* コンテナ */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* ブランドページ共通：chakra-color を brand-accent にバインド */
+.brand-page { --chakra-color: var(--brand-accent); }
+
+/* ===== Hero 共通 ===== */
+.brand-hero {
+  position: relative;
+  padding: 72px 0;   /* 少しゆとりを増やす */
+  color: #222;
+  background-size: cover;
+  background-position: center;
+  text-align: center; /* 常に中央寄せ */
+}
+
+.brand-logo {
+  margin: 0 auto 20px;
+}
+.brand-logo img {
+  max-height: 120px;  /* ← 大きめに調整 */
+  width: auto;
+  height: auto;
+}
+
+.brand-hero__title {
+  margin: 0 0 12px;
+  font-size: clamp(26px, 4vw, 40px); /* サイズアップ */
+  color: #222;
+}
+.brand-hero__sub {
+  margin: 0;
+  line-height: 1.7;
+  font-size: clamp(16px, 2vw, 20px); /* 少し大きめ */
+  color: #555;
+}
+
+/* ===== Concept ===== */
+.brand-concept { padding: 56px 0; }
+.brand-section-title { margin: 0 0 16px; }
+/* 縦棒は .chakra-section__title をブランドページ内で再利用 */
+.brand-page .chakra-section__title {
+  position: relative;
+  padding-left: .65em;
+}
+.brand-page .chakra-section__title::before {
+  content: "";
+  position: absolute;
+  left: 0; top: .15em;
+  width: .28em; height: 1.05em;
+  border-radius: 3px;
+  background: var(--chakra-color);
+}
+.concept-wrap {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0,1.2fr) minmax(0,.8fr);
+}
+.concept-image img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+@media (max-width: 780px) {
+  .concept-wrap { grid-template-columns: 1fr; }
+}
+
+/* ===== サービスカード（Gutenbergで③以降に使用） ===== */
+.service-cards {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-top: 12px;
+}
+.service-card {
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 16px;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0,0,0,.04);
+}
+.service-card h3 {
+  margin: 0 0 6px;
+  font-size: clamp(18px, 2.2vw, 20px);
+}
+.service-card p {
+  margin: 0 0 12px;
+  line-height: 1.6;
+}
+
+/* ===== ボタン ===== */
+a.button,
+.wp-block-button__link {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 999px;
+  text-decoration: none;
+  background: var(--brand-accent, #333);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ===== ブランドごとのアクセント色 ===== */
+.brand-moments    { --brand-accent: #d7003a; }   /* 第1：赤 */
+.brand-overture   { --brand-accent: #f19c38; }   /* 第2：橙 */
+.brand-sunrise    { --brand-accent: #f3c23c; }   /* 第3：黄 */
+.brand-unite      { --brand-accent: #4bb482; }   /* 第4：緑 */
+.brand-fifthvibes { --brand-accent: #4e80d8; }   /* 第5：青 */
+.brand-3rdplace   { --brand-accent: #4356a2; }   /* 第6：藍 */
+.brand-omradiance { --brand-accent: #7d4bd8; }   /* 第7：紫 */
+
+/* ===== CTA ===== */
+.brand-cta {
+  text-align: center;
+  padding: 40px 0;
+}
+.brand-cta .button { font-size: 16px; }
+
+/* ===== Hero背景：チャクラ別グラデーション ===== */
+.chakra-root   .brand-hero { background: linear-gradient(180deg, #fff 0%, #fff5f5 100%); }
+.chakra-sacral .brand-hero { background: linear-gradient(180deg, #fff 0%, #fff7f0 100%); }
+.chakra-solar  .brand-hero { background: linear-gradient(180deg, #fff 0%, #fffbe8 100%); }
+.chakra-heart  .brand-hero { background: linear-gradient(180deg, #fff 0%, #f2fff5 100%); }
+.chakra-throat .brand-hero { background: linear-gradient(180deg, #fff 0%, #f0fffd 100%); }
+.chakra-third-eye .brand-hero { background: linear-gradient(180deg, #fff 0%, #f0f8ff 100%); }
+.chakra-crown  .brand-hero { background: linear-gradient(180deg, #fff 0%, #faf2ff 100%); }
+
+/* ブランドページ内だけ Concept 見出しに縦棒を適用 */
+.brand-page .brand-concept .chakra-section__title {
+  position: relative;
+  padding-left: .65em !important;
+  border-left: none !important; /* 他のborder-leftを強制リセット */
+}
+.brand-page .brand-concept .chakra-section__title::before {
+  content:"";
+  position: absolute;
+  left: 0; top: .15em;
+  width: .28em; height: 1.05em;
+  border-radius: 3px;
+  background: var(--chakra-color);
+}
+
+/* サービスカードタイトルをブランドカラーに */
+.brand-page .service-card h3 {
+  color: var(--brand-accent, #333);
+}
+
+/* 各ブランドの色はすでに --brand-accent に設定済みなので自動で切り替わる */
+
+/* =============================
+   ▼ TOP＆ブランドページ用
+============================= */
+
+/* サービスカードのタイトル色 */
+.brand-page .service-card h3 {
+  color: var(--brand-accent, #333);
+}
+
+/* トップページのチャクラタイトル色も同じにする */
+.chakra-section__title {
+  color: var(--chakra-color, #333);
+}
+
+/* =============================
+   ▼ ハンバーガー調整
+============================= */
+/* PCレイアウトだけ調整 */
+@media (min-width: 992px) {
+  /* ナビ全体の字面ちょい整え */
+  .wp-block-navigation a,
+  .wp-block-navigation .wp-block-navigation-item__content {
+    letter-spacing: .02em;
+  }
+
+  /* ブランド名を強調 */
+  .wp-block-navigation .nav-branded {
+    font-weight: 700; /* 太字 */
+  }
+
+  /* カテゴリー部分（カッコ内）を小さめ・薄めに */
+  .wp-block-navigation .nav-branded .nav-cat {
+    font-weight: 500;
+    font-size: .85em;
+    opacity: .75;
+    margin-left: .25em; /* くっつき防止に少し余白 */
+    white-space: nowrap; /* カテゴリーだけ改行しにくくする */
+  }
+}
+
+/* =============================
+   ▼ ヨガスケジュール
+============================= */
+/* Schedule */
+.schedule-list { display: grid; gap: 16px; }
+.schedule-item {
+  display: grid; gap: 12px;
+  grid-template-columns: 140px 1fr;
+  border: 1px solid #eee; border-radius: 14px; background: #fff;
+  padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.04);
+}
+.schedule-date {
+  display: grid; align-content: center; justify-items: center;
+  border-right: 1px dashed #e9e9e9; padding-right: 10px;
+}
+.schedule-date .dow { font-weight: 700; letter-spacing: .05em; }
+.schedule-date .time { font-size: .95rem; opacity: .8; }
+
+.schedule-body .title { margin: 0 0 4px; font-size: clamp(18px, 2.2vw, 20px); color: var(--brand-accent, #333); }
+.schedule-body .desc { margin: 0 0 8px; opacity: .9; }
+.schedule-body .meta { margin: 0 0 10px; padding-left: 1em; }
+.schedule-body .meta li { margin: 0 0 4px; }
+
+.schedule-item .badge {
+  display: inline-block; margin-left: .4em; padding: .12em .5em; border-radius: 999px;
+  font-size: .8em; background: rgba(0,0,0,.06); color: #555;
+}
+.schedule-item.is-monthend { border-color: rgba(125,75,216,.25); }
+.schedule-item.is-monthend .badge--alt {
+  background: rgba(125,75,216,.12); color: #7d4bd8;
+}
+
+/* ボタンは既存の .button を利用。スマホ整形 */
+@media (max-width: 780px){
+  .schedule-item { grid-template-columns: 1fr; }
+  .schedule-date { border-right: 0; border-bottom: 1px dashed #eee; padding-bottom: 10px; justify-items: start; }
+  .schedule-body .actions .button { display: inline-block; margin-right: 6px; margin-bottom: 6px; }
+}
+
+/* レッスン・スタジオのh3タイトルをチャクラカラーに */
+.schedule-item .title,
+.studio-title {
+  color: var(--brand-accent, #333);
+}
+
+/* =============================
+   ▼ コメント
+============================= */
+/* Gallery 共通 */
+.brand-gallery__note,
+.brand-shop__note { opacity: .9; margin: 0 0 10px; }
+
+.brand-gallery__grid{
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+.brand-gallery__item{
+  display:block; border-radius: 12px; overflow:hidden;
+  border:1px solid #eee; background:#fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,.04);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.brand-gallery__item:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+}
+.brand-gallery__item img{ width:100%; height:auto; display:block; }
+
+/* セクション見出しは既存の縦棒＆カラーで統一 */
+.brand-page .chakra-section__title{ color: var(--brand-accent, #333); }
+.brand-page .chakra-section__title::before{ background: var(--brand-accent, #333); }
+
+/* 「Instagramを見る」「BASEショップへ」ボタンは既存 .button をそのまま使用 */
+
+/* =============================
+   ▼ コメント
+============================= */
