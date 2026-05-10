@@ -60,6 +60,22 @@ export default function AsanaListPage() {
     fetchAsanas()
   }
 
+  async function toggleFavorite(asana) {
+    const { error } = await supabase
+      .from('asanas')
+      .update({
+        favorite: !asana.favorite,
+      })
+      .eq('id', asana.id)
+  
+    if (error) {
+      alert('お気に入り更新エラー')
+      return
+    }
+  
+    fetchAsanas()
+  }
+
   function toggleChakraFilter(chakra) {
     setSelectedChakras((prev) =>
       prev.includes(chakra)
@@ -243,10 +259,21 @@ export default function AsanaListPage() {
                             className="flex w-full items-center justify-between gap-4 p-4 text-left"
                           >
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <h3 className="truncate text-lg font-bold text-gray-800">
-                                  {asana.title}
-                                </h3>
+                            <div className="flex items-center gap-2">
+                            <button
+  type="button"
+  onClick={(e) => {
+    e.stopPropagation()
+    toggleFavorite(asana)
+  }}
+  className="text-lg transition hover:scale-110"
+>
+  {asana.favorite ? '⭐' : '☆'}
+</button>
+
+  <h3 className="truncate text-lg font-bold text-gray-800">
+    {asana.title}
+  </h3>
 
                                 <div className="flex shrink-0 gap-1">
                                   {asana.chakras?.map((chakra) => (
