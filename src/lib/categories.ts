@@ -39,6 +39,16 @@ export const TYPE_LABELS: Record<string, { ja: string; en: string }> = {
     'アージュニャー',
     'サハスラーラ',
   ]
+
+  export const CHAKRA_LABELS: Record<string, string> = {
+    ムーラダーラ: '① ムーラダーラ',
+    スヴァディシュターナ: '② スヴァディシュターナ',
+    マニプーラ: '③ マニプーラ',
+    アナハタ: '④ アナハタ',
+    ヴィシュッダ: '⑤ ヴィシュッダ',
+    アージュニャー: '⑥ アージュニャー',
+    サハスラーラ: '⑦ サハスラーラ',
+  }
   
   export const CHAKRA_STYLES: Record<string, string> = {
     ムーラダーラ: 'bg-red-50 text-red-700 border-red-200',
@@ -48,4 +58,14 @@ export const TYPE_LABELS: Record<string, { ja: string; en: string }> = {
     ヴィシュッダ: 'bg-sky-50 text-sky-700 border-sky-200',
     アージュニャー: 'bg-indigo-50 text-indigo-700 border-indigo-200',
     サハスラーラ: 'bg-violet-50 text-violet-700 border-violet-200',
+  }
+  
+  export const CHAKRA_DOT_COLORS: Record<string, string> = {
+    ムーラダーラ: 'bg-red-500',
+    スヴァディシュターナ: 'bg-orange-500',
+    マニプーラ: 'bg-yellow-400',
+    アナハタ: 'bg-green-500',
+    ヴィシュッダ: 'bg-sky-500',
+    アージュニャー: 'bg-indigo-500',
+    サハスラーラ: 'bg-violet-500',
   }
