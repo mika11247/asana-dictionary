@@ -15,11 +15,13 @@ export default function Header() {
     const { error } = await supabase.auth.signOut()
   
     if (error) {
-      alert('ログアウトに失敗しました')
+      alert(error.message)
       return
     }
   
     setOpen(false)
+  
+    window.location.href = '/login'
   }
 
   return (
