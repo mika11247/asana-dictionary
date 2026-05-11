@@ -319,8 +319,6 @@ export default function SequenceDetailPage() {
 
   const [closedSections, setClosedSections] = useState([])
 
-  const [open, setOpen] = useState(false)
-
   const [openAsanaId, setOpenAsanaId] = useState(null)
 
   const sensors = useSensors(
