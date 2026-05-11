@@ -25,6 +25,10 @@ import {
 
 import { CSS } from '@dnd-kit/utilities'
 
+import { getPlanLimits } from '@/lib/planLimits'
+import { PLAN_UI } from '@/lib/planUI'
+import { useAuth } from '@/components/AuthProvider'
+
 function SortableSequenceItem({
   item,
   removeItem,
@@ -324,6 +328,8 @@ export default function SequenceDetailPage() {
   const [closedSections, setClosedSections] = useState([])
   const [openAsanaId, setOpenAsanaId] = useState(null)
 
+  const { profile } = useAuth()
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(TouchSensor),
@@ -394,6 +400,15 @@ export default function SequenceDetailPage() {
 
   async function addAsana(asanaId) {
 
+    const limits = getPlanLimits(profile?.plan)
+
+if (items.length >= limits.sequenceItems) {
+  alert(
+    `${PLAN_UI[profile?.plan]?.label || 'Free'}プランでは、レッスン構成を ${limits.sequenceItems}件まで追加できます✨`
+  )
+  return
+}
+
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -440,6 +455,15 @@ export default function SequenceDetailPage() {
   }
 
   async function addSection() {
+
+    const limits = getPlanLimits(profile?.plan)
+
+if (items.length >= limits.sequenceItems) {
+  alert(
+    `${PLAN_UI[profile?.plan]?.label || 'Free'}プランでは、レッスン構成を ${limits.sequenceItems}件まで追加できます✨`
+  )
+  return
+}
 
     const {
       data: { user },
@@ -507,6 +531,17 @@ export default function SequenceDetailPage() {
     } = await supabase.auth.getUser()
     
     if (!user) return
+
+    if (!editingMemo) {
+      const limits = getPlanLimits(profile?.plan)
+    
+      if (items.length >= limits.sequenceItems) {
+        alert(
+          `${PLAN_UI[profile?.plan]?.label || 'Free'}プランでは、レッスン構成を ${limits.sequenceItems}件まで追加できます✨`
+        )
+        return
+      }
+    }
 
     if (!memoText.trim()) return
 

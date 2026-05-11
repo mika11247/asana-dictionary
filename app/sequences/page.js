@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
+import { getPlanLimits } from '@/lib/planLimits'
+import { useAuth } from '@/components/AuthProvider'
+
+import { PLAN_UI } from '@/lib/planUI'
+
 import {
   DndContext,
   closestCenter,
@@ -110,6 +115,8 @@ export default function SequencesPage() {
   const [sequences, setSequences] = useState([])
   const [loading, setLoading] = useState(true)
 
+  const { profile } = useAuth()
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(TouchSensor),
@@ -159,10 +166,14 @@ export default function SequencesPage() {
     
     if (!user) return
 
-    if (sequences.length >= 1) {
-      alert('無料プランでは1レッスンまでです✨')
-      return
-    }
+    const limits = getPlanLimits(profile?.plan)
+
+if (sequences.length >= limits.sequences) {
+  alert(
+    `${PLAN_UI[profile?.plan]?.label || 'Free'}プランでは ${limits.sequences}件まで作成できます✨`
+  )
+  return
+}
 
     const title = prompt('レッスン名を入力')
     if (!title) return

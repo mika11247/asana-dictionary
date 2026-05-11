@@ -12,6 +12,12 @@ import {
   CHAKRA_STYLES,
 } from '@/lib/categories'
 
+import { getPlanLimits } from '@/lib/planLimits'
+import { useAuth } from '@/components/AuthProvider'
+import { PLAN_UI } from '@/lib/planUI'
+
+const { profile } = useAuth()
+
 export default function AsanaCreatePage() {
   const router = useRouter()
 
@@ -135,6 +141,30 @@ export default function AsanaCreatePage() {
         alert('ログインしてください')
         return
       }
+
+      const limits = getPlanLimits(profile?.plan)
+
+const {
+  count,
+  error: countError,
+} = await supabase
+  .from('asanas')
+  .select('*', {
+    count: 'exact',
+    head: true,
+  })
+
+if (countError) {
+  alert('件数取得エラー')
+  return
+}
+
+if (count >= limits.asanas) {
+  alert(
+    `${PLAN_UI[profile?.plan]?.label || 'Free'}プランではアーサナを ${limits.asanas}件まで登録できます✨`
+  )
+  return
+}
 
       const uploadedImageUrl = await uploadImage()
 
