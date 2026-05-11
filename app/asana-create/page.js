@@ -13,7 +13,7 @@ import {
 } from '@/lib/categories'
 
 import { getPlanLimits } from '@/lib/planLimits'
-import { useAuth } from '@/components/AuthProvider'
+import { useAuth } from '@/app/components/AuthProvider'
 import { PLAN_UI } from '@/lib/planUI'
 
 const { profile } = useAuth()
