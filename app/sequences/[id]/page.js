@@ -27,7 +27,6 @@ import { CSS } from '@dnd-kit/utilities'
 
 function SortableSequenceItem({
   item,
-  index,
   removeItem,
   editMemo,
   editSection,
@@ -48,8 +47,6 @@ function SortableSequenceItem({
     transition,
     opacity: isDragging ? 0.6 : 1,
   }
-
-  const [open, setOpen] = useState(false)
 
   if (item.type === 'section') {
     return (
@@ -686,7 +683,6 @@ export default function SequenceDetailPage() {
                       <SortableSequenceItem
                         key={item.id}
                         item={item}
-                        index={index}
                         removeItem={removeItem}
                         editMemo={editMemo}
                         editSection={editSection}
