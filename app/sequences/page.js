@@ -51,7 +51,7 @@ function SortableSequenceCard({
       className="rounded-3xl border border-white/70 bg-white/90 p-4 shadow-sm backdrop-blur transition hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex items-start gap-3">
+      <div className="flex min-w-0 flex-1 items-start gap-3">
           <button
             type="button"
             {...attributes}
@@ -66,9 +66,9 @@ function SortableSequenceCard({
               Sequence
             </p>
 
-            <h2 className="truncate text-lg font-bold text-gray-800">
-              {sequence.title}
-            </h2>
+            <h2 className="line-clamp-2 break-words text-lg font-bold leading-snug text-gray-800">
+  {sequence.title}
+</h2>
 
             <p className="mt-1 text-xs text-gray-400">
   最終更新：

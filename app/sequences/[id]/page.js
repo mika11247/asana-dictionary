@@ -183,10 +183,10 @@ return (
           </div>
         )}
 
-        <div className="min-w-0">
-          <h3 className="truncate text-base font-bold text-gray-800">
-            {item.asanas?.title}
-          </h3>
+<div className="min-w-0 flex-1">
+  <h3 className="line-clamp-2 break-words text-base font-bold leading-snug text-gray-800">
+  {item.asanas?.title}
+  </h3>
 
           <p className="mt-1 text-sm text-gray-500">
             {item.asanas?.sanskrit || 'サンスクリット名なし'}
@@ -742,15 +742,14 @@ export default function SequenceDetailPage() {
 )}
 
 <div className="min-w-0 flex-1">
-  <div className="flex items-center gap-2">
+<div className="flex items-start gap-2">
     <button
       type="button"
       onClick={(e) => {
         e.stopPropagation()
         toggleFavorite(asana)
       }}
-      className="text-base transition hover:scale-110"
-    >
+      className="shrink-0 text-base leading-none transition hover:scale-110">
       {asana.favorite ? '⭐' : '☆'}
     </button>
 
@@ -760,8 +759,8 @@ export default function SequenceDetailPage() {
   </div>
 
   <p className="mt-1 text-sm text-gray-500">
-    {asana.sanskrit || 'サンスクリット名なし'}
-  </p>
+  {asana.sanskrit || 'サンスクリット名なし'}
+</p>
 </div>
 
 </div>
