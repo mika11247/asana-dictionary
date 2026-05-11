@@ -48,6 +48,8 @@ function SortableSequenceItem({
     opacity: isDragging ? 0.6 : 1,
   }
 
+  const [open, setOpen] = useState(false)
+
   if (item.type === 'section') {
     return (
       <div
@@ -149,158 +151,160 @@ function SortableSequenceItem({
     )
   }
 
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      onClick={() => setOpen(!open)}
-      className="cursor-pointer rounded-3xl border border-gray-100 bg-white/95 p-4 shadow-sm transition hover:shadow-md"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            className="cursor-grab rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-400 active:cursor-grabbing"
-          >
-            ☰
-          </button>
 
-          <div className="flex min-w-0 flex-1 items-start gap-4">
-
-  {item.asanas?.image_url ? (
-    <img
-      src={item.asanas.image_url}
-      alt={item.asanas.title}
-      className="h-20 w-20 shrink-0 rounded-2xl bg-gray-50 object-contain p-2 shadow-sm"
-    />
-  ) : (
-    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gray-100 text-xs text-gray-400">
-      no image
-    </div>
-  )}
-
-  
-
-  <div className="min-w-0 flex-1">
-    <h3 className="truncate text-base font-bold text-gray-800">
-      {item.asanas?.title}
-    </h3>
-
-    <p className="mt-1 text-sm text-gray-500">
-      {item.asanas?.sanskrit || 'サンスクリット名なし'}
-    </p>
-  </div>
-          </div>
-
-          {open && (
-  <div className="mt-4 space-y-4 rounded-2xl bg-gray-50 p-4">
-
-    {item.asanas?.image_url && (
-      <img
-        src={item.asanas.image_url}
-        alt={item.asanas.title}
-        className="h-64 w-full rounded-3xl bg-white object-contain p-4 shadow-sm"
-      />
-    )}
-
-    {item.asanas?.types?.length > 0 && (
-      <div>
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-          分類
-        </p>
-
-        <div className="flex flex-wrap gap-2">
-          {item.asanas.types.map((type) => (
-            <span
-              key={type}
-              className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs text-sky-700"
-            >
-              {type}
-            </span>
-          ))}
-        </div>
-      </div>
-    )}
-
-    {item.asanas?.chakras?.length > 0 && (
-      <div>
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-          チャクラ
-        </p>
-
-        <div className="flex flex-wrap gap-2">
-          {item.asanas.chakras.map((chakra) => (
-            <span
-              key={chakra}
-              className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs text-violet-700"
-            >
-              {chakra}
-            </span>
-          ))}
-        </div>
-      </div>
-    )}
-
-{item.asanas?.alias && (
-  <div>
-    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-      別名・検索ワード
-    </p>
-
-    <div className="flex flex-wrap gap-2">
-      {item.asanas.alias.split(',').map((word) => (
-        <span
-          key={word}
-          className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600"
-        >
-          #{word.trim()}
-        </span>
-      ))}
-    </div>
-  </div>
-)}
-
-    {item.asanas?.howto && (
-      <div>
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-          誘導
-        </p>
-
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-          {item.asanas.howto}
-        </p>
-      </div>
-    )}
-
-    {item.asanas?.effect && (
-      <div>
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-          効果
-        </p>
-
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-          {item.asanas.effect}
-        </p>
-      </div>
-    )}
-
-  </div>
-)}
-
-        </div>
-
+return (
+  <div
+    ref={setNodeRef}
+    style={style}
+    onClick={() => setOpen(!open)}
+    className="cursor-pointer rounded-3xl border border-gray-100 bg-white/95 p-4 shadow-sm transition hover:shadow-md"
+  >
+    <div className="flex items-start justify-between gap-3">
+      <div className="flex min-w-0 items-start gap-3">
         <button
           type="button"
-          onClick={() => removeItem(item.id)}
-          className="shrink-0 rounded-full bg-red-500 px-3 py-1.5 text-xs font-bold text-white"
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+          className="cursor-grab rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-400 active:cursor-grabbing"
         >
-          外す
+          ☰
         </button>
+
+        {item.asanas?.image_url ? (
+          <img
+            src={item.asanas.image_url}
+            alt={item.asanas.title}
+            className="h-20 w-20 shrink-0 rounded-2xl bg-gray-50 object-contain p-2 shadow-sm"
+          />
+        ) : (
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gray-100 text-xs text-gray-400">
+            no image
+          </div>
+        )}
+
+        <div className="min-w-0">
+          <h3 className="truncate text-base font-bold text-gray-800">
+            {item.asanas?.title}
+          </h3>
+
+          <p className="mt-1 text-sm text-gray-500">
+            {item.asanas?.sanskrit || 'サンスクリット名なし'}
+          </p>
+
+          <p className="mt-2 text-xs font-bold text-gray-400">
+            {open ? '閉じる' : '詳細'}
+          </p>
+        </div>
       </div>
+
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          removeItem(item.id)
+        }}
+        className="shrink-0 rounded-full bg-red-500 px-3 py-1.5 text-xs font-bold text-white"
+      >
+        外す
+      </button>
     </div>
-  )
+
+    {open && (
+      <div className="mt-4 space-y-4 rounded-2xl bg-gray-50 p-4">
+        {item.asanas?.image_url && (
+          <img
+            src={item.asanas.image_url}
+            alt={item.asanas.title}
+            className="h-64 w-full rounded-3xl bg-white object-contain p-4 shadow-sm"
+          />
+        )}
+
+        {item.asanas?.types?.length > 0 && (
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+              分類
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              {item.asanas.types.map((type) => (
+                <span
+                  key={type}
+                  className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs text-sky-700"
+                >
+                  {type}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {item.asanas?.chakras?.length > 0 && (
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+              チャクラ
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              {item.asanas.chakras.map((chakra) => (
+                <span
+                  key={chakra}
+                  className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs text-violet-700"
+                >
+                  {chakra}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {item.asanas?.alias && (
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+              別名・検索ワード
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              {item.asanas.alias.split(',').map((word) => (
+                <span
+                  key={word}
+                  className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600"
+                >
+                  #{word.trim()}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {item.asanas?.howto && (
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+              誘導
+            </p>
+
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+              {item.asanas.howto}
+            </p>
+          </div>
+        )}
+
+        {item.asanas?.effect && (
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+              効果
+            </p>
+
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+              {item.asanas.effect}
+            </p>
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+)
+
 }
 
 export default function SequenceDetailPage() {
@@ -318,7 +322,6 @@ export default function SequenceDetailPage() {
   const [editingMemo, setEditingMemo] = useState(null)
 
   const [closedSections, setClosedSections] = useState([])
-
   const [openAsanaId, setOpenAsanaId] = useState(null)
 
   const sensors = useSensors(
@@ -907,7 +910,7 @@ export default function SequenceDetailPage() {
               </div>
             </div>
           </div>
-        )}
+          )}
       </div>
     </main>
   )
