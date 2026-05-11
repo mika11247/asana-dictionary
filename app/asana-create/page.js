@@ -127,6 +127,15 @@ export default function AsanaCreatePage() {
     setLoading(true)
 
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      
+      if (!user) {
+        alert('ログインしてください')
+        return
+      }
+
       const uploadedImageUrl = await uploadImage()
 
       const { error } = await supabase.from('asanas').insert([
@@ -145,6 +154,7 @@ export default function AsanaCreatePage() {
           modification,
           chakras,
           types,
+          user_id: user.id,
         },
       ])
 

@@ -3,8 +3,18 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
+import { supabase } from '@/lib/supabaseClient'
+import { useAuth } from './AuthProvider'
+import { PLAN_UI } from '@/lib/planUI'
+
 export default function Header() {
   const [open, setOpen] = useState(false)
+  const { profile } = useAuth()
+
+async function handleLogout() {
+  await supabase.auth.signOut()
+  window.location.href = '/login'
+}
 
   return (
     <>
@@ -63,6 +73,27 @@ export default function Header() {
             <p className="text-sm text-gray-500">
               Yoga Asana App
             </p>
+
+            {profile && (
+  <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-3">
+    <p className="text-sm font-bold text-gray-800">
+      {profile.display_name}
+    </p>
+
+    <p className="text-xs text-gray-500">
+      {profile.email}
+    </p>
+
+    <div
+      className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+        PLAN_UI[profile.plan]?.badge
+      }`}
+    >
+      {PLAN_UI[profile.plan]?.label || 'Free'}
+    </div>
+  </div>
+)}
+
           </div>
 
           <button
@@ -144,6 +175,15 @@ export default function Header() {
               >
                 🔒 プライバシーポリシー
               </Link>
+
+              <button
+  type="button"
+  onClick={handleLogout}
+  className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100"
+>
+  🚪 ログアウト
+</button>
+
             </div>
           </div>
         </nav>

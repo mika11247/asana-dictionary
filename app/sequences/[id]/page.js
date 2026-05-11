@@ -339,10 +339,17 @@ export default function SequenceDetailPage() {
   async function fetchData() {
     setLoading(true)
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    
+    if (!user) return
+    
     const { data: sequenceData } = await supabase
       .from('sequences')
       .select('*')
       .eq('id', sequenceId)
+      .eq('user_id', user.id)
       .single()
 
     const { data: itemData } = await supabase
@@ -367,12 +374,14 @@ export default function SequenceDetailPage() {
 )
       `)
       .eq('sequence_id', sequenceId)
+      .eq('user_id', user.id)
       .order('position', { ascending: true })
-
-    const { data: asanaData } = await supabase
-      .from('asanas')
-      .select('*')
-      .order('created_at', { ascending: false })
+      
+      const { data: asanaData } = await supabase
+        .from('asanas')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
 
     setSequence(sequenceData)
     setItems(itemData || [])
@@ -381,13 +390,21 @@ export default function SequenceDetailPage() {
   }
 
   async function addAsana(asanaId) {
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    
+    if (!user) return
+
     const nextPosition = items.length + 1
 
     const { error } = await supabase.from('sequence_items').insert({
-      sequence_id: Number(sequenceId),
-      asana_id: asanaId,
-      position: nextPosition,
-    })
+  sequence_id: Number(sequenceId),
+  asana_id: asanaId,
+  position: nextPosition,
+  user_id: user.id,
+})
 
     if (error) {
       alert(`追加エラー: ${error.message}`)
@@ -420,6 +437,13 @@ export default function SequenceDetailPage() {
   }
 
   async function addSection() {
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    
+    if (!user) return
+
     const sectionTitle = prompt('セクション名を入力')
     if (!sectionTitle?.trim()) return
 
@@ -430,6 +454,7 @@ export default function SequenceDetailPage() {
       type: 'section',
       section_title: sectionTitle,
       position: nextPosition,
+      user_id: user.id,
     })
 
     if (error) {
@@ -473,6 +498,13 @@ export default function SequenceDetailPage() {
   }
 
   async function saveMemo() {
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    
+    if (!user) return
+
     if (!memoText.trim()) return
 
     if (editingMemo) {
@@ -493,6 +525,7 @@ export default function SequenceDetailPage() {
         type: 'memo',
         memo: memoText,
         position: nextPosition,
+        user_id: user.id,
       })
 
       if (error) {

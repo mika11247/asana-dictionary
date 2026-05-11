@@ -125,12 +125,19 @@ export default function SequencesPage() {
   async function fetchSequences() {
     setLoading(true)
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    
+    if (!user) return
+    
     const { data, error } = await supabase
       .from('sequences')
       .select('*')
+      .eq('user_id', user.id)
       .order('position', { ascending: true })
       .order('created_at', { ascending: false })
-
+      
     if (error) {
       console.error(error)
       setLoading(false)
