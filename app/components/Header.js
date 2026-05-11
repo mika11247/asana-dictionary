@@ -11,10 +11,16 @@ export default function Header() {
   const [open, setOpen] = useState(false)
   const { profile } = useAuth()
 
-async function handleLogout() {
-  await supabase.auth.signOut()
-  window.location.href = '/login'
-}
+  async function handleLogout() {
+    const { error } = await supabase.auth.signOut()
+  
+    if (error) {
+      alert('ログアウトに失敗しました')
+      return
+    }
+  
+    setOpen(false)
+  }
 
   return (
     <>
@@ -40,6 +46,18 @@ async function handleLogout() {
             </div>
           </Link>
 
+          {profile && (
+  <div className="min-w-0 flex-1 px-3 text-right">
+    <p className="truncate text-xs font-bold text-gray-700 sm:text-sm">
+      {profile.display_name} 様
+    </p>
+
+    <p className="text-[10px] text-gray-400 sm:text-xs">
+      {PLAN_UI[profile.plan]?.label || 'Free'} Plan
+    </p>
+  </div>
+)}
+
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -58,7 +76,7 @@ async function handleLogout() {
       )}
 
       <aside
-        className={`fixed right-0 top-0 z-50 h-full w-72 bg-white p-6 shadow-xl transition-transform duration-300 ${
+        className={`fixed right-0 top-0 z-50 h-full w-72 overflow-y-auto bg-white p-6 shadow-xl transition-transform duration-300 ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -73,26 +91,6 @@ async function handleLogout() {
             <p className="text-sm text-gray-500">
               Yoga Asana App
             </p>
-
-            {profile && (
-  <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-3">
-    <p className="text-sm font-bold text-gray-800">
-      {profile.display_name}
-    </p>
-
-    <p className="text-xs text-gray-500">
-      {profile.email}
-    </p>
-
-    <div
-      className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-        PLAN_UI[profile.plan]?.badge
-      }`}
-    >
-      {PLAN_UI[profile.plan]?.label || 'Free'}
-    </div>
-  </div>
-)}
 
           </div>
 
