@@ -58,7 +58,7 @@ function SortableSequenceItem({
         className="rounded-3xl border border-sky-100 bg-sky-50/90 p-4 shadow-sm"
       >
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
               type="button"
               {...attributes}
@@ -69,12 +69,12 @@ function SortableSequenceItem({
             </button>
 
             <button
-              type="button"
-              onClick={() => toggleSection(item.id)}
-              className="min-w-0 text-left"
-            >
+  type="button"
+  onClick={() => toggleSection(item.id)}
+  className="min-w-0 flex-1 text-left"
+>
               <p className="text-xs font-medium text-sky-500">Section</p>
-              <h3 className="truncate text-lg font-bold text-sky-800">
+              <h3 className="line-clamp-2 break-words text-base font-bold leading-snug text-sky-800 sm:text-lg">
                 {closedSections.includes(item.id) ? '▶' : '▼'} 🌿{' '}
                 {item.section_title}
               </h3>
