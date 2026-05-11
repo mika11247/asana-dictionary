@@ -12,44 +12,46 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getUser()
+    let mounted = true
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    async function initAuth() {
       try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
         const currentUser = session?.user || null
 
+        if (!mounted) return
+
         setUser(currentUser)
+        setLoading(false)
 
         if (currentUser) {
           const profileData = await ensureProfile(currentUser)
-          setProfile(profileData)
+          if (mounted) setProfile(profileData)
         } else {
           setProfile(null)
         }
       } catch (error) {
-        console.error('Auth state error:', error)
-        setProfile(null)
-      } finally {
-        setLoading(false)
+        console.error('Auth init error:', error)
+        if (mounted) {
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+        }
       }
-    })
-
-    return () => {
-      subscription.unsubscribe()
     }
-  }, [])
 
-  async function getUser() {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+    initAuth()
 
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user || null
 
       setUser(currentUser)
+      setLoading(false)
 
       if (currentUser) {
         const profileData = await ensureProfile(currentUser)
@@ -57,14 +59,13 @@ export function AuthProvider({ children }) {
       } else {
         setProfile(null)
       }
-    } catch (error) {
-      console.error('Get user error:', error)
-      setUser(null)
-      setProfile(null)
-    } finally {
-      setLoading(false)
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
     }
-  }
+  }, [])
 
   return (
     <AuthContext.Provider value={{ user, profile, loading }}>
