@@ -2,12 +2,15 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const router = useRouter()
 
   const isSignup = mode === 'signup'
 
@@ -51,7 +54,8 @@ export default function LoginPage() {
       return
     }
 
-    window.location.href = '/'
+    router.replace('/')
+router.refresh()
   }
 
   async function handleGoogleLogin() {

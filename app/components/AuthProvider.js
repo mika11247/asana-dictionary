@@ -17,6 +17,36 @@ export function AuthProvider({ children }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      try {
+        const currentUser = session?.user || null
+
+        setUser(currentUser)
+
+        if (currentUser) {
+          const profileData = await ensureProfile(currentUser)
+          setProfile(profileData)
+        } else {
+          setProfile(null)
+        }
+      } catch (error) {
+        console.error('Auth state error:', error)
+        setProfile(null)
+      } finally {
+        setLoading(false)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  async function getUser() {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
       const currentUser = session?.user || null
 
       setUser(currentUser)
@@ -27,40 +57,17 @@ export function AuthProvider({ children }) {
       } else {
         setProfile(null)
       }
-
+    } catch (error) {
+      console.error('Get user error:', error)
+      setUser(null)
+      setProfile(null)
+    } finally {
       setLoading(false)
-    })
-
-    return () => {
-      subscription.unsubscribe()
     }
-  }, [])
-
-  async function getUser() {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-
-    const currentUser = session?.user || null
-
-    setUser(currentUser)
-
-    if (currentUser) {
-      const profileData = await ensureProfile(currentUser)
-      setProfile(profileData)
-    }
-
-    setLoading(false)
   }
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        profile,
-        loading,
-      }}
-    >
+    <AuthContext.Provider value={{ user, profile, loading }}>
       {children}
     </AuthContext.Provider>
   )

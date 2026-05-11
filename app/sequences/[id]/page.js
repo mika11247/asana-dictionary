@@ -343,7 +343,10 @@ export default function SequenceDetailPage() {
       data: { user },
     } = await supabase.auth.getUser()
     
-    if (!user) return
+    if (!user) {
+      setLoading(false)
+      return
+    }
     
     const { data: sequenceData } = await supabase
       .from('sequences')

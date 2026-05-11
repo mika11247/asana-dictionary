@@ -129,7 +129,10 @@ export default function SequencesPage() {
       data: { user },
     } = await supabase.auth.getUser()
     
-    if (!user) return
+    if (!user) {
+      setLoading(false)
+      return
+    }
     
     const { data, error } = await supabase
       .from('sequences')
@@ -149,6 +152,13 @@ export default function SequencesPage() {
   }
 
   async function createSequence() {
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    
+    if (!user) return
+
     if (sequences.length >= 1) {
       alert('無料プランでは1レッスンまでです✨')
       return
@@ -159,9 +169,11 @@ export default function SequencesPage() {
 
     const nextPosition = sequences.length + 1
 
-    const { error } = await supabase.from('sequences').insert({
+    const { error } = await supabase.from('sequences')
+    .insert({
       title,
       position: nextPosition,
+      user_id: user.id,
     })
 
     if (error) {
@@ -171,6 +183,10 @@ export default function SequencesPage() {
 
     fetchSequences()
   }
+
+  
+
+
 
   async function deleteSequence(id) {
     const ok = confirm('削除しますか？')
@@ -187,6 +203,11 @@ export default function SequencesPage() {
   }
 
   async function duplicateSequence(sequence) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    
+    if (!user) return
     const newTitle = `${sequence.title} コピー`
     const nextPosition = sequences.length + 1
 
@@ -206,6 +227,7 @@ export default function SequencesPage() {
       .insert({
         title: newTitle,
         position: nextPosition,
+        user_id: user.id,
       })
       .select()
       .single()
@@ -222,6 +244,7 @@ export default function SequencesPage() {
         type: item.type,
         memo: item.memo,
         position: item.position,
+        user_id: user.id,
       }))
 
       const { error: itemError } = await supabase
