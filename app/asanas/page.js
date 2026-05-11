@@ -280,24 +280,29 @@ export default function AsanaListPage() {
     </div>
   )}
 
-  <div className="min-w-0 flex-1">
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation()
-          toggleFavorite(asana)
-        }}
-        className="text-lg transition hover:scale-110"
-      >
-        {asana.favorite ? '⭐' : '☆'}
-      </button>
+<div className="min-w-0 flex-1">
+  <div className="flex items-start gap-2">
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        toggleFavorite(asana)
+      }}
+      className="shrink-0 text-xl leading-none transition hover:scale-110"
+    >
+      {asana.favorite ? '⭐' : '☆'}
+    </button>
 
-      <h3 className="truncate text-lg font-bold text-gray-800">
+    <div className="min-w-0 flex-1">
+      <h3 className="line-clamp-2 break-words text-base font-bold leading-snug text-gray-800 sm:text-lg">
         {asana.title}
       </h3>
 
-      <div className="flex shrink-0 gap-1">
+      <p className="mt-1 text-sm leading-snug text-gray-500">
+        {asana.sanskrit || 'サンスクリット名なし'}
+      </p>
+
+      <div className="mt-2 flex flex-wrap gap-1">
         {asana.chakras?.map((chakra) => (
           <span
             key={chakra}
@@ -308,16 +313,13 @@ export default function AsanaListPage() {
         ))}
       </div>
     </div>
-
-    <p className="mt-1 text-sm text-gray-500">
-      {asana.sanskrit || 'サンスクリット名なし'}
-    </p>
   </div>
-</div>
+  </div>
+  </div>
 
-                            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600 transition hover:bg-gray-200">
-  {isOpen ? '閉じる' : '詳細'}
-</span>
+  <span className="shrink-0 rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600 transition hover:bg-gray-200">
+    {isOpen ? '閉じる' : '詳細'}
+  </span>
 </div>
                             
 
