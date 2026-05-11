@@ -71,8 +71,9 @@ function SortableSequenceCard({
             </h2>
 
             <p className="mt-1 text-xs text-gray-400">
-              作成日：{new Date(sequence.created_at).toLocaleDateString()}
-            </p>
+  最終更新：
+  {new Date(sequence.created_at).toLocaleDateString()}
+</p>
           </div>
         </div>
 

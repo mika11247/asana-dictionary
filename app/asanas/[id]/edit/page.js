@@ -33,6 +33,11 @@ export default function AsanaEditPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
+  const [alias, setAlias] = useState('')
+
+  const [imageFile, setImageFile] = useState(null)
+const [imagePreview, setImagePreview] = useState('')
+
   const inputClass =
     'w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-800 shadow-sm outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100'
 
@@ -60,6 +65,8 @@ export default function AsanaEditPage() {
 
     setTitle(data.title || '')
     setSanskrit(data.sanskrit || '')
+    setImagePreview(data.image_url || '')
+    setAlias(data.alias || '')
     setHowto(data.howto || '')
     setEffect(data.effect || '')
     setCaution(data.caution || '')
@@ -90,39 +97,128 @@ export default function AsanaEditPage() {
     )
   }
 
+  function handleImageChange(e) {
+    const file = e.target.files?.[0] || null
+  
+    setImageFile(file)
+  
+    if (file) {
+      setImagePreview(URL.createObjectURL(file))
+    }
+  }
+
+  async function compressImage(file) {
+    return new Promise((resolve) => {
+      const img = new Image()
+      const reader = new FileReader()
+  
+      reader.readAsDataURL(file)
+  
+      reader.onload = (event) => {
+        img.src = event.target?.result
+      }
+  
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+  
+        const maxWidth = 1200
+  
+        const scale = Math.min(1, maxWidth / img.width)
+  
+        canvas.width = img.width * scale
+        canvas.height = img.height * scale
+  
+        const ctx = canvas.getContext('2d')
+  
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+  
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return
+  
+            const compressedFile = new File(
+              [blob],
+              file.name.replace(/\.\w+$/, '.webp'),
+              {
+                type: 'image/webp',
+              }
+            )
+  
+            resolve(compressedFile)
+          },
+          'image/webp',
+          0.8
+        )
+      }
+    })
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setSaving(true)
+  
+    let uploadedImageUrl = imageUrl
+  
+    try {
+      if (imageFile) {
 
-    const { error } = await supabase
-      .from('asanas')
-      .update({
-        title,
-        sanskrit,
-        howto,
-        effect,
-        caution,
-        variation,
-        note,
-        image_url: imageUrl || null,
-        strength,
-        flexibility,
-        modification,
-        types,
-        chakras,
-      })
-      .eq('id', id)
-
-    setSaving(false)
-
-    if (error) {
-      alert(`更新エラー: ${error.message}`)
-      return
+        const compressedFile = await compressImage(imageFile)
+        const fileExt = compressedFile.name.split('.').pop()
+  
+        const fileName = `${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2)}.${fileExt}`
+  
+        const { error: uploadError } = await supabase.storage
+          .from('asana-images')
+          .upload(fileName, compressedFile)
+  
+        if (uploadError) {
+          throw uploadError
+        }
+  
+        const {
+          data: { publicUrl },
+        } = supabase.storage
+          .from('asana-images')
+          .getPublicUrl(fileName)
+  
+        uploadedImageUrl = publicUrl
+      }
+  
+      const { error } = await supabase
+        .from('asanas')
+        .update({
+          title,
+          sanskrit,
+          alias,
+          howto,
+          effect,
+          caution,
+          variation,
+          note,
+          image_url: uploadedImageUrl || null,
+          strength,
+          flexibility,
+          modification,
+          types,
+          chakras,
+        })
+        .eq('id', id)
+  
+      if (error) {
+        alert(`更新エラー: ${error.message}`)
+        return
+      }
+  
+      alert('更新できたよ！')
+      router.push('/asanas')
+      router.refresh()
+    } catch (error) {
+      alert(`画像アップロードエラー: ${error.message}`)
+    } finally {
+      setSaving(false)
     }
-
-    alert('更新できたよ！')
-    router.push('/asanas')
-    router.refresh()
   }
 
   if (loading) {
@@ -178,6 +274,24 @@ export default function AsanaEditPage() {
               />
             </div>
           </section>
+
+          <div>
+  <label className="mb-2 block text-sm font-bold text-gray-700">
+    検索用キーワード
+  </label>
+
+  <input
+    type="text"
+    value={alias}
+    onChange={(e) => setAlias(e.target.value)}
+    placeholder="例：略称・英語名・別名など"
+    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-800 shadow-sm outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+  />
+
+  <p className="mt-2 text-xs text-gray-400">
+    カンマ区切りで複数登録できます
+  </p>
+</div>
 
           <section className="space-y-4 rounded-3xl bg-sky-50/60 p-4">
             <h2 className="text-lg font-bold text-gray-800">分類</h2>
@@ -305,25 +419,38 @@ export default function AsanaEditPage() {
           </section>
 
           <section className="space-y-4">
-            <div>
-              <label className={labelClass}>画像URL</label>
-              <input
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className={inputClass}
-              />
-            </div>
+  <div>
+    <label className={labelClass}>アーサナ画像</label>
 
-            <div>
-              <label className={labelClass}>メモ</label>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                className={textareaClass}
-                rows={4}
-              />
-            </div>
-          </section>
+    <input
+      type="file"
+      accept="image/*"
+      onChange={handleImageChange}
+      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
+    />
+
+    {imagePreview && (
+      <div className="mt-4 rounded-3xl bg-gray-50 p-4">
+        <img
+          src={imagePreview}
+          alt="プレビュー"
+          className="h-56 w-full rounded-2xl object-contain"
+        />
+      </div>
+    )}
+  </div>
+
+  <div>
+    <label className={labelClass}>メモ</label>
+
+    <textarea
+      value={note}
+      onChange={(e) => setNote(e.target.value)}
+      className={textareaClass}
+      rows={4}
+    />
+  </div>
+</section>
 
           <button
             type="submit"

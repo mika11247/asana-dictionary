@@ -93,6 +93,7 @@ export default function AsanaListPage() {
 
     const matchesSearch =
       asana.title?.toLowerCase().includes(keyword) ||
+      asana.alias?.toLowerCase().includes(keyword) ||
       asana.sanskrit?.toLowerCase().includes(keyword) ||
       asana.howto?.toLowerCase().includes(keyword) ||
       asana.effect?.toLowerCase().includes(keyword) ||
@@ -238,9 +239,9 @@ export default function AsanaListPage() {
                     </span>
                   </span>
 
-                  <span className="text-2xl">
-                    {openCategories[category] ? '−' : '+'}
-                  </span>
+                  <span className="text-lg text-gray-400">
+  {openCategories[category] ? '▼' : '▶'}
+</span>
                 </button>
 
                 {openCategories[category] && (
@@ -253,50 +254,72 @@ export default function AsanaListPage() {
                           key={`${category}-${asana.id}`}
                           className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition hover:shadow-md"
                         >
-                          <button
-                            type="button"
-                            onClick={() => setOpenId(isOpen ? null : asana.id)}
-                            className="flex w-full items-center justify-between gap-4 p-4 text-left"
-                          >
-                            <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                            <button
-  type="button"
-  onClick={(e) => {
-    e.stopPropagation()
-    toggleFavorite(asana)
+                          <div
+  role="button"
+  tabIndex={0}
+  onClick={() => setOpenId(isOpen ? null : asana.id)}
+  onKeyDown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      setOpenId(isOpen ? null : asana.id)
+    }
   }}
-  className="text-lg transition hover:scale-110"
+  className="flex w-full cursor-pointer items-center justify-between gap-4 p-4 text-left"
 >
-  {asana.favorite ? '⭐' : '☆'}
-</button>
+  <div className="flex min-w-0 flex-1 items-start gap-4">
+                            
+                            
+  {asana.image_url ? (
+    <img
+      src={asana.image_url}
+      alt={asana.title}
+      className="h-20 w-20 shrink-0 rounded-2xl bg-gray-50 object-contain p-2 shadow-sm"
+    />
+  ) : (
+    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gray-100 text-xs text-gray-400">
+      no image
+    </div>
+  )}
 
-  <h3 className="truncate text-lg font-bold text-gray-800">
-    {asana.title}
-  </h3>
+  <div className="min-w-0 flex-1">
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          toggleFavorite(asana)
+        }}
+        className="text-lg transition hover:scale-110"
+      >
+        {asana.favorite ? '⭐' : '☆'}
+      </button>
 
-                                <div className="flex shrink-0 gap-1">
-                                  {asana.chakras?.map((chakra) => (
-                                    <span
-                                      key={chakra}
-                                      className={`h-2.5 w-2.5 rounded-full border border-white shadow-sm ${
-                                        CHAKRA_DOT_COLORS[chakra] ||
-                                        'bg-gray-300'
-                                      }`}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
+      <h3 className="truncate text-lg font-bold text-gray-800">
+        {asana.title}
+      </h3>
 
-                              <p className="mt-1 text-sm text-gray-500">
-                                {asana.sanskrit || 'サンスクリット名なし'}
-                              </p>
-                            </div>
+      <div className="flex shrink-0 gap-1">
+        {asana.chakras?.map((chakra) => (
+          <span
+            key={chakra}
+            className={`h-2.5 w-2.5 rounded-full border border-white shadow-sm ${
+              CHAKRA_DOT_COLORS[chakra] || 'bg-gray-300'
+            }`}
+          />
+        ))}
+      </div>
+    </div>
 
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-50 text-xl text-gray-500">
-                              {isOpen ? '−' : '+'}
-                            </span>
-                          </button>
+    <p className="mt-1 text-sm text-gray-500">
+      {asana.sanskrit || 'サンスクリット名なし'}
+    </p>
+  </div>
+</div>
+
+                            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600 transition hover:bg-gray-200">
+  {isOpen ? '閉じる' : '詳細'}
+</span>
+</div>
+                            
 
                           {isOpen && (
                             <div className="space-y-4 border-t border-gray-100 bg-gray-50/60 p-4 text-sm text-gray-700">
@@ -342,6 +365,33 @@ export default function AsanaListPage() {
                                   </span>
                                 ))}
                               </div>
+
+                              {asana.alias && (
+  <div className="mb-4">
+    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+      別名・検索ワード
+    </p>
+
+    <div className="flex flex-wrap gap-2">
+      {asana.alias.split(',').map((word) => (
+        <span
+          key={word}
+          className="rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs text-gray-700"
+        >
+          #{word.trim()}
+        </span>
+      ))}
+    </div>
+  </div>
+)}
+
+{asana.image_url && (
+  <img
+    src={asana.image_url}
+    alt={asana.title}
+    className="h-56 w-full rounded-3xl bg-gray-50 object-contain p-3 shadow-sm"
+  />
+)}
 
                               <div className="space-y-3">
                                 <Info label="誘導" value={asana.howto} />

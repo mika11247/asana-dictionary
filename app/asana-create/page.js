@@ -17,17 +17,19 @@ export default function AsanaCreatePage() {
 
   const [title, setTitle] = useState('')
   const [sanskrit, setSanskrit] = useState('')
+  const [alias, setAlias] = useState('')
   const [howto, setHowto] = useState('')
   const [effect, setEffect] = useState('')
   const [caution, setCaution] = useState('')
   const [variation, setVariation] = useState('')
   const [note, setNote] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
   const [strength, setStrength] = useState('')
   const [flexibility, setFlexibility] = useState('')
   const [modification, setModification] = useState('')
   const [chakras, setChakras] = useState([])
   const [types, setTypes] = useState([])
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState('')
   const [loading, setLoading] = useState(false)
 
   const inputClass =
@@ -38,38 +40,127 @@ export default function AsanaCreatePage() {
 
   const labelClass = 'mb-2 block text-sm font-bold text-gray-700'
 
+  function handleImageChange(e) {
+    const file = e.target.files?.[0] || null
+    setImageFile(file)
+
+    if (file) {
+      setImagePreview(URL.createObjectURL(file))
+    } else {
+      setImagePreview('')
+    }
+  }
+
+  async function compressImage(file) {
+    return new Promise((resolve) => {
+      const img = new Image()
+      const reader = new FileReader()
+  
+      reader.readAsDataURL(file)
+  
+      reader.onload = (event) => {
+        img.src = event.target?.result
+      }
+  
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+  
+        const maxWidth = 1200
+  
+        const scale = Math.min(1, maxWidth / img.width)
+  
+        canvas.width = img.width * scale
+        canvas.height = img.height * scale
+  
+        const ctx = canvas.getContext('2d')
+  
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+  
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return
+  
+            const compressedFile = new File(
+              [blob],
+              file.name.replace(/\.\w+$/, '.webp'),
+              {
+                type: 'image/webp',
+              }
+            )
+  
+            resolve(compressedFile)
+          },
+          'image/webp',
+          0.8
+        )
+      }
+    })
+  }
+
+  async function uploadImage() {
+    if (!imageFile) return null
+
+    const compressedFile = await compressImage(imageFile)
+
+    const fileExt = compressedFile.name.split('.').pop()
+    const fileName = `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}.${fileExt}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('asana-images')
+      .upload(fileName, compressedFile)
+
+    if (uploadError) {
+      throw uploadError
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('asana-images').getPublicUrl(fileName)
+
+    return publicUrl
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
 
-    const { error } = await supabase.from('asanas').insert([
-      {
-        title,
-        sanskrit,
-        howto,
-        effect,
-        caution,
-        variation,
-        note,
-        image_url: imageUrl || null,
-        strength,
-        flexibility,
-        modification,
-        chakras,
-        types,
-      },
-    ])
+    try {
+      const uploadedImageUrl = await uploadImage()
 
-    setLoading(false)
+      const { error } = await supabase.from('asanas').insert([
+        {
+          title,
+          sanskrit,
+          alias,
+          howto,
+          effect,
+          caution,
+          variation,
+          note,
+          image_url: uploadedImageUrl,
+          strength,
+          flexibility,
+          modification,
+          chakras,
+          types,
+        },
+      ])
 
-    if (error) {
-      alert(`登録エラー: ${error.message}`)
-      return
+      if (error) {
+        alert(`登録エラー: ${error.message}`)
+        return
+      }
+
+      alert('登録できたよ！')
+      router.push('/asanas')
+      router.refresh()
+    } catch (error) {
+      alert(`画像アップロードエラー: ${error.message}`)
+    } finally {
+      setLoading(false)
     }
-
-    alert('登録できたよ！')
-    router.push('/asanas')
-    router.refresh()
   }
 
   return (
@@ -117,6 +208,42 @@ export default function AsanaCreatePage() {
                 className={inputClass}
                 placeholder="例：タダーサナ"
               />
+            </div>
+
+            <div>
+              <label className={labelClass}>検索用キーワード</label>
+              <input
+                type="text"
+                value={alias}
+                onChange={(e) => setAlias(e.target.value)}
+                placeholder="例：略称・英語名・別名など"
+                className={inputClass}
+              />
+
+              <p className="mt-2 text-xs text-gray-400">
+                カンマ区切りで複数登録できます
+              </p>
+            </div>
+
+            <div>
+              <label className={labelClass}>アーサナ画像</label>
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
+              />
+
+{imagePreview && (
+  <div className="mt-4 rounded-3xl bg-gray-50 p-4">
+    <img
+      src={imagePreview}
+      alt="プレビュー"
+      className="h-56 w-full rounded-2xl object-contain"
+    />
+  </div>
+)}
             </div>
           </section>
 
@@ -260,17 +387,6 @@ export default function AsanaCreatePage() {
           </section>
 
           <section className="space-y-4">
-            <div>
-              <label className={labelClass}>画像URL</label>
-              <input
-                type="text"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className={inputClass}
-                placeholder="画像URLがあれば入力"
-              />
-            </div>
-
             <div>
               <label className={labelClass}>メモ</label>
               <textarea
