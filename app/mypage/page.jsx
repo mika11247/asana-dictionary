@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-
 import { useAuth } from "@/components/AuthProvider";
 
 const planLabels = {
@@ -20,6 +19,7 @@ const planLimits = {
 
 export default function MyPage() {
   const router = useRouter();
+  const { refreshProfile } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -32,14 +32,11 @@ export default function MyPage() {
   const [sequenceCount, setSequenceCount] = useState(0);
 
   const [newEmail, setNewEmail] = useState("");
-const [newPassword, setNewPassword] = useState("");
-const [accountSaving, setAccountSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
-const [successMessage, setSuccessMessage] = useState("");
-
-const [passwordSaving, setPasswordSaving] = useState(false);
-
-const { refreshProfile } = useAuth();
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [deleteSaving, setDeleteSaving] = useState(false);
 
   useEffect(() => {
     fetchMyPage();
@@ -48,55 +45,43 @@ const { refreshProfile } = useAuth();
   async function fetchMyPage() {
     try {
       setLoading(true);
-  
+
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
-  
-      console.log("user", user);
-      console.log("userError", userError);
-  
+
       if (userError || !user) {
         router.push("/login");
         return;
       }
-  
+
       setUser(user);
-  
-      const { data: profile, error: profileError } = await supabase
+
+      const { data: profile } = await supabase
         .from("profiles")
         .select("display_name, plan")
         .eq("id", user.id)
         .maybeSingle();
-  
-      console.log("profile", profile);
-      console.log("profileError", profileError);
-  
+
       setDisplayName(profile?.display_name || "");
       setPlan(profile?.plan || "free");
-  
-      const { count: asanasCount, error: asanasError } = await supabase
+
+      const { count: asanasCount } = await supabase
         .from("asanas")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id);
-  
-      console.log("asanasCount", asanasCount);
-      console.log("asanasError", asanasError);
-  
-      const { count: sequencesCount, error: sequencesError } = await supabase
+
+      const { count: sequencesCount } = await supabase
         .from("sequences")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id);
-  
-      console.log("sequencesCount", sequencesCount);
-      console.log("sequencesError", sequencesError);
-  
+
       setAsanaCount(asanasCount || 0);
       setSequenceCount(sequencesCount || 0);
     } catch (error) {
       console.error("fetchMyPage error", error);
-      alert("マイページの読み込みでエラーが出ました");
+      setMessage("マイページの読み込みでエラーが出ました");
     } finally {
       setLoading(false);
     }
@@ -104,129 +89,123 @@ const { refreshProfile } = useAuth();
 
   async function saveDisplayName() {
     if (!user) return;
-  
+
     setSaving(true);
-  
+    setMessage("");
+
     try {
       const { error } = await supabase
         .from("profiles")
         .update({
           display_name: displayName,
-          
         })
         .eq("id", user.id);
-  
+
       if (error) throw error;
 
       await refreshProfile(user);
-  
-      alert("表示名を保存しました✨");
-
+      setMessage("表示名を保存しました✨");
     } catch (error) {
       console.error("表示名保存エラー:", error);
-      alert(`表示名の保存に失敗しました: ${error.message}`);
+      setMessage(`表示名の保存に失敗しました: ${error.message}`);
     } finally {
       setSaving(false);
     }
   }
 
   async function changeEmail() {
-    console.log("changeEmail clicked");
-  
-    if (!newEmail) {
-      alert("新しいメールアドレスを入力してください");
+    const trimmedEmail = newEmail.trim();
+
+    if (!trimmedEmail) {
+      setMessage("新しいメールアドレスを入力してください");
       return;
     }
-  
-    setAccountSaving(true);
-  
+
+    if (trimmedEmail === user?.email) {
+      setMessage("現在のメールアドレスと同じです");
+      return;
+    }
+
+    setEmailSaving(true);
+    setMessage("");
+
     try {
-      console.log("updateUser start", newEmail);
-  
-      const { data, error } = await supabase.auth.updateUser({
-        email: newEmail,
+      const { error } = await supabase.auth.updateUser({
+        email: trimmedEmail,
       });
-  
-      console.log("updateUser data", data);
-      console.log("updateUser error", error);
-  
+
       if (error) throw error;
-  
-      setSuccessMessage(
-        "確認メールを送信しました✨メール内のリンクを開くと、メールアドレス変更が完了します。"
+
+      setMessage(
+        "確認メールを送信しました✨ メール内のリンクを開くと、メールアドレス変更が完了します。"
       );
-  
       setNewEmail("");
     } catch (error) {
       console.error("メール変更エラー:", error);
-      alert(`メール変更エラー: ${error.message || "原因不明のエラー"}`);
+      setMessage(`メール変更エラー: ${error.message || "原因不明のエラー"}`);
     } finally {
-      console.log("changeEmail finally");
-      setAccountSaving(false);
+      setEmailSaving(false);
     }
   }
-  
-  async function changePassword() {
+
+  async function sendPasswordResetEmail() {
     if (!user?.email) {
-      setSuccessMessage("メールアドレスを取得できませんでした");
+      setMessage("メールアドレスを取得できませんでした");
       return;
     }
-  
-    setAccountSaving(true);
-    setSuccessMessage("");
-  
+
+    setPasswordSaving(true);
+    setMessage("");
+
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
-  
+
       if (error) throw error;
-  
-      setSuccessMessage("パスワード再設定メールを送信しました✨");
+
+      setMessage("パスワード再設定メールを送信しました✨");
     } catch (error) {
-      setSuccessMessage(`パスワード再設定エラー: ${error.message}`);
+      console.error("パスワード再設定エラー:", error);
+      setMessage(`パスワード再設定エラー: ${error.message}`);
     } finally {
-      setAccountSaving(false);
+      setPasswordSaving(false);
     }
   }
-  
+
   async function deleteAccount() {
     const ok = window.confirm(
       "本当に退会しますか？\nアーサナ・シークエンス・プロフィール情報を削除します。"
     );
-  
+
     if (!ok || !user) return;
-  
-    setAccountSaving(true);
-  
+
+    setDeleteSaving(true);
+    setMessage("");
+
     try {
       await supabase.from("sequence_items").delete().eq("user_id", user.id);
       await supabase.from("sequences").delete().eq("user_id", user.id);
       await supabase.from("asanas").delete().eq("user_id", user.id);
       await supabase.from("profiles").delete().eq("id", user.id);
-  
-      await supabase.auth.signOut();
-  
-      alert("退会処理をしました。");
+
+      await supabase.auth.signOut({ scope: "local" });
+
       router.push("/login");
     } catch (error) {
-      alert(`退会エラー: ${error.message}`);
+      console.error("退会エラー:", error);
+      setMessage(`退会エラー: ${error.message}`);
     } finally {
-      setAccountSaving(false);
+      setDeleteSaving(false);
     }
   }
 
   async function logout() {
-    await supabase.auth.signOut({
-      scope: "local",
-    });
-  
+    await supabase.auth.signOut({ scope: "local" });
     router.push("/login");
   }
 
-  const isGoogleUser =
-  user?.app_metadata?.provider === "google";
-
+  const isGoogleUser = user?.app_metadata?.provider === "google";
   const limits = planLimits[plan] || planLimits.free;
 
   if (loading) {
@@ -240,12 +219,11 @@ const { refreshProfile } = useAuth();
   return (
     <main className="min-h-screen bg-sky-50 p-4">
       <div className="mx-auto max-w-xl space-y-5">
-
-      {successMessage && (
-  <div className="rounded-2xl bg-green-100 p-3 text-sm text-green-700">
-    {successMessage}
-  </div>
-)}
+        {message && (
+          <div className="rounded-2xl bg-green-100 p-3 text-sm leading-relaxed text-green-700">
+            {message}
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <div>
@@ -256,6 +234,7 @@ const { refreshProfile } = useAuth();
           </div>
 
           <button
+            type="button"
             onClick={() => router.push("/")}
             className="rounded-full bg-white px-3 py-1 text-xs text-gray-600 shadow ring-1 ring-sky-100"
           >
@@ -278,6 +257,7 @@ const { refreshProfile } = useAuth();
             </div>
 
             <button
+              type="button"
               onClick={saveDisplayName}
               disabled={saving}
               className="w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
@@ -297,58 +277,63 @@ const { refreshProfile } = useAuth();
             </div>
 
             {isGoogleUser ? (
-  <div className="rounded-2xl bg-sky-50 p-4">
-    <p className="text-xs font-bold text-gray-500">
-      Googleログイン
-    </p>
+              <div className="rounded-2xl bg-sky-50 p-4">
+                <p className="text-xs font-bold text-gray-500">
+                  Googleログイン
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                  Googleアカウントでログイン中です。
+                  <br />
+                  メールアドレスやパスワードはGoogle側で管理されています。
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-2xl bg-sky-50 p-4">
+                  <p className="text-xs font-bold text-gray-500">
+                    メールアドレス変更
+                  </p>
 
-    <p className="mt-2 text-sm leading-relaxed text-gray-600">
-      Googleアカウントでログイン中です。<br />
-      メールアドレスやパスワードはGoogle側で管理されています。
-    </p>
-  </div>
-) : (
-  <>
-    <div className="rounded-2xl bg-sky-50 p-4">
-      <p className="text-xs font-bold text-gray-500">
-        メールアドレス変更
-      </p>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="新しいメールアドレス"
+                    className="mt-2 w-full rounded-2xl border border-sky-100 px-4 py-3 text-base text-gray-800 outline-none focus:border-sky-300"
+                  />
 
-      <input
-        type="email"
-        value={newEmail}
-        onChange={(e) => setNewEmail(e.target.value)}
-        placeholder="新しいメールアドレス"
-        className="mt-2 w-full rounded-2xl border border-sky-100 px-4 py-3 text-base text-gray-800 outline-none focus:border-sky-300"
-      />
+                  <button
+                    type="button"
+                    onClick={changeEmail}
+                    disabled={emailSaving}
+                    className="mt-3 w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
+                  >
+                    {emailSaving ? "送信中..." : "メールアドレスを変更"}
+                  </button>
+                </div>
 
-<button
-  type="button"
-  onClick={changeEmail}
-  disabled={accountSaving}
-  className="mt-3 w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
->
-  メールアドレスを変更
-</button>
-    </div>
+                <div className="rounded-2xl bg-sky-50 p-4">
+                  <p className="text-xs font-bold text-gray-500">
+                    パスワード変更
+                  </p>
 
-    <div className="rounded-2xl bg-sky-50 p-4">
-      <p className="text-xs font-bold text-gray-500">
-        パスワード変更
-      </p>
-      
-<button
-  type="button"
-  onClick={changePassword}
-  disabled={accountSaving}
-  className="mt-3 w-full rounded-2xl bg-violet-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
->
-  パスワード再設定メールを送る
-</button>
+                  <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                    パスワード変更用のメールを送信します。
+                  </p>
 
-    </div>
-  </>
-)}
+                  <button
+                    type="button"
+                    onClick={sendPasswordResetEmail}
+                    disabled={passwordSaving}
+                    className="mt-3 w-full rounded-2xl bg-violet-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
+                  >
+                    {passwordSaving
+                      ? "送信中..."
+                      : "パスワード再設定メールを送る"}
+                  </button>
+                </div>
+              </>
+            )}
 
             <div className="rounded-2xl bg-sky-50 p-4">
               <p className="text-xs font-bold text-gray-500">現在のプラン</p>
@@ -378,28 +363,29 @@ const { refreshProfile } = useAuth();
         </section>
 
         <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-red-100">
-  <div className="space-y-3">
-    <button
-      onClick={logout}
-      className="w-full rounded-2xl bg-gray-100 px-4 py-3 text-sm font-bold text-gray-600"
-    >
-      ログアウト
-    </button>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={logout}
+              className="w-full rounded-2xl bg-gray-100 px-4 py-3 text-sm font-bold text-gray-600"
+            >
+              ログアウト
+            </button>
 
-    <button
-      onClick={deleteAccount}
-      disabled={accountSaving}
-      className="w-full rounded-2xl bg-red-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
-    >
-      退会する
-    </button>
+            <button
+              type="button"
+              onClick={deleteAccount}
+              disabled={deleteSaving}
+              className="w-full rounded-2xl bg-red-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
+            >
+              {deleteSaving ? "退会処理中..." : "退会する"}
+            </button>
 
-    <p className="text-xs leading-relaxed text-red-400">
-      ※現在の退会はアプリ内データ削除＋ログアウトです。Authユーザー完全削除は後でEdge Functionで対応予定。
-    </p>
-  </div>
-</section>
-
+            <p className="text-xs leading-relaxed text-red-400">
+              ※現在の退会はアプリ内データ削除＋ログアウトです。Authユーザー完全削除は後でEdge Functionで対応予定。
+            </p>
+          </div>
+        </section>
       </div>
     </main>
   );
