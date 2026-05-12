@@ -56,10 +56,14 @@ export default function ResetPasswordPage() {
         }, 10000)
       );
       
-      const { data, error } = await Promise.race([
+      const result = await Promise.race([
         updatePromise,
         timeoutPromise,
-      ]) as Awaited<ReturnType<typeof supabase.auth.updateUser>>;
+      ]);
+      
+      const { data, error } = result as Awaited<
+        ReturnType<typeof supabase.auth.updateUser>
+      >;
 
       console.log("update password data", data);
       console.log("update password error", error);
