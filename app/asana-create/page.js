@@ -13,12 +13,15 @@ import {
 } from '@/lib/categories'
 
 import { getPlanLimits } from '@/lib/planLimits'
-import { useAuth } from '../components/AuthProvider'
+import { useAuth } from '@/components/AuthProvider'
 import { PLAN_UI } from '@/lib/planUI'
 
-const { profile } = useAuth()
+
 
 export default function AsanaCreatePage() {
+
+  const { profile } = useAuth()
+
   const router = useRouter()
 
   const [title, setTitle] = useState('')
@@ -129,79 +132,80 @@ export default function AsanaCreatePage() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
+  e.preventDefault()
+  setLoading(true)
 
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      
-      if (!user) {
-        alert('ログインしてください')
-        return
-      }
+  try {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
 
-      const limits = getPlanLimits(profile?.plan)
+    if (userError) throw userError
 
-const {
-  count,
-  error: countError,
-} = await supabase
-  .from('asanas')
-  .select('*', {
-    count: 'exact',
-    head: true,
-  })
-
-if (countError) {
-  alert('件数取得エラー')
-  return
-}
-
-if (count >= limits.asanas) {
-  alert(
-    `${PLAN_UI[profile?.plan]?.label || 'Free'}プランではアーサナを ${limits.asanas}件まで登録できます✨`
-  )
-  return
-}
-
-      const uploadedImageUrl = await uploadImage()
-
-      const { error } = await supabase.from('asanas').insert([
-        {
-          title,
-          sanskrit,
-          alias,
-          howto,
-          effect,
-          caution,
-          variation,
-          note,
-          image_url: uploadedImageUrl,
-          strength,
-          flexibility,
-          modification,
-          chakras,
-          types,
-          user_id: user.id,
-        },
-      ])
-
-      if (error) {
-        alert(`登録エラー: ${error.message}`)
-        return
-      }
-
-      alert('登録できたよ！')
-      router.push('/asanas')
-      router.refresh()
-    } catch (error) {
-      alert(`画像アップロードエラー: ${error.message}`)
-    } finally {
-      setLoading(false)
+    if (!user) {
+      alert('ログインしてください')
+      return
     }
+
+    const currentPlan = profile?.plan || 'free'
+    const limits = getPlanLimits(currentPlan)
+
+    const { count, error: countError } = await supabase
+      .from('asanas')
+      .select('id', {
+        count: 'exact',
+        head: true,
+      })
+      .eq('user_id', user.id)
+
+    if (countError) throw countError
+
+    if (limits.asanas !== null && count >= limits.asanas) {
+      alert(
+        `${PLAN_UI[currentPlan]?.label || 'Free'}プランではアーサナを ${limits.asanas}件まで登録できます✨`
+      )
+      return
+    }
+
+    let uploadedImageUrl = null
+
+    if (imageFile) {
+      uploadedImageUrl = await uploadImage()
+    }
+
+    const { error } = await supabase.from('asanas').insert([
+      {
+        title,
+        sanskrit,
+        alias,
+        howto,
+        effect,
+        caution,
+        variation,
+        note,
+        image_url: uploadedImageUrl,
+        strength,
+        flexibility,
+        modification,
+        chakras,
+        types,
+        user_id: user.id,
+      },
+    ])
+
+    if (error) throw error
+
+    alert('登録できたよ！')
+    router.push('/asanas')
+    router.refresh()
+  } catch (error) {
+    console.error('登録エラー:', error)
+    alert(`登録エラー: ${error.message || '原因不明のエラー'}`)
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-6">

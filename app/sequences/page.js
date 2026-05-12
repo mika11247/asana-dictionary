@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
 import { getPlanLimits } from '@/lib/planLimits'
-import { useAuth } from '../components/AuthProvider'
+import { useAuth } from '@/components/AuthProvider'
 
 import { PLAN_UI } from '@/lib/planUI'
 

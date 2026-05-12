@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { useAuth } from './AuthProvider'
+import { useAuth } from "@/components/AuthProvider";
 
 const PUBLIC_PATHS = ['/login']
 

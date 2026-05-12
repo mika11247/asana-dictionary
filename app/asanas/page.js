@@ -96,9 +96,10 @@ export default function AsanaListPage() {
   }
 
   const filteredAsanas = asanas.filter((asana) => {
-    const keyword = searchText.toLowerCase()
-
+    const keyword = searchText.trim().toLowerCase()
+  
     const matchesSearch =
+      keyword === '' ||
       asana.title?.toLowerCase().includes(keyword) ||
       asana.alias?.toLowerCase().includes(keyword) ||
       asana.sanskrit?.toLowerCase().includes(keyword) ||
@@ -109,11 +110,11 @@ export default function AsanaListPage() {
       asana.note?.toLowerCase().includes(keyword) ||
       asana.types?.some((type) => type.toLowerCase().includes(keyword)) ||
       asana.chakras?.some((chakra) => chakra.toLowerCase().includes(keyword))
-
+  
     const matchesChakra =
       selectedChakras.length === 0 ||
       selectedChakras.some((chakra) => asana.chakras?.includes(chakra))
-
+  
     return matchesSearch && matchesChakra
   })
 

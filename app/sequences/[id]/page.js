@@ -27,7 +27,7 @@ import { CSS } from '@dnd-kit/utilities'
 
 import { getPlanLimits } from '@/lib/planLimits'
 import { PLAN_UI } from '@/lib/planUI'
-import { useAuth } from '../../components/AuthProvider'
+import { useAuth } from '@/components/AuthProvider'
 
 function SortableSequenceItem({
   item,
