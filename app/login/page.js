@@ -31,11 +31,7 @@ export default function LoginPage() {
 
     try {
       if (isSignup) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-
+        const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
 
         setMessage("確認メールを送信しました✨ メール内のリンクを確認してください。");
@@ -176,6 +172,20 @@ export default function LoginPage() {
           </button>
         </form>
 
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-gray-200" />
+          <span className="text-xs text-gray-400">または</span>
+          <div className="h-px flex-1 bg-gray-200" />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          className="w-full rounded-2xl border border-gray-200 px-4 py-3 font-bold text-gray-700 transition hover:bg-gray-50"
+        >
+          Googleで続ける
+        </button>
+
         {!isSignup && (
           <div className="mt-5 rounded-2xl bg-sky-50 p-4">
             <p className="text-sm font-bold text-sky-700">
@@ -204,20 +214,6 @@ export default function LoginPage() {
             </button>
           </div>
         )}
-
-        <div className="my-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-gray-200" />
-          <span className="text-xs text-gray-400">または</span>
-          <div className="h-px flex-1 bg-gray-200" />
-        </div>
-
-        <button
-          type="button"
-          onClick={handleGoogleLogin}
-          className="w-full rounded-2xl border border-gray-200 px-4 py-3 font-bold text-gray-700 transition hover:bg-gray-50"
-        >
-          Googleで続ける
-        </button>
 
         {isSignup && (
           <p className="mt-4 text-xs leading-relaxed text-gray-400">
