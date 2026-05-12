@@ -96,25 +96,27 @@ const [accountSaving, setAccountSaving] = useState(false);
 
   async function saveDisplayName() {
     if (!user) return;
-
+  
     setSaving(true);
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        display_name: displayName,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", user.id);
-
-    setSaving(false);
-
-    if (error) {
-      alert("表示名の保存に失敗しました");
-      return;
+  
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          display_name: displayName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+  
+      if (error) throw error;
+  
+      alert("表示名を保存しました✨");
+    } catch (error) {
+      console.error("表示名保存エラー:", error);
+      alert(`表示名の保存に失敗しました: ${error.message}`);
+    } finally {
+      setSaving(false);
     }
-
-    alert("表示名を保存しました");
   }
 
   async function changeEmail() {
@@ -125,19 +127,24 @@ const [accountSaving, setAccountSaving] = useState(false);
   
     setAccountSaving(true);
   
-    const { error } = await supabase.auth.updateUser({
-      email: newEmail,
-    });
+    try {
+      const { error } = await supabase.auth.updateUser({
+        email: newEmail,
+      });
   
-    setAccountSaving(false);
+      if (error) throw error;
   
-    if (error) {
+      alert(
+        "確認メールを送信しました✨\nメール内のリンクを開くと、メールアドレス変更が完了します。"
+      );
+  
+      setNewEmail("");
+    } catch (error) {
+      console.error("メール変更エラー:", error);
       alert(`メール変更エラー: ${error.message}`);
-      return;
+    } finally {
+      setAccountSaving(false);
     }
-  
-    alert("確認メールを送信しました。メール内のリンクを確認してください。");
-    setNewEmail("");
   }
   
   async function changePassword() {
