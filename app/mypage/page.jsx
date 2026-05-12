@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
+import { useAuth } from "@/components/AuthProvider";
+
 const planLabels = {
   free: "Free",
   special: "Special",
@@ -32,6 +34,8 @@ export default function MyPage() {
   const [newEmail, setNewEmail] = useState("");
 const [newPassword, setNewPassword] = useState("");
 const [accountSaving, setAccountSaving] = useState(false);
+
+const { refreshProfile } = useAuth();
 
   useEffect(() => {
     fetchMyPage();
@@ -109,8 +113,12 @@ const [accountSaving, setAccountSaving] = useState(false);
         .eq("id", user.id);
   
       if (error) throw error;
+
+      await refreshProfile(user);
   
       alert("表示名を保存しました✨");
+router.refresh();
+
     } catch (error) {
       console.error("表示名保存エラー:", error);
       alert(`表示名の保存に失敗しました: ${error.message}`);
