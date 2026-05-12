@@ -13,25 +13,45 @@ export default function ResetPasswordPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      console.log("auth event", event);
-
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
-        setMessage("新しいパスワードを設定できます。");
+    async function prepareRecoverySession() {
+      try {
+        setMessage("認証情報を確認しています...");
+  
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+  
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+  
+          if (error) {
+            setMessage(`認証エラー: ${error.message}`);
+            setReady(false);
+            return;
+          }
+  
+          setReady(true);
+          setMessage("新しいパスワードを設定できます。");
+          return;
+        }
+  
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+  
+        if (session) {
+          setReady(true);
+          setMessage("新しいパスワードを設定できます。");
+        } else {
+          setReady(false);
+          setMessage("認証情報が見つかりません。もう一度メールリンクから開いてください。");
+        }
+      } catch (error: any) {
+        setReady(false);
+        setMessage(`認証エラー: ${error.message || "原因不明"}`);
       }
-    });
-
-    const timer = setTimeout(() => {
-      setReady(true);
-    }, 1500);
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(timer);
-    };
+    }
+  
+    prepareRecoverySession();
   }, []);
 
   async function updatePassword() {
