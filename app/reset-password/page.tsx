@@ -46,20 +46,34 @@ export default function ResetPasswordPage() {
     setMessage("");
 
     try {
-      const { data, error } = await supabase.auth.updateUser({
+      const updatePromise = supabase.auth.updateUser({
         password,
       });
+      
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => {
+          reject(new Error("処理がタイムアウトしました。もう一度メールリンクから開き直してください。"));
+        }, 10000)
+      );
+      
+      const { data, error } = await Promise.race([
+        updatePromise,
+        timeoutPromise,
+      ]) as Awaited<ReturnType<typeof supabase.auth.updateUser>>;
 
       console.log("update password data", data);
       console.log("update password error", error);
 
       if (error) throw error;
 
-      setMessage("パスワードを更新しました✨");
+      await supabase.auth.signOut({ scope: "local" });
 
-      setTimeout(() => {
-        router.push("/login");
-      }, 1500);
+setMessage("パスワードを更新しました✨ 新しいパスワードでログインしてください。");
+
+setTimeout(() => {
+  router.push("/login");
+}, 1500);
+
     } catch (error: any) {
       console.error("password update error", error);
       setMessage(`パスワード更新エラー: ${error.message || "原因不明"}`);
