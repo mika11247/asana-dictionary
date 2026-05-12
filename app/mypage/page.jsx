@@ -35,6 +35,10 @@ export default function MyPage() {
 const [newPassword, setNewPassword] = useState("");
 const [accountSaving, setAccountSaving] = useState(false);
 
+const [successMessage, setSuccessMessage] = useState("");
+
+const [passwordSaving, setPasswordSaving] = useState(false);
+
 const { refreshProfile } = useAuth();
 
   useEffect(() => {
@@ -117,7 +121,6 @@ const { refreshProfile } = useAuth();
       await refreshProfile(user);
   
       alert("表示名を保存しました✨");
-router.refresh();
 
     } catch (error) {
       console.error("表示名保存エラー:", error);
@@ -128,6 +131,8 @@ router.refresh();
   }
 
   async function changeEmail() {
+    console.log("changeEmail clicked");
+  
     if (!newEmail) {
       alert("新しいメールアドレスを入力してください");
       return;
@@ -136,46 +141,53 @@ router.refresh();
     setAccountSaving(true);
   
     try {
-      const { error } = await supabase.auth.updateUser({
+      console.log("updateUser start", newEmail);
+  
+      const { data, error } = await supabase.auth.updateUser({
         email: newEmail,
       });
   
+      console.log("updateUser data", data);
+      console.log("updateUser error", error);
+  
       if (error) throw error;
   
-      alert(
-        "確認メールを送信しました✨\nメール内のリンクを開くと、メールアドレス変更が完了します。"
+      setSuccessMessage(
+        "確認メールを送信しました✨メール内のリンクを開くと、メールアドレス変更が完了します。"
       );
   
       setNewEmail("");
     } catch (error) {
       console.error("メール変更エラー:", error);
-      alert(`メール変更エラー: ${error.message}`);
+      alert(`メール変更エラー: ${error.message || "原因不明のエラー"}`);
     } finally {
+      console.log("changeEmail finally");
       setAccountSaving(false);
     }
   }
   
   async function changePassword() {
-    if (!newPassword || newPassword.length < 6) {
-      alert("パスワードは6文字以上で入力してください");
+    if (!user?.email) {
+      setSuccessMessage("メールアドレスを取得できませんでした");
       return;
     }
   
     setAccountSaving(true);
+    setSuccessMessage("");
   
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
   
-    setAccountSaving(false);
+      if (error) throw error;
   
-    if (error) {
-      alert(`パスワード変更エラー: ${error.message}`);
-      return;
+      setSuccessMessage("パスワード再設定メールを送信しました✨");
+    } catch (error) {
+      setSuccessMessage(`パスワード再設定エラー: ${error.message}`);
+    } finally {
+      setAccountSaving(false);
     }
-  
-    alert("パスワードを変更しました。");
-    setNewPassword("");
   }
   
   async function deleteAccount() {
@@ -205,7 +217,10 @@ router.refresh();
   }
 
   async function logout() {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({
+      scope: "local",
+    });
+  
     router.push("/login");
   }
 
@@ -225,6 +240,13 @@ router.refresh();
   return (
     <main className="min-h-screen bg-sky-50 p-4">
       <div className="mx-auto max-w-xl space-y-5">
+
+      {successMessage && (
+  <div className="rounded-2xl bg-green-100 p-3 text-sm text-green-700">
+    {successMessage}
+  </div>
+)}
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-sky-700">My page</h1>
@@ -300,13 +322,14 @@ router.refresh();
         className="mt-2 w-full rounded-2xl border border-sky-100 px-4 py-3 text-base text-gray-800 outline-none focus:border-sky-300"
       />
 
-      <button
-        onClick={changeEmail}
-        disabled={accountSaving}
-        className="mt-3 w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
-      >
-        メールアドレスを変更
-      </button>
+<button
+  type="button"
+  onClick={changeEmail}
+  disabled={accountSaving}
+  className="mt-3 w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
+>
+  メールアドレスを変更
+</button>
     </div>
 
     <div className="rounded-2xl bg-sky-50 p-4">
@@ -322,13 +345,15 @@ router.refresh();
         className="mt-2 w-full rounded-2xl border border-sky-100 px-4 py-3 text-base text-gray-800 outline-none focus:border-sky-300"
       />
 
-      <button
-        onClick={changePassword}
-        disabled={accountSaving}
-        className="mt-3 w-full rounded-2xl bg-violet-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
-      >
-        パスワードを変更
-      </button>
+<button
+  type="button"
+  onClick={changePassword}
+  disabled={accountSaving}
+  className="mt-3 w-full rounded-2xl bg-violet-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
+>
+  パスワード再設定メールを送る
+</button>
+
     </div>
   </>
 )}
