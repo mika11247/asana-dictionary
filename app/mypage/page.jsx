@@ -104,7 +104,7 @@ const [accountSaving, setAccountSaving] = useState(false);
         .from("profiles")
         .update({
           display_name: displayName,
-          updated_at: new Date().toISOString(),
+          
         })
         .eq("id", user.id);
   
