@@ -3,12 +3,12 @@
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from "@/components/AuthProvider";
+import { supabase } from "@/lib/supabaseClient";
 
 const PUBLIC_PATHS = [
   '/login',
   '/signup',
   '/reset-password',
-
   '/privacy',
   '/guide',
   '/disclaimer',
@@ -21,9 +21,39 @@ export default function ProtectedRoute({ children }) {
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading && !user && !PUBLIC_PATHS.includes(pathname)) {
-      router.replace('/login')
+    async function checkAccess() {
+      if (loading) return
+
+      // 未ログイン
+      if (!user && !PUBLIC_PATHS.includes(pathname)) {
+        router.replace('/login')
+        return
+      }
+
+      // ログイン済みなら status 確認
+      if (user) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (error) {
+          console.error('profile取得エラー', error)
+          return
+        }
+
+        // 退会申請中はマイページだけ許可
+        if (profile?.status === 'scheduled_deletion') {
+          if (pathname !== '/mypage') {
+            router.replace('/mypage')
+            return
+          }
+        }
+      }
     }
+
+    checkAccess()
   }, [loading, user, pathname, router])
 
   if (loading) {

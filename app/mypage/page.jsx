@@ -27,6 +27,9 @@ export default function MyPage() {
   const [user, setUser] = useState(null);
   const [displayName, setDisplayName] = useState("");
   const [plan, setPlan] = useState("free");
+  const [status, setStatus] = useState("active");
+
+  const [deletedAt, setDeletedAt] = useState(null);
 
   const [asanaCount, setAsanaCount] = useState(0);
   const [sequenceCount, setSequenceCount] = useState(0);
@@ -60,12 +63,14 @@ export default function MyPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("display_name, plan")
+        .select("display_name, plan, status, deleted_at")
         .eq("id", user.id)
         .maybeSingle();
 
       setDisplayName(profile?.display_name || "");
       setPlan(profile?.plan || "free");
+      setStatus(profile?.status || "active");
+      setDeletedAt(profile?.deleted_at || null);
 
       const { count: asanasCount } = await supabase
         .from("asanas")
@@ -96,9 +101,7 @@ export default function MyPage() {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({
-          display_name: displayName,
-        })
+        .update({ display_name: displayName })
         .eq("id", user.id);
 
       if (error) throw error;
@@ -175,7 +178,7 @@ export default function MyPage() {
 
   async function deleteAccount() {
     const ok = window.confirm(
-      "本当に退会しますか？\nアーサナ・シークエンス・プロフィール情報を削除します。"
+      "退会申請をしますか？\n\nアカウントは14日間の削除予約状態になります。\n14日以内なら退会申請を取り消せます。"
     );
 
     if (!ok || !user) return;
@@ -184,17 +187,54 @@ export default function MyPage() {
     setMessage("");
 
     try {
-      await supabase.from("sequence_items").delete().eq("user_id", user.id);
-      await supabase.from("sequences").delete().eq("user_id", user.id);
-      await supabase.from("asanas").delete().eq("user_id", user.id);
-      await supabase.from("profiles").delete().eq("id", user.id);
+      const now = new Date().toISOString();
 
-      await supabase.auth.signOut({ scope: "local" });
+const { error } = await supabase
+  .from("profiles")
+  .update({
+    status: "scheduled_deletion",
+    deleted_at: now,
+  })
+  .eq("id", user.id);
 
-      router.push("/login");
+if (error) throw error;
+
+setStatus("scheduled_deletion");
+setDeletedAt(now);
+
+setMessage("退会申請を受け付けました。14日以内なら取り消せます。");
     } catch (error) {
       console.error("退会エラー:", error);
       setMessage(`退会エラー: ${error.message}`);
+    } finally {
+      setDeleteSaving(false);
+    }
+  }
+
+  async function cancelDeletion() {
+    if (!user) return;
+
+    setDeleteSaving(true);
+    setMessage("");
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          status: "active",
+          deleted_at: null,
+        })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setStatus("active");
+setDeletedAt(null);
+
+setMessage("退会申請を取り消しました✨");
+    } catch (error) {
+      console.error("復旧エラー:", error);
+      setMessage(`復旧エラー: ${error.message}`);
     } finally {
       setDeleteSaving(false);
     }
@@ -207,6 +247,21 @@ export default function MyPage() {
 
   const isGoogleUser = user?.app_metadata?.provider === "google";
   const limits = planLimits[plan] || planLimits.free;
+
+  const deletionDate = deletedAt ? new Date(deletedAt) : null;
+const scheduledDeleteDate = deletionDate
+  ? new Date(deletionDate.getTime() + 14 * 24 * 60 * 60 * 1000)
+  : null;
+
+const remainingDays = scheduledDeleteDate
+  ? Math.max(
+      0,
+      Math.ceil(
+        (scheduledDeleteDate.getTime() - new Date().getTime()) /
+          (24 * 60 * 60 * 1000)
+      )
+    )
+  : null;
 
   if (loading) {
     return (
@@ -225,6 +280,33 @@ export default function MyPage() {
           </div>
         )}
 
+        {status === "scheduled_deletion" && (
+  <div className="rounded-2xl bg-red-50 p-4 text-sm leading-relaxed text-red-600 ring-1 ring-red-100">
+    <p className="font-bold">このアカウントは退会申請中です。</p>
+
+    <div className="mt-3 space-y-1 text-xs text-red-500">
+      {deletionDate && (
+        <p>退会申請日：{deletionDate.toLocaleDateString("ja-JP")}</p>
+      )}
+
+      {scheduledDeleteDate && (
+        <p>
+          完全削除予定日：
+          {scheduledDeleteDate.toLocaleDateString("ja-JP")}
+        </p>
+      )}
+
+      {remainingDays !== null && (
+        <p className="font-bold">残り日数：{remainingDays}日</p>
+      )}
+    </div>
+
+    <p className="mt-3">
+      14日以内なら退会申請を取り消せます。
+    </p>
+  </div>
+)}
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-sky-700">My page</h1>
@@ -242,7 +324,8 @@ export default function MyPage() {
           </button>
         </div>
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-sky-100">
+        {status !== "scheduled_deletion" && (
+  <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-sky-100">
           <h2 className="text-sm font-bold text-sky-700">プロフィール</h2>
 
           <div className="mt-4 space-y-3">
@@ -259,15 +342,17 @@ export default function MyPage() {
             <button
               type="button"
               onClick={saveDisplayName}
-              disabled={saving}
+              disabled={saving || status === "scheduled_deletion"}
               className="w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
             >
               {saving ? "保存中..." : "表示名を保存"}
             </button>
           </div>
         </section>
+        )}
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-sky-100">
+        {status !== "scheduled_deletion" && (
+  <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-sky-100">
           <h2 className="text-sm font-bold text-sky-700">アカウント</h2>
 
           <div className="mt-4 space-y-3 text-sm">
@@ -305,7 +390,7 @@ export default function MyPage() {
                   <button
                     type="button"
                     onClick={changeEmail}
-                    disabled={emailSaving}
+                    disabled={emailSaving || status === "scheduled_deletion"}
                     className="mt-3 w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
                   >
                     {emailSaving ? "送信中..." : "メールアドレスを変更"}
@@ -324,7 +409,7 @@ export default function MyPage() {
                   <button
                     type="button"
                     onClick={sendPasswordResetEmail}
-                    disabled={passwordSaving}
+                    disabled={passwordSaving || status === "scheduled_deletion"}
                     className="mt-3 w-full rounded-2xl bg-violet-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
                   >
                     {passwordSaving
@@ -342,18 +427,15 @@ export default function MyPage() {
               </p>
             </div>
           </div>
-        </section>
+          </section>
+)}
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-sky-100">
-          <h2 className="text-sm font-bold text-sky-700">使用量</h2>
+{status !== "scheduled_deletion" && (
+  <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-sky-100">
+    <h2 className="text-sm font-bold text-sky-700">使用量</h2>
 
           <div className="mt-4 space-y-3">
-            <UsageCard
-              label="アーサナ"
-              count={asanaCount}
-              limit={limits.asanas}
-            />
-
+            <UsageCard label="アーサナ" count={asanaCount} limit={limits.asanas} />
             <UsageCard
               label="シークエンス"
               count={sequenceCount}
@@ -361,6 +443,7 @@ export default function MyPage() {
             />
           </div>
         </section>
+      )}
 
         <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-red-100">
           <div className="space-y-3">
@@ -372,17 +455,32 @@ export default function MyPage() {
               ログアウト
             </button>
 
+            {status === "scheduled_deletion" && (
+              <button
+                type="button"
+                onClick={cancelDeletion}
+                disabled={deleteSaving}
+                className="w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
+              >
+                {deleteSaving ? "取り消し中..." : "退会申請を取り消す"}
+              </button>
+            )}
+
             <button
               type="button"
               onClick={deleteAccount}
-              disabled={deleteSaving}
+              disabled={deleteSaving || status === "scheduled_deletion"}
               className="w-full rounded-2xl bg-red-500 px-4 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
             >
-              {deleteSaving ? "退会処理中..." : "退会する"}
+              {status === "scheduled_deletion"
+                ? "退会申請中"
+                : deleteSaving
+                  ? "退会処理中..."
+                  : "退会する"}
             </button>
 
             <p className="text-xs leading-relaxed text-red-400">
-              ※現在の退会はアプリ内データ削除＋ログアウトです。Authユーザー完全削除は後でEdge Functionで対応予定。
+              ※退会後、アカウントは14日間の削除予約状態になります。完全削除は後日対応予定です。
             </p>
           </div>
         </section>

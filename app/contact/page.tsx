@@ -3,7 +3,6 @@
 export default function ContactPage() {
   return (
     <>
-
       <main className="min-h-screen bg-gradient-to-b from-sky-50 to-white px-4 py-6">
         <div className="mx-auto max-w-4xl">
           <section className="rounded-3xl border border-sky-100 bg-white p-6 shadow-sm">
@@ -34,6 +33,19 @@ export default function ContactPage() {
               </div>
             </div>
 
+            <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 p-4">
+              <p className="text-sm font-bold text-red-600">
+                退会申請中アカウントの復旧について
+              </p>
+
+              <p className="mt-2 text-sm leading-relaxed text-red-500">
+                誤って退会申請をしてしまった場合は、
+                お問い合わせフォームよりご連絡ください。
+                <br />
+                状況確認後、復旧対応を行います。
+              </p>
+            </div>
+
             <a
               href="https://mglitter.net/contact/"
               target="_blank"
@@ -42,6 +54,10 @@ export default function ContactPage() {
             >
               お問い合わせフォームへ
             </a>
+
+            <p className="mt-4 text-xs leading-relaxed text-gray-400">
+              ※現在、退会後14日間は復旧対応可能です。
+            </p>
           </section>
         </div>
       </main>

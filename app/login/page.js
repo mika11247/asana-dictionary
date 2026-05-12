@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const isDeleted = searchParams.get("deleted") === "1";
 
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
@@ -32,9 +35,13 @@ export default function LoginPage() {
     try {
       if (isSignup) {
         const { error } = await supabase.auth.signUp({ email, password });
+
         if (error) throw error;
 
-        setMessage("確認メールを送信しました✨ メール内のリンクを確認してください。");
+        setMessage(
+          "確認メールを送信しました✨ メール内のリンクを確認してください。"
+        );
+
         setMode("login");
         return;
       }
@@ -107,6 +114,14 @@ export default function LoginPage() {
             ? "アカウントを作成して、あなただけのアーサナ辞書を育てよう"
             : "ログインして、アーサナ辞書とシークエンスを管理しよう"}
         </p>
+
+        {isDeleted && (
+          <div className="mt-5 rounded-2xl bg-red-50 p-4 text-sm leading-relaxed text-red-600 ring-1 ring-red-100">
+            このアカウントは退会申請中です。
+            <br />
+            復旧をご希望の場合は、お問い合わせください。
+          </div>
+        )}
 
         {message && (
           <div className="mt-5 rounded-2xl bg-green-100 p-3 text-sm leading-relaxed text-green-700">
