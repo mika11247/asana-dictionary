@@ -63,19 +63,21 @@ export function AuthProvider({ children }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user || null;
 
       setUser(currentUser);
+      setLoading(false);
 
-      if (currentUser) {
-        const profileData = await ensureProfile(currentUser);
-        setProfile(profileData);
-      } else {
+      if (!currentUser) {
         setProfile(null);
+        return;
       }
 
-      setLoading(false);
+      setTimeout(async () => {
+        const profileData = await ensureProfile(currentUser);
+        setProfile(profileData);
+      }, 0);
     });
 
     return () => {
