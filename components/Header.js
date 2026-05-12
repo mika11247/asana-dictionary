@@ -13,14 +13,14 @@ export default function Header() {
 
   async function handleLogout() {
     const { error } = await supabase.auth.signOut()
-  
+
     if (error) {
       alert(error.message)
       return
     }
-  
+
     setOpen(false)
-  
+
     window.location.href = '/login'
   }
 
@@ -49,16 +49,16 @@ export default function Header() {
           </Link>
 
           {profile && (
-  <div className="min-w-0 flex-1 px-3 text-right">
-    <p className="truncate text-xs font-bold text-gray-700 sm:text-sm">
-      {profile.display_name} 様
-    </p>
+            <div className="min-w-0 flex-1 px-3 text-right">
+              <p className="truncate text-xs font-bold text-gray-700 sm:text-sm">
+                {profile.display_name} 様
+              </p>
 
-    <p className="text-[10px] text-gray-400 sm:text-xs">
-      {PLAN_UI[profile.plan]?.label || 'Free'} Plan
-    </p>
-  </div>
-)}
+              <p className="text-[10px] text-gray-400 sm:text-xs">
+                {PLAN_UI[profile.plan]?.label || 'Free'} Plan
+              </p>
+            </div>
+          )}
 
           <button
             type="button"
@@ -93,7 +93,6 @@ export default function Header() {
             <p className="text-sm text-gray-500">
               Yoga Asana App
             </p>
-
           </div>
 
           <button
@@ -161,6 +160,14 @@ export default function Header() {
               </Link>
 
               <Link
+                href="/contact"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2 text-gray-600 transition hover:bg-sky-50 hover:text-sky-700"
+              >
+                📩 お問い合わせ
+              </Link>
+
+              <Link
                 href="/disclaimer"
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-3 py-2 text-gray-600 transition hover:bg-gray-100"
@@ -177,13 +184,12 @@ export default function Header() {
               </Link>
 
               <button
-  type="button"
-  onClick={handleLogout}
-  className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100"
->
-  🚪 ログアウト
-</button>
-
+                type="button"
+                onClick={handleLogout}
+                className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100"
+              >
+                🚪 ログアウト
+              </button>
             </div>
           </div>
         </nav>
