@@ -4,7 +4,15 @@ import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from "@/components/AuthProvider";
 
-const PUBLIC_PATHS = ['/login']
+const PUBLIC_PATHS = [
+  '/login',
+  '/signup',
+  '/reset-password',
+
+  '/privacy',
+  '/guide',
+  '/disclaimer',
+]
 
 export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()

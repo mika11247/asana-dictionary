@@ -336,15 +336,7 @@ const { refreshProfile } = useAuth();
       <p className="text-xs font-bold text-gray-500">
         パスワード変更
       </p>
-
-      <input
-        type="password"
-        value={newPassword}
-        onChange={(e) => setNewPassword(e.target.value)}
-        placeholder="新しいパスワード"
-        className="mt-2 w-full rounded-2xl border border-sky-100 px-4 py-3 text-base text-gray-800 outline-none focus:border-sky-300"
-      />
-
+      
 <button
   type="button"
   onClick={changePassword}
