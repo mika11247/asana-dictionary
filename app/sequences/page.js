@@ -217,22 +217,42 @@ if (sequences.length >= limits.sequences) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    
+  
     if (!user) return
+  
+    const limits = getPlanLimits(profile?.plan)
+  
+    const { count, error: countError } = await supabase
+      .from('sequences')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+  
+    if (countError) {
+      alert('シークエンス数の確認に失敗しました')
+      return
+    }
+  
+    if (limits.sequences !== null && count >= limits.sequences) {
+      alert(
+        `${PLAN_UI[profile?.plan]?.label || 'Free'}プランではシークエンスを ${limits.sequences}件まで作成できます✨`
+      )
+      return
+    }
+  
     const newTitle = `${sequence.title} コピー`
     const nextPosition = sequences.length + 1
-
+  
     const { data: originalItems, error: fetchError } = await supabase
       .from('sequence_items')
       .select('*')
       .eq('sequence_id', sequence.id)
       .order('position', { ascending: true })
-
+  
     if (fetchError) {
       alert('複製エラー')
       return
     }
-
+  
     const { data: newSequence, error: createError } = await supabase
       .from('sequences')
       .insert({
@@ -242,12 +262,12 @@ if (sequences.length >= limits.sequences) {
       })
       .select()
       .single()
-
+  
     if (createError || !newSequence) {
       alert('複製エラー')
       return
     }
-
+  
     if (originalItems?.length > 0) {
       const duplicatedItems = originalItems.map((item) => ({
         sequence_id: newSequence.id,
@@ -257,17 +277,17 @@ if (sequences.length >= limits.sequences) {
         position: item.position,
         user_id: user.id,
       }))
-
+  
       const { error: itemError } = await supabase
         .from('sequence_items')
         .insert(duplicatedItems)
-
+  
       if (itemError) {
         alert('アイテム複製エラー')
         return
       }
     }
-
+  
     fetchSequences()
   }
 
