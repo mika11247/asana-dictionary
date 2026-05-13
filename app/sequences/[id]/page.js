@@ -43,7 +43,6 @@ function SortableSequenceItem({
   closedSections,
   viewMode,
 }) {
-
   const {
     attributes,
     listeners,
@@ -69,9 +68,7 @@ function SortableSequenceItem({
         className="overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 to-violet-50 shadow-sm"
       >
         <div className="flex items-center justify-between gap-2 border-l-4 border-sky-400 px-3 py-3">
-          
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            
             <button
               type="button"
               {...attributes}
@@ -80,7 +77,7 @@ function SortableSequenceItem({
             >
               ☰
             </button>
-  
+
             <button
               type="button"
               onClick={() => toggleSection(item.id)}
@@ -89,15 +86,14 @@ function SortableSequenceItem({
               <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-sky-400">
                 section
               </p>
-  
+
               <h3 className="mt-0.5 line-clamp-2 break-words text-base font-bold leading-snug text-gray-700">
                 {item.section_title}
               </h3>
             </button>
           </div>
-  
+
           <div className="flex shrink-0 items-center gap-1">
-            
             <button
               type="button"
               onClick={() => toggleSection(item.id)}
@@ -105,7 +101,7 @@ function SortableSequenceItem({
             >
               {closedSections.includes(item.id) ? '▶' : '▼'}
             </button>
-  
+
             <button
               type="button"
               onClick={() => editSection(item)}
@@ -113,13 +109,13 @@ function SortableSequenceItem({
             >
               ✏️
             </button>
-  
+
             <button
               type="button"
               onClick={() => removeItem(item.id)}
               className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-red-500 ring-1 ring-red-100 transition hover:bg-red-50"
             >
-              🗑
+              🗑️
             </button>
           </div>
         </div>
@@ -132,44 +128,45 @@ function SortableSequenceItem({
       <div
         ref={setNodeRef}
         style={style}
-        className="rounded-3xl border border-yellow-100 bg-yellow-50/90 p-4 shadow-sm"
+        className="rounded-2xl border border-yellow-100 bg-yellow-50/80 px-3 py-3 shadow-sm"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-start gap-2">
             <button
               type="button"
               {...attributes}
               {...listeners}
-              className="cursor-grab rounded-2xl border border-yellow-200 bg-white px-3 py-2 text-sm text-gray-400 active:cursor-grabbing"
+              className="cursor-grab rounded-xl border border-yellow-200 bg-white px-2 py-1 text-xs text-gray-400 active:cursor-grabbing"
             >
               ☰
             </button>
 
-            <div className="min-w-0">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-yellow-500">
-  memo
-</p>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+            <div className="min-w-0 flex-1">
+              <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-yellow-500">
+                memo
+              </p>
+
+              <p className="whitespace-pre-wrap text-sm leading-snug text-gray-700">
                 {item.memo}
               </p>
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+          <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
               onClick={() => editMemo(item)}
-              className="rounded-full bg-yellow-500 px-3 py-1.5 text-xs font-bold text-white"
+              className="rounded-full bg-white px-2 py-1 text-[11px] text-yellow-600 ring-1 ring-yellow-200 transition hover:bg-yellow-50"
             >
-              編集
+              ✏️
             </button>
 
             <button
               type="button"
               onClick={() => removeItem(item.id)}
-              className="rounded-full bg-red-500 px-3 py-1.5 text-xs font-bold text-white"
+              className="rounded-full bg-white px-2 py-1 text-[11px] text-red-500 ring-1 ring-red-100 transition hover:bg-red-50"
             >
-              削除
+              🗑️
             </button>
           </div>
         </div>
@@ -195,12 +192,12 @@ function SortableSequenceItem({
             >
               ☰
             </button>
-  
+
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-gray-800">
                 {item.asanas?.title}
               </p>
-  
+
               {item.memo && (
                 <p className="truncate text-[11px] text-yellow-700">
                   📝 {item.memo}
@@ -208,16 +205,16 @@ function SortableSequenceItem({
               )}
             </div>
           </div>
-  
+
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation()
               removeItem(item.id)
             }}
-            className="rounded-full bg-red-50 px-2 py-1 text-[11px] font-bold text-red-500"
+            className="rounded-full bg-red-50 px-2 py-1 text-[11px] font-bold text-red-500 ring-1 ring-red-100"
           >
-            外す
+            ❌
           </button>
         </div>
       </div>
@@ -232,8 +229,8 @@ function SortableSequenceItem({
         onClick={() => setOpen(!open)}
         className="cursor-pointer rounded-2xl border border-gray-100 bg-white px-3 py-2.5 shadow-sm transition"
       >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <button
               type="button"
               {...attributes}
@@ -243,36 +240,36 @@ function SortableSequenceItem({
             >
               ☰
             </button>
-  
+
             <div className="min-w-0 flex-1">
               <h3 className="truncate text-sm font-bold text-gray-800">
                 {item.asanas?.title}
               </h3>
-  
+
               <p className="truncate text-xs text-gray-500">
                 {item.asanas?.sanskrit || 'サンスクリット名なし'}
               </p>
-  
+
               <div className="mt-1 flex flex-wrap items-center gap-1">
-              {item.asanas?.types?.slice(0, 2).map((type) => (
-  <span
-    key={type}
-    className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-700"
-  >
-    {TYPE_LABELS[type]?.ja || type}
-  </span>
-))}
-  
-  {item.asanas?.chakras?.slice(0, 3).map((chakra) => (
-  <span
-    key={chakra}
-    className={`h-2.5 w-2.5 rounded-full ${
-      CHAKRA_DOT_COLORS[chakra] || 'bg-gray-300'
-    }`}
-  />
-))}
+                {item.asanas?.types?.slice(0, 2).map((type) => (
+                  <span
+                    key={type}
+                    className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-700"
+                  >
+                    {TYPE_LABELS[type]?.ja || type}
+                  </span>
+                ))}
+
+                {item.asanas?.chakras?.slice(0, 3).map((chakra) => (
+                  <span
+                    key={chakra}
+                    className={`h-2.5 w-2.5 rounded-full ${
+                      CHAKRA_DOT_COLORS[chakra] || 'bg-gray-300'
+                    }`}
+                  />
+                ))}
               </div>
-  
+
               {item.memo && (
                 <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-yellow-700">
                   📝 {item.memo}
@@ -280,32 +277,32 @@ function SortableSequenceItem({
               )}
             </div>
           </div>
-  
-          <div className="flex shrink-0 flex-col gap-1.5">
+
+          <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
                 editMemo(item)
               }}
-              className="rounded-full bg-yellow-500 px-2.5 py-1 text-[11px] font-bold text-white"
+              className="rounded-full bg-yellow-50 px-2 py-1 text-[11px] text-yellow-600 ring-1 ring-yellow-100"
             >
-              📝
+              ✏️
             </button>
-  
+
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
                 removeItem(item.id)
               }}
-              className="rounded-full bg-red-500 px-2.5 py-1 text-[11px] font-bold text-white"
+              className="rounded-full bg-red-50 px-2 py-1 text-[11px] text-red-500 ring-1 ring-red-100"
             >
-              外す
+              ❌
             </button>
           </div>
         </div>
-  
+
         {open && (
           <div className="mt-3 border-t border-gray-100 pt-3">
             {item.asanas?.effect && (
@@ -313,19 +310,19 @@ function SortableSequenceItem({
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
                   効果
                 </p>
-  
+
                 <p className="line-clamp-4 whitespace-pre-wrap text-xs leading-relaxed text-gray-700">
                   {item.asanas.effect}
                 </p>
               </div>
             )}
-  
+
             {item.asanas?.howto && (
               <div>
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
                   誘導
                 </p>
-  
+
                 <p className="line-clamp-5 whitespace-pre-wrap text-xs leading-relaxed text-gray-700">
                   {item.asanas.howto}
                 </p>
@@ -337,176 +334,173 @@ function SortableSequenceItem({
     )
   }
 
-return (
-  <div
-    ref={setNodeRef}
-    style={style}
-    onClick={() => setOpen(!open)}
-    className="cursor-pointer rounded-3xl border border-gray-100 bg-white/95 p-3 shadow-sm transition hover:shadow-md"
-  >
-    <div className="flex items-start justify-between gap-3">
-      <div className="flex min-w-0 items-start gap-3">
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          onClick={(e) => e.stopPropagation()}
-          className="cursor-grab rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-400 active:cursor-grabbing"
-          >☰
-        </button>
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      onClick={() => setOpen(!open)}
+      className="cursor-pointer rounded-3xl border border-gray-100 bg-white/95 p-3 shadow-sm transition hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-1 items-start gap-2">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
+            className="cursor-grab rounded-2xl border border-gray-200 bg-white px-2 py-2 text-sm text-gray-400 active:cursor-grabbing"
+          >
+            ☰
+          </button>
 
-        {item.asanas?.image_url ? (
-          <img
-            src={item.asanas.image_url}
-            alt={item.asanas.title}
-            className="h-16 w-16 shrink-0 rounded-2xl bg-gray-50 object-contain p-2 shadow-sm"
-          />
-        ) : (
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gray-100 text-xs text-gray-400">
-            no image
+          {item.asanas?.image_url ? (
+            <img
+              src={item.asanas.image_url}
+              alt={item.asanas.title}
+              className="h-14 w-14 shrink-0 rounded-2xl bg-gray-50 object-contain p-1.5 shadow-sm"
+            />
+          ) : (
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gray-100 text-[11px] text-gray-400">
+              no image
+            </div>
+          )}
+
+          <div className="min-w-0 flex-1">
+            <h3 className="line-clamp-2 break-words text-[15px] font-bold leading-tight text-gray-800">
+              {item.asanas?.title}
+            </h3>
+
+            <p className="mt-0.5 line-clamp-2 break-words text-xs leading-snug text-gray-500">
+              {item.asanas?.sanskrit || 'サンスクリット名なし'}
+            </p>
+
+            {item.memo && (
+              <div className="mt-1.5 rounded-xl bg-yellow-50 px-2 py-1 text-[11px] leading-snug text-yellow-700 ring-1 ring-yellow-100">
+                <p className="line-clamp-2">📝 {item.memo}</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
-<div className="min-w-0 flex-1">
-  <h3 className="line-clamp-2 break-words text-base font-bold leading-snug text-gray-800">
-  {item.asanas?.title}
-  </h3>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              editMemo(item)
+            }}
+            className="rounded-full bg-yellow-50 px-2 py-1 text-[11px] text-yellow-600 ring-1 ring-yellow-100"
+          >
+            ✏️
+          </button>
 
-          <p className="mt-1 text-sm text-gray-500">
-            {item.asanas?.sanskrit || 'サンスクリット名なし'}
-          </p>
-
-          {item.memo && (
-  <div className="mt-2 rounded-xl bg-yellow-50 px-2.5 py-1.5 text-xs leading-relaxed text-yellow-700 ring-1 ring-yellow-100">
-  <p className="line-clamp-2">
-    📝 {item.memo}
-  </p>
-</div>
-)}
-
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              removeItem(item.id)
+            }}
+            className="rounded-full bg-red-50 px-2 py-1 text-[11px] text-red-500 ring-1 ring-red-100"
+          >
+            ❌
+          </button>
         </div>
       </div>
 
-      <div className="flex shrink-0 gap-2">
-  <button
-    type="button"
-    onClick={(e) => {
-      e.stopPropagation()
-      editMemo(item)
-    }}
-    className="rounded-full bg-yellow-500 px-3 py-1.5 text-xs font-bold text-white"
-  >
-    📝
-  </button>
+      {open && (
+        <div className="mt-4 space-y-4 rounded-2xl bg-gray-50 p-4">
+          {item.asanas?.image_url && (
+            <img
+              src={item.asanas.image_url}
+              alt={item.asanas.title}
+              className="h-64 w-full rounded-3xl bg-white object-contain p-4 shadow-sm"
+            />
+          )}
 
-  <button
-    type="button"
-    onClick={(e) => {
-      e.stopPropagation()
-      removeItem(item.id)
-    }}
-    className="rounded-full bg-red-500 px-3 py-1.5 text-xs font-bold text-white"
-  >
-    外す
-  </button>
-</div>
-</div>
+          {item.asanas?.types?.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+                分類
+              </p>
 
-{open && (
-      <div className="mt-4 space-y-4 rounded-2xl bg-gray-50 p-4">
-        {item.asanas?.image_url && (
-          <img
-            src={item.asanas.image_url}
-            alt={item.asanas.title}
-            className="h-64 w-full rounded-3xl bg-white object-contain p-4 shadow-sm"
-          />
-        )}
-
-        {item.asanas?.types?.length > 0 && (
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-              分類
-            </p>
-
-            <div className="flex flex-wrap gap-2">
-              {item.asanas.types.map((type) => (
-                <span
-                  key={type}
-                  className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs text-sky-700"
-                >
-                  {type}
-                </span>
-              ))}
+              <div className="flex flex-wrap gap-2">
+                {item.asanas.types.map((type) => (
+                  <span
+                    key={type}
+                    className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs text-sky-700"
+                  >
+                    {TYPE_LABELS[type]?.ja || type}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {item.asanas?.chakras?.length > 0 && (
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-              チャクラ
-            </p>
+          {item.asanas?.chakras?.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+                チャクラ
+              </p>
 
-            <div className="flex flex-wrap gap-2">
-              {item.asanas.chakras.map((chakra) => (
-                <span
-                  key={chakra}
-                  className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs text-violet-700"
-                >
-                  {chakra}
-                </span>
-              ))}
+              <div className="flex flex-wrap gap-2">
+                {item.asanas.chakras.map((chakra) => (
+                  <span
+                    key={chakra}
+                    className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs text-violet-700"
+                  >
+                    {chakra}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {item.asanas?.alias && (
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-              別名・検索ワード
-            </p>
+          {item.asanas?.alias && (
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+                別名・検索ワード
+              </p>
 
-            <div className="flex flex-wrap gap-2">
-              {item.asanas.alias.split(',').map((word) => (
-                <span
-                  key={word}
-                  className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600"
-                >
-                  #{word.trim()}
-                </span>
-              ))}
+              <div className="flex flex-wrap gap-2">
+                {item.asanas.alias.split(',').map((word) => (
+                  <span
+                    key={word}
+                    className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600"
+                  >
+                    #{word.trim()}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {item.asanas?.howto && (
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-              誘導
-            </p>
+          {item.asanas?.howto && (
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+                誘導
+              </p>
 
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-              {item.asanas.howto}
-            </p>
-          </div>
-        )}
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+                {item.asanas.howto}
+              </p>
+            </div>
+          )}
 
-        {item.asanas?.effect && (
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-              効果
-            </p>
+          {item.asanas?.effect && (
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+                効果
+              </p>
 
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-              {item.asanas.effect}
-            </p>
-          </div>
-        )}
-      </div>
-    )}
-  </div>
-)
-
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+                {item.asanas.effect}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function SequenceDetailPage() {
