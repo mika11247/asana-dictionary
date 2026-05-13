@@ -143,6 +143,11 @@ body {
     display: none !important;
   }
 
+  .print-hide-menu {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
   footer {
     margin-top: 0 !important;
   }
