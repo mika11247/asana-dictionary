@@ -59,10 +59,10 @@ function SortableSequenceItem({
       <div
         ref={setNodeRef}
         style={style}
-        className="rounded-3xl border border-sky-100 bg-sky-50/90 p-4 shadow-sm"
+        className="overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-r from-sky-50 to-violet-50 shadow-sm"
       >
-        <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex items-center justify-between gap-3 border-l-4 border-sky-400 px-4 py-4">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
               type="button"
               {...attributes}
@@ -71,35 +71,45 @@ function SortableSequenceItem({
             >
               ☰
             </button>
-
+  
             <button
-  type="button"
-  onClick={() => toggleSection(item.id)}
-  className="min-w-0 flex-1 text-left"
->
-              <p className="text-xs font-medium text-sky-500">Section</p>
-              <h3 className="line-clamp-2 break-words text-base font-bold leading-snug text-sky-800 sm:text-lg">
-                {closedSections.includes(item.id) ? '▶' : '▼'} 🌿{' '}
+              type="button"
+              onClick={() => toggleSection(item.id)}
+              className="min-w-0 flex-1 text-left"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-400">
+                section
+              </p>
+  
+              <h3 className="mt-1 line-clamp-2 break-words text-lg font-bold leading-snug text-gray-700">
                 {item.section_title}
               </h3>
             </button>
           </div>
-
-          <div className="flex shrink-0 gap-2">
+  
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => toggleSection(item.id)}
+              className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-sky-500 ring-1 ring-sky-100 transition hover:bg-sky-50"
+            >
+              {closedSections.includes(item.id) ? '▶' : '▼'}
+            </button>
+  
             <button
               type="button"
               onClick={() => editSection(item)}
-              className="rounded-full bg-sky-500 px-3 py-1.5 text-xs font-bold text-white"
+              className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-sky-600 ring-1 ring-sky-100 transition hover:bg-sky-50"
             >
-              編集
+              ✏️
             </button>
-
+  
             <button
               type="button"
               onClick={() => removeItem(item.id)}
-              className="rounded-full bg-red-500 px-3 py-1.5 text-xs font-bold text-white"
+              className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-red-500 ring-1 ring-red-100 transition hover:bg-red-50"
             >
-              削除
+              🗑
             </button>
           </div>
         </div>
@@ -126,7 +136,9 @@ function SortableSequenceItem({
             </button>
 
             <div className="min-w-0">
-              <p className="mb-1 text-xs font-bold text-yellow-600">📝 Memo</p>
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-yellow-500">
+  memo
+</p>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
                 {item.memo}
               </p>
@@ -161,7 +173,7 @@ return (
     ref={setNodeRef}
     style={style}
     onClick={() => setOpen(!open)}
-    className="cursor-pointer rounded-3xl border border-gray-100 bg-white/95 p-4 shadow-sm transition hover:shadow-md"
+    className="cursor-pointer rounded-3xl border border-gray-100 bg-white/95 p-3 shadow-sm transition hover:shadow-md"
   >
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 items-start gap-3">
@@ -170,19 +182,18 @@ return (
           {...attributes}
           {...listeners}
           onClick={(e) => e.stopPropagation()}
-          className="cursor-grab rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-400 active:cursor-grabbing"
-        >
-          ☰
+          className="cursor-grab rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-400 active:cursor-grabbing"
+          >☰
         </button>
 
         {item.asanas?.image_url ? (
           <img
             src={item.asanas.image_url}
             alt={item.asanas.title}
-            className="h-20 w-20 shrink-0 rounded-2xl bg-gray-50 object-contain p-2 shadow-sm"
+            className="h-16 w-16 shrink-0 rounded-2xl bg-gray-50 object-contain p-2 shadow-sm"
           />
         ) : (
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gray-100 text-xs text-gray-400">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gray-100 text-xs text-gray-400">
             no image
           </div>
         )}
@@ -196,25 +207,43 @@ return (
             {item.asanas?.sanskrit || 'サンスクリット名なし'}
           </p>
 
-          <p className="mt-2 text-xs font-bold text-gray-400">
-            {open ? '閉じる' : '詳細'}
-          </p>
+          {item.memo && (
+  <div className="mt-2 rounded-xl bg-yellow-50 px-2.5 py-1.5 text-xs leading-relaxed text-yellow-700 ring-1 ring-yellow-100">
+  <p className="line-clamp-2">
+    📝 {item.memo}
+  </p>
+</div>
+)}
+
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation()
-          removeItem(item.id)
-        }}
-        className="shrink-0 rounded-full bg-red-500 px-3 py-1.5 text-xs font-bold text-white"
-      >
-        外す
-      </button>
-    </div>
+      <div className="flex shrink-0 gap-2">
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation()
+      editMemo(item)
+    }}
+    className="rounded-full bg-yellow-500 px-3 py-1.5 text-xs font-bold text-white"
+  >
+    📝
+  </button>
 
-    {open && (
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation()
+      removeItem(item.id)
+    }}
+    className="rounded-full bg-red-500 px-3 py-1.5 text-xs font-bold text-white"
+  >
+    外す
+  </button>
+</div>
+</div>
+
+{open && (
       <div className="mt-4 space-y-4 rounded-2xl bg-gray-50 p-4">
         {item.asanas?.image_url && (
           <img

@@ -33,6 +33,7 @@ function SortableSequenceCard({
   sequence,
   deleteSequence,
   duplicateSequence,
+  editSequence,
 }) {
   const {
     attributes,
@@ -50,17 +51,19 @@ function SortableSequenceCard({
   }
 
   return (
-    <div
+    <Link
+      href={`/sequences/${sequence.id}`}
       ref={setNodeRef}
       style={style}
-      className="rounded-3xl border border-white/70 bg-white/90 p-4 shadow-sm backdrop-blur transition hover:shadow-md"
+      className="block rounded-3xl border border-white/70 bg-white/90 p-4 shadow-sm backdrop-blur transition hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-3">
-      <div className="flex min-w-0 flex-1 items-start gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           <button
             type="button"
             {...attributes}
             {...listeners}
+            onClick={(e) => e.preventDefault()}
             className="cursor-grab rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-400 active:cursor-grabbing"
           >
             ☰
@@ -72,42 +75,58 @@ function SortableSequenceCard({
             </p>
 
             <h2 className="line-clamp-2 break-words text-lg font-bold leading-snug text-gray-800">
-  {sequence.title}
-</h2>
+              {sequence.title}
+            </h2>
 
-            <p className="mt-1 text-xs text-gray-400">
-  最終更新：
-  {new Date(sequence.created_at).toLocaleDateString()}
-</p>
+            {sequence.memo && (
+              <p className="mt-2 line-clamp-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-500">
+                {sequence.memo}
+              </p>
+            )}
+
+            <p className="mt-2 text-xs text-gray-400">
+              最終更新：
+              {new Date(sequence.created_at).toLocaleDateString()}
+            </p>
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-          <Link
-            href={`/sequences/${sequence.id}`}
-            className="rounded-full bg-gray-800 px-3 py-1.5 text-center text-xs font-bold text-white"
-          >
-            開く
-          </Link>
-
+        <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
-            onClick={() => duplicateSequence(sequence)}
-            className="rounded-full bg-sky-500 px-3 py-1.5 text-xs font-bold text-white"
+            onClick={(e) => {
+              e.preventDefault()
+              editSequence(sequence)
+            }}
+            className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-200 transition hover:bg-gray-50"
           >
-            複製
+            ✏️
           </button>
 
           <button
             type="button"
-            onClick={() => deleteSequence(sequence.id)}
-            className="rounded-full bg-red-500 px-3 py-1.5 text-xs font-bold text-white"
+            onClick={(e) => {
+              e.preventDefault()
+              duplicateSequence(sequence)
+            }}
+            className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-200 transition hover:bg-gray-50"
           >
-            削除
+            📄
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              deleteSequence(sequence.id)
+            }}
+            className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-red-500 ring-1 ring-gray-200 transition hover:bg-red-50"
+          >
+            🗑
           </button>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -178,11 +197,14 @@ if (sequences.length >= limits.sequences) {
     const title = prompt('レッスン名を入力')
     if (!title) return
 
+    const memo = prompt('メモを入力（空でもOK）') || ''
+
     const nextPosition = sequences.length + 1
 
     const { error } = await supabase.from('sequences')
     .insert({
       title,
+      memo,
       position: nextPosition,
       user_id: user.id,
     })
@@ -210,6 +232,30 @@ if (sequences.length >= limits.sequences) {
       return
     }
 
+    fetchSequences()
+  }
+
+  async function editSequence(sequence) {
+    const newTitle = prompt('シークエンス名を編集', sequence.title)
+  
+    if (!newTitle) return
+  
+    const newMemo =
+      prompt('メモを編集', sequence.memo || '') ?? sequence.memo
+  
+    const { error } = await supabase
+      .from('sequences')
+      .update({
+        title: newTitle,
+        memo: newMemo,
+      })
+      .eq('id', sequence.id)
+  
+    if (error) {
+      alert(`更新エラー: ${error.message}`)
+      return
+    }
+  
     fetchSequences()
   }
 
@@ -254,14 +300,15 @@ if (sequences.length >= limits.sequences) {
     }
   
     const { data: newSequence, error: createError } = await supabase
-      .from('sequences')
-      .insert({
-        title: newTitle,
-        position: nextPosition,
-        user_id: user.id,
-      })
-      .select()
-      .single()
+  .from('sequences')
+  .insert({
+    title: newTitle,
+    memo: sequence.memo,
+    position: nextPosition,
+    user_id: user.id,
+  })
+  .select()
+  .single()
   
     if (createError || !newSequence) {
       alert('複製エラー')
@@ -411,11 +458,12 @@ if (sequences.length >= limits.sequences) {
               <div className="space-y-4">
                 {sequences.map((sequence) => (
                   <SortableSequenceCard
-                    key={sequence.id}
-                    sequence={sequence}
-                    deleteSequence={deleteSequence}
-                    duplicateSequence={duplicateSequence}
-                  />
+                  key={sequence.id}
+                  sequence={sequence}
+                  deleteSequence={deleteSequence}
+                  duplicateSequence={duplicateSequence}
+                  editSequence={editSequence}
+                />
                 ))}
               </div>
             </SortableContext>
