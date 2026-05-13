@@ -145,9 +145,9 @@ export default function AsanaListPage() {
 
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">
-                🪷 アーサナ一覧
-              </h1>
+            <h1 className="text-3xl font-bold leading-tight text-gray-800">
+  🪷 アーサナ一覧
+</h1>
               <p className="mt-2 text-sm text-gray-500">
                 ポーズ・チャクラ・分類から探せます
               </p>
