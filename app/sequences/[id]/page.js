@@ -36,7 +36,9 @@ function SortableSequenceItem({
   editSection,
   toggleSection,
   closedSections,
+  viewMode,
 }) {
+
   const {
     attributes,
     listeners,
@@ -167,6 +169,179 @@ function SortableSequenceItem({
     )
   }
 
+  if (viewMode === 'minimal') {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="rounded-2xl border border-gray-100 bg-white px-3 py-2 shadow-sm"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <button
+              type="button"
+              {...attributes}
+              {...listeners}
+              onClick={(e) => e.stopPropagation()}
+              className="cursor-grab rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs text-gray-400 active:cursor-grabbing"
+            >
+              ☰
+            </button>
+  
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-gray-800">
+                {item.asanas?.title}
+              </p>
+  
+              {item.memo && (
+                <p className="truncate text-[11px] text-yellow-700">
+                  📝 {item.memo}
+                </p>
+              )}
+            </div>
+          </div>
+  
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              removeItem(item.id)
+            }}
+            className="rounded-full bg-red-50 px-2 py-1 text-[11px] font-bold text-red-500"
+          >
+            外す
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (viewMode === 'compact') {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        onClick={() => setOpen(!open)}
+        className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-3 shadow-sm transition"
+      >
+        <div className="flex items-start justify-between gap-3">
+          
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            
+            <button
+              type="button"
+              {...attributes}
+              {...listeners}
+              onClick={(e) => e.stopPropagation()}
+              className="cursor-grab rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs text-gray-400 active:cursor-grabbing"
+            >
+              ☰
+            </button>
+  
+            {item.asanas?.image_url ? (
+              <img
+                src={item.asanas.image_url}
+                alt={item.asanas.title}
+                className="h-12 w-12 shrink-0 rounded-xl bg-gray-50 object-contain p-1 shadow-sm"
+              />
+            ) : (
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-[10px] text-gray-400">
+                no
+              </div>
+            )}
+  
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-sm font-bold text-gray-800">
+                {item.asanas?.title}
+              </h3>
+  
+              <p className="truncate text-xs text-gray-500">
+                {item.asanas?.sanskrit || 'サンスクリット名なし'}
+              </p>
+  
+              <div className="mt-1 flex flex-wrap items-center gap-1">
+                {item.asanas?.types?.slice(0, 2).map((type) => (
+                  <span
+                    key={type}
+                    className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-700"
+                  >
+                    {type}
+                  </span>
+                ))}
+  
+                {item.asanas?.chakras?.slice(0, 3).map((chakra) => (
+                  <span
+                    key={chakra}
+                    className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] text-violet-700"
+                  >
+                    {chakra}
+                  </span>
+                ))}
+              </div>
+  
+              {item.memo && (
+                <p className="mt-2 line-clamp-2 text-[11px] leading-relaxed text-yellow-700">
+                  📝 {item.memo}
+                </p>
+              )}
+            </div>
+          </div>
+  
+          <div className="flex shrink-0 flex-col gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                editMemo(item)
+              }}
+              className="rounded-full bg-yellow-500 px-2.5 py-1 text-[11px] font-bold text-white"
+            >
+              📝
+            </button>
+  
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                removeItem(item.id)
+              }}
+              className="rounded-full bg-red-500 px-2.5 py-1 text-[11px] font-bold text-white"
+            >
+              外す
+            </button>
+          </div>
+        </div>
+  
+        {open && (
+          <div className="mt-3 border-t border-gray-100 pt-3">
+            {item.asanas?.effect && (
+              <div className="mb-3">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                  効果
+                </p>
+  
+                <p className="line-clamp-4 whitespace-pre-wrap text-xs leading-relaxed text-gray-700">
+                  {item.asanas.effect}
+                </p>
+              </div>
+            )}
+  
+            {item.asanas?.howto && (
+              <div>
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                  誘導
+                </p>
+  
+                <p className="line-clamp-5 whitespace-pre-wrap text-xs leading-relaxed text-gray-700">
+                  {item.asanas.howto}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
 
 return (
   <div
@@ -356,6 +531,8 @@ export default function SequenceDetailPage() {
 
   const [closedSections, setClosedSections] = useState([])
   const [openAsanaId, setOpenAsanaId] = useState(null)
+
+  const [viewMode, setViewMode] = useState('card')
 
   const { profile } = useAuth()
 
@@ -722,6 +899,33 @@ if (items.length >= limits.sequenceItems) {
           </div>
         </div>
 
+        <div className="mb-4">
+  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+    表示モード
+  </p>
+
+  <div className="flex gap-2">
+    {[
+      ['card', 'カード'],
+      ['compact', '一覧'],
+      ['minimal', '最小'],
+    ].map(([value, label]) => (
+      <button
+        key={value}
+        type="button"
+        onClick={() => setViewMode(value)}
+        className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+          viewMode === value
+            ? 'bg-gray-800 text-white'
+            : 'border border-gray-200 bg-white text-gray-600'
+        }`}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+</div>
+
         <section className="mb-8 rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm backdrop-blur">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -782,14 +986,15 @@ if (items.length >= limits.sequenceItems) {
 
                     return (
                       <SortableSequenceItem
-                        key={item.id}
-                        item={item}
-                        removeItem={removeItem}
-                        editMemo={editMemo}
-                        editSection={editSection}
-                        toggleSection={toggleSection}
-                        closedSections={closedSections}
-                      />
+  key={item.id}
+  item={item}
+  removeItem={removeItem}
+  editMemo={editMemo}
+  editSection={editSection}
+  toggleSection={toggleSection}
+  closedSections={closedSections}
+  viewMode={viewMode}
+/>
                     )
                   })}
                 </div>
@@ -817,160 +1022,334 @@ if (items.length >= limits.sequenceItems) {
 </p>
 
 <div className="space-y-3">
-  {filteredAsanas.map((asana) => (
-    <div
-      key={asana.id}
-      onClick={() =>
-        setOpenAsanaId(openAsanaId === asana.id ? null : asana.id)
-      }
-      className="cursor-pointer rounded-3xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-md"
-    >
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
+  {filteredAsanas.map((asana) => {
 
-{asana.image_url ? (
-  <img
-    src={asana.image_url}
-    alt={asana.title}
-    className="h-20 w-20 shrink-0 rounded-2xl bg-gray-50 object-contain p-2 shadow-sm"
-  />
-) : (
-  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gray-100 text-xs text-gray-400">
-    no image
-  </div>
-)}
+    // =========================
+    // minimal
+    // =========================
 
-<div className="min-w-0 flex-1">
-<div className="flex items-start gap-2">
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation()
-        toggleFavorite(asana)
-      }}
-      className="shrink-0 text-base leading-none transition hover:scale-110">
-      {asana.favorite ? '⭐' : '☆'}
-    </button>
-
-    <h3 className="truncate font-bold text-gray-800">
-      {asana.title}
-    </h3>
-  </div>
-
-  <p className="mt-1 text-sm text-gray-500">
-  {asana.sanskrit || 'サンスクリット名なし'}
-</p>
-</div>
-
-</div>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              addAsana(asana.id)
-            }}
-            className="shrink-0 rounded-full bg-gray-800 px-3 py-1.5 text-xs font-bold text-white"
-          >
-            ＋ 追加
-          </button>
-        </div>
-
-        {openAsanaId === asana.id && (
-          <div className="rounded-2xl bg-gray-50 p-4">
-            {asana.image_url && (
-  <img
-    src={asana.image_url}
-    alt={asana.title}
-    className="mb-4 h-56 w-full rounded-3xl bg-white object-contain p-3 shadow-sm"
-  />
-)}
-            {asana.types?.length > 0 && (
-              <div className="mb-4">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-                  分類
-                </p>
-
-                <div className="flex flex-wrap gap-2">
-                  {asana.types.map((type) => (
-                    <span
-                      key={type}
-                      className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs text-sky-700"
-                    >
-                      {type}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {asana.chakras?.length > 0 && (
-              <div className="mb-4">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-                  チャクラ
-                </p>
-
-                <div className="flex flex-wrap gap-2">
-                  {asana.chakras.map((chakra) => (
-                    <span
-                      key={chakra}
-                      className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs text-violet-700"
-                    >
-                      {chakra}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-{asana.alias && (
-  <div className="mb-4">
-    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-      別名・検索ワード
-    </p>
-
-    <div className="flex flex-wrap gap-2">
-      {asana.alias.split(',').map((word) => (
-        <span
-          key={word}
-          className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600"
+    if (viewMode === 'minimal') {
+      return (
+        <div
+          key={asana.id}
+          className="rounded-2xl border border-gray-100 bg-white px-3 py-2 shadow-sm"
         >
-          #{word.trim()}
-        </span>
-      ))}
-    </div>
-  </div>
-)}
+          <div className="flex items-center justify-between gap-2">
 
-            {asana.howto && (
-              <div className="mb-4">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-                  誘導
-                </p>
+            <div className="flex min-w-0 flex-1 items-center gap-2">
 
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-                  {asana.howto}
-                </p>
-              </div>
-            )}
+              <button
+                type="button"
+                onClick={() => toggleFavorite(asana)}
+                className="shrink-0 text-sm"
+              >
+                {asana.favorite ? '⭐' : '☆'}
+              </button>
 
-            {asana.effect && (
-              <div>
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-                  効果
-                </p>
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate text-sm font-bold text-gray-800">
+                  {asana.title}
+                </h3>
 
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-                  {asana.effect}
+                <p className="truncate text-[11px] text-gray-500">
+                  {asana.sanskrit || 'サンスクリット名なし'}
                 </p>
               </div>
-            )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => addAsana(asana.id)}
+              className="shrink-0 rounded-full bg-gray-800 px-3 py-1 text-[11px] font-bold text-white"
+            >
+              ＋追加
+            </button>
           </div>
-        )}
+        </div>
+      )
+    }
+
+    // =========================
+    // compact
+    // =========================
+
+    if (viewMode === 'compact') {
+      return (
+        <div
+          key={asana.id}
+          onClick={() =>
+            setOpenAsanaId(openAsanaId === asana.id ? null : asana.id)
+          }
+          className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-3 shadow-sm transition"
+        >
+          <div className="flex items-start justify-between gap-3">
+
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+
+              {asana.image_url ? (
+                <img
+                  src={asana.image_url}
+                  alt={asana.title}
+                  className="h-12 w-12 shrink-0 rounded-xl bg-gray-50 object-contain p-1 shadow-sm"
+                />
+              ) : (
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-[10px] text-gray-400">
+                  no
+                </div>
+              )}
+
+              <div className="min-w-0 flex-1">
+
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleFavorite(asana)
+                    }}
+                    className="shrink-0 text-sm"
+                  >
+                    {asana.favorite ? '⭐' : '☆'}
+                  </button>
+
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-sm font-bold text-gray-800">
+                      {asana.title}
+                    </h3>
+
+                    <p className="truncate text-xs text-gray-500">
+                      {asana.sanskrit || 'サンスクリット名なし'}
+                    </p>
+
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {asana.types?.slice(0, 2).map((type) => (
+                        <span
+                          key={type}
+                          className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-700"
+                        >
+                          {type}
+                        </span>
+                      ))}
+
+                      {asana.chakras?.slice(0, 3).map((chakra) => (
+                        <span
+                          key={chakra}
+                          className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] text-violet-700"
+                        >
+                          {chakra}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                addAsana(asana.id)
+              }}
+              className="shrink-0 rounded-full bg-gray-800 px-3 py-1 text-[11px] font-bold text-white"
+            >
+              ＋追加
+            </button>
+          </div>
+
+          {openAsanaId === asana.id && (
+            <div className="mt-3 border-t border-gray-100 pt-3">
+
+              {asana.effect && (
+                <div className="mb-3">
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                    効果
+                  </p>
+
+                  <p className="line-clamp-4 whitespace-pre-wrap text-xs leading-relaxed text-gray-700">
+                    {asana.effect}
+                  </p>
+                </div>
+              )}
+
+              {asana.howto && (
+                <div>
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                    誘導
+                  </p>
+
+                  <p className="line-clamp-5 whitespace-pre-wrap text-xs leading-relaxed text-gray-700">
+                    {asana.howto}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    // =========================
+    // card
+    // =========================
+
+    return (
+      <div
+        key={asana.id}
+        onClick={() =>
+          setOpenAsanaId(openAsanaId === asana.id ? null : asana.id)
+        }
+        className="cursor-pointer rounded-3xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-start gap-4">
+
+              {asana.image_url ? (
+                <img
+                  src={asana.image_url}
+                  alt={asana.title}
+                  className="h-20 w-20 shrink-0 rounded-2xl bg-gray-50 object-contain p-2 shadow-sm"
+                />
+              ) : (
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gray-100 text-xs text-gray-400">
+                  no image
+                </div>
+              )}
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleFavorite(asana)
+                    }}
+                    className="shrink-0 text-base leading-none transition hover:scale-110"
+                  >
+                    {asana.favorite ? '⭐' : '☆'}
+                  </button>
+
+                  <h3 className="truncate font-bold text-gray-800">
+                    {asana.title}
+                  </h3>
+                </div>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  {asana.sanskrit || 'サンスクリット名なし'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                addAsana(asana.id)
+              }}
+              className="shrink-0 rounded-full bg-gray-800 px-3 py-1.5 text-xs font-bold text-white"
+            >
+              ＋ 追加
+            </button>
+          </div>
+
+          {openAsanaId === asana.id && (
+            <div className="rounded-2xl bg-gray-50 p-4">
+
+              {asana.image_url && (
+                <img
+                  src={asana.image_url}
+                  alt={asana.title}
+                  className="mb-4 h-56 w-full rounded-3xl bg-white object-contain p-3 shadow-sm"
+                />
+              )}
+
+              {asana.types?.length > 0 && (
+                <div className="mb-4">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+                    分類
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {asana.types.map((type) => (
+                      <span
+                        key={type}
+                        className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs text-sky-700"
+                      >
+                        {type}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {asana.chakras?.length > 0 && (
+                <div className="mb-4">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+                    チャクラ
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {asana.chakras.map((chakra) => (
+                      <span
+                        key={chakra}
+                        className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs text-violet-700"
+                      >
+                        {chakra}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {asana.alias && (
+                <div className="mb-4">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+                    別名・検索ワード
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {asana.alias.split(',').map((word) => (
+                      <span
+                        key={word}
+                        className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600"
+                      >
+                        #{word.trim()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {asana.howto && (
+                <div className="mb-4">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+                    誘導
+                  </p>
+
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+                    {asana.howto}
+                  </p>
+                </div>
+              )}
+
+              {asana.effect && (
+                <div>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+                    効果
+                  </p>
+
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+                    {asana.effect}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  ))}
+    )
+  })}
 </div>
 
 </section>
