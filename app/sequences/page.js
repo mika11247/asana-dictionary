@@ -57,7 +57,7 @@ function SortableSequenceCard({
       style={style}
       className="block rounded-3xl border border-white/70 bg-white/90 p-4 shadow-sm backdrop-blur transition hover:shadow-md"
     >
-      <div className="flex items-stretch justify-between gap-3">
+      <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <button
             type="button"
@@ -405,7 +405,7 @@ if (sequences.length >= limits.sequences) {
               </p>
             </div>
 
-            <div className="flex items-end">
+            <div className="flex flex-col justify-end">
   <button
     type="button"
     onClick={createSequence}
