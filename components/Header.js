@@ -63,7 +63,7 @@ export default function Header() {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="rounded-2xl border border-gray-200 bg-white/90 px-4 py-2 text-sm text-gray-600 shadow-sm transition hover:scale-105 hover:bg-gray-50"
+            className="no-print rounded-2xl border border-gray-200 bg-white/90 px-4 py-2 text-sm text-gray-600 shadow-sm transition hover:scale-105 hover:bg-gray-50"
           >
             ☰
           </button>
