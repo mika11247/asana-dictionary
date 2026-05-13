@@ -29,6 +29,8 @@ export default function AsanaListPage() {
 
   const [viewMode, setViewMode] = useState('card')
 
+  const [filterOpen, setFilterOpen] = useState(false)
+
   useEffect(() => {
     fetchAsanas()
   }, [])
@@ -141,7 +143,7 @@ export default function AsanaListPage() {
             Asana Dictionary
           </p>
 
-          <div className="flex items-end justify-between gap-4">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-800">
                 🪷 アーサナ一覧
@@ -152,11 +154,11 @@ export default function AsanaListPage() {
             </div>
 
             <Link
-              href="/asana-create"
-              className="rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-4 py-2 text-sm font-bold text-white shadow-sm"
-            >
-              ＋ 登録
-            </Link>
+  href="/asana-create"
+  className="shrink-0 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm"
+>
+  ＋ 登録
+</Link>
           </div>
         </div>
 
@@ -212,38 +214,61 @@ export default function AsanaListPage() {
             )}
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={clearChakraFilter}
-              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
-                selectedChakras.length === 0
-                  ? 'border-gray-800 bg-gray-800 text-white'
-                  : 'border-gray-200 bg-white text-gray-600'
-              }`}
-            >
-              ALL
-            </button>
+          <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50/70 p-3">
+  <button
+    type="button"
+    onClick={() => setFilterOpen(!filterOpen)}
+    className="flex w-full items-center justify-between text-left"
+  >
+    <span className="text-sm font-bold text-gray-600">
+      絞り込み
+      {selectedChakras.length > 0 && (
+        <span className="ml-2 rounded-full bg-gray-800 px-2 py-0.5 text-[10px] text-white">
+          {selectedChakras.length}
+        </span>
+      )}
+    </span>
 
-            {CHAKRAS.map((chakra) => {
-              const isSelected = selectedChakras.includes(chakra)
+    <span className="text-xs text-gray-400">
+      {filterOpen ? '▲' : '▼'}
+    </span>
+  </button>
 
-              return (
-                <button
-                  key={chakra}
-                  type="button"
-                  onClick={() => toggleChakraFilter(chakra)}
-                  className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
-                    isSelected
-                      ? CHAKRA_STYLES[chakra]
-                      : 'border-gray-200 bg-white text-gray-600'
-                  }`}
-                >
-                  {CHAKRA_LABELS[chakra] || chakra}
-                </button>
-              )
-            })}
-          </div>
+  {filterOpen && (
+    <div className="mt-3 flex flex-wrap gap-2">
+      <button
+        type="button"
+        onClick={clearChakraFilter}
+        className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+          selectedChakras.length === 0
+            ? 'border-gray-800 bg-gray-800 text-white'
+            : 'border-gray-200 bg-white text-gray-600'
+        }`}
+      >
+        ALL
+      </button>
+
+      {CHAKRAS.map((chakra) => {
+        const isSelected = selectedChakras.includes(chakra)
+
+        return (
+          <button
+            key={chakra}
+            type="button"
+            onClick={() => toggleChakraFilter(chakra)}
+            className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+              isSelected
+                ? CHAKRA_STYLES[chakra]
+                : 'border-gray-200 bg-white text-gray-600'
+            }`}
+          >
+            {CHAKRA_LABELS[chakra] || chakra}
+          </button>
+        )
+      })}
+    </div>
+  )}
+</div>
         </section>
 
         <div className="space-y-6">
