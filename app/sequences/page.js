@@ -395,21 +395,19 @@ if (sequences.length >= limits.sequences) {
           </p>
 
           <div className="flex items-start justify-between gap-3">
-            <div>
-            <h1 className="text-3xl font-bold leading-tight text-gray-800">
-                🌙 シークエンス
-              </h1>
+          <div>
+  <h1 className="text-3xl font-bold leading-tight text-gray-800">
+    🌙 シークエンス
+  </h1>
 
-              <p className="mt-2 text-sm text-gray-500">
-                レッスン構成を作成・複製・並び替えできます
-              </p>
-            </div>
+  <p className="mt-2 text-sm leading-relaxed text-gray-500">
+    レッスン構成を作成・複製・並び替えできます
+  </p>
 
-            <div className="shrink-0 pt-10">
   <button
     type="button"
     onClick={createSequence}
-    className="shrink-0 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:scale-[1.02]"
+    className="mt-4 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:scale-[1.02]"
   >
     ＋ 作成
   </button>
