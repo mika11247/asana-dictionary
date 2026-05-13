@@ -11,6 +11,33 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  async function ensureInitialData(currentUser) {
+    if (!currentUser) return;
+
+    const { count, error: countError } = await supabase
+      .from("asanas")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", currentUser.id);
+
+    if (countError) {
+      console.error("初期データ確認エラー:", countError);
+      return;
+    }
+
+    if ((count || 0) > 0) return;
+
+    const { error: copyError } = await supabase.rpc(
+      "copy_initial_asanas_to_user",
+      {
+        target_user_id: currentUser.id,
+      }
+    );
+
+    if (copyError) {
+      console.error("初期データコピーエラー:", copyError);
+    }
+  }
+
   async function refreshProfile(currentUser = user) {
     if (!currentUser) {
       setProfile(null);
@@ -18,6 +45,8 @@ export function AuthProvider({ children }) {
     }
 
     const profileData = await ensureProfile(currentUser);
+    await ensureInitialData(currentUser);
+
     setProfile(profileData);
     return profileData;
   }
@@ -41,6 +70,8 @@ export function AuthProvider({ children }) {
 
         if (currentUser) {
           const profileData = await ensureProfile(currentUser);
+          await ensureInitialData(currentUser);
+
           if (mounted) setProfile(profileData);
         } else {
           setProfile(null);
@@ -76,6 +107,8 @@ export function AuthProvider({ children }) {
 
       setTimeout(async () => {
         const profileData = await ensureProfile(currentUser);
+        await ensureInitialData(currentUser);
+
         setProfile(profileData);
       }, 0);
     });
