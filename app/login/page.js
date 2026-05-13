@@ -34,26 +34,13 @@ export default function LoginPage() {
 
     try {
       if (isSignup) {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-
-if (error) throw error;
-
-if (data?.user?.id) {
-  const { error: copyError } = await supabase.rpc(
-    "copy_initial_asanas_to_user",
-    {
-      target_user_id: data.user.id,
-    }
-  );
-
-  if (copyError) {
-    console.error("初期データコピーエラー:", copyError);
-  }
-}
-
-setMessage("確認メールを送信しました✨ メール内のリンクを確認してください。");
-setMode("login");
-return;
+        const { error } = await supabase.auth.signUp({ email, password });
+      
+        if (error) throw error;
+      
+        setMessage("確認メールを送信しました✨ メール内のリンクを確認してください。");
+        setMode("login");
+        return;
       }
 
       const { error } = await supabase.auth.signInWithPassword({
