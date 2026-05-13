@@ -29,6 +29,11 @@ import { getPlanLimits } from '@/lib/planLimits'
 import { PLAN_UI } from '@/lib/planUI'
 import { useAuth } from '@/components/AuthProvider'
 
+import {
+  TYPE_LABELS,
+  CHAKRA_DOT_COLORS,
+} from '@/lib/categories'
+
 function SortableSequenceItem({
   item,
   removeItem,
@@ -61,15 +66,17 @@ function SortableSequenceItem({
       <div
         ref={setNodeRef}
         style={style}
-        className="overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-r from-sky-50 to-violet-50 shadow-sm"
+        className="overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 to-violet-50 shadow-sm"
       >
-        <div className="flex items-center justify-between gap-3 border-l-4 border-sky-400 px-4 py-4">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex items-center justify-between gap-2 border-l-4 border-sky-400 px-3 py-3">
+          
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            
             <button
               type="button"
               {...attributes}
               {...listeners}
-              className="cursor-grab rounded-2xl border border-sky-200 bg-white px-3 py-2 text-sm text-gray-400 active:cursor-grabbing"
+              className="cursor-grab rounded-xl border border-sky-200 bg-white px-2 py-1 text-xs text-gray-400 active:cursor-grabbing"
             >
               ☰
             </button>
@@ -79,21 +86,22 @@ function SortableSequenceItem({
               onClick={() => toggleSection(item.id)}
               className="min-w-0 flex-1 text-left"
             >
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-400">
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-sky-400">
                 section
               </p>
   
-              <h3 className="mt-1 line-clamp-2 break-words text-lg font-bold leading-snug text-gray-700">
+              <h3 className="mt-0.5 line-clamp-2 break-words text-base font-bold leading-snug text-gray-700">
                 {item.section_title}
               </h3>
             </button>
           </div>
   
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1">
+            
             <button
               type="button"
               onClick={() => toggleSection(item.id)}
-              className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-sky-500 ring-1 ring-sky-100 transition hover:bg-sky-50"
+              className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-sky-500 ring-1 ring-sky-100 transition hover:bg-sky-50"
             >
               {closedSections.includes(item.id) ? '▶' : '▼'}
             </button>
@@ -101,7 +109,7 @@ function SortableSequenceItem({
             <button
               type="button"
               onClick={() => editSection(item)}
-              className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-sky-600 ring-1 ring-sky-100 transition hover:bg-sky-50"
+              className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-sky-600 ring-1 ring-sky-100 transition hover:bg-sky-50"
             >
               ✏️
             </button>
@@ -109,7 +117,7 @@ function SortableSequenceItem({
             <button
               type="button"
               onClick={() => removeItem(item.id)}
-              className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-red-500 ring-1 ring-red-100 transition hover:bg-red-50"
+              className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-red-500 ring-1 ring-red-100 transition hover:bg-red-50"
             >
               🗑
             </button>
@@ -222,12 +230,10 @@ function SortableSequenceItem({
         ref={setNodeRef}
         style={style}
         onClick={() => setOpen(!open)}
-        className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-3 shadow-sm transition"
+        className="cursor-pointer rounded-2xl border border-gray-100 bg-white px-3 py-2.5 shadow-sm transition"
       >
-        <div className="flex items-start justify-between gap-3">
-          
-          <div className="flex min-w-0 flex-1 items-start gap-3">
-            
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
               type="button"
               {...attributes}
@@ -237,18 +243,6 @@ function SortableSequenceItem({
             >
               ☰
             </button>
-  
-            {item.asanas?.image_url ? (
-              <img
-                src={item.asanas.image_url}
-                alt={item.asanas.title}
-                className="h-12 w-12 shrink-0 rounded-xl bg-gray-50 object-contain p-1 shadow-sm"
-              />
-            ) : (
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-[10px] text-gray-400">
-                no
-              </div>
-            )}
   
             <div className="min-w-0 flex-1">
               <h3 className="truncate text-sm font-bold text-gray-800">
@@ -260,34 +254,34 @@ function SortableSequenceItem({
               </p>
   
               <div className="mt-1 flex flex-wrap items-center gap-1">
-                {item.asanas?.types?.slice(0, 2).map((type) => (
-                  <span
-                    key={type}
-                    className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-700"
-                  >
-                    {type}
-                  </span>
-                ))}
+              {item.asanas?.types?.slice(0, 2).map((type) => (
+  <span
+    key={type}
+    className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-700"
+  >
+    {TYPE_LABELS[type]?.ja || type}
+  </span>
+))}
   
-                {item.asanas?.chakras?.slice(0, 3).map((chakra) => (
-                  <span
-                    key={chakra}
-                    className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] text-violet-700"
-                  >
-                    {chakra}
-                  </span>
-                ))}
+  {item.asanas?.chakras?.slice(0, 3).map((chakra) => (
+  <span
+    key={chakra}
+    className={`h-2.5 w-2.5 rounded-full ${
+      CHAKRA_DOT_COLORS[chakra] || 'bg-gray-300'
+    }`}
+  />
+))}
               </div>
   
               {item.memo && (
-                <p className="mt-2 line-clamp-2 text-[11px] leading-relaxed text-yellow-700">
+                <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-yellow-700">
                   📝 {item.memo}
                 </p>
               )}
             </div>
           </div>
   
-          <div className="flex shrink-0 flex-col gap-2">
+          <div className="flex shrink-0 flex-col gap-1.5">
             <button
               type="button"
               onClick={(e) => {
@@ -874,7 +868,7 @@ if (items.length >= limits.sequenceItems) {
           </Link>
 
           <p className="mt-5 text-sm font-medium text-violet-500">
-            Yoga Sequence
+            Sequence
           </p>
 
           <h1 className="mt-2 text-3xl font-bold text-gray-800">
@@ -1121,25 +1115,25 @@ if (items.length >= limits.sequenceItems) {
                       {asana.sanskrit || 'サンスクリット名なし'}
                     </p>
 
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {asana.types?.slice(0, 2).map((type) => (
-                        <span
-                          key={type}
-                          className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-700"
-                        >
-                          {type}
-                        </span>
-                      ))}
+                    <div className="mt-1 flex flex-wrap items-center gap-1">
+  {asana.types?.slice(0, 2).map((type) => (
+    <span
+      key={type}
+      className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-700"
+    >
+      {TYPE_LABELS[type]?.ja || type}
+    </span>
+  ))}
 
-                      {asana.chakras?.slice(0, 3).map((chakra) => (
-                        <span
-                          key={chakra}
-                          className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] text-violet-700"
-                        >
-                          {chakra}
-                        </span>
-                      ))}
-                    </div>
+  {asana.chakras?.slice(0, 3).map((chakra) => (
+    <span
+      key={chakra}
+      className={`h-2.5 w-2.5 rounded-full ${
+        CHAKRA_DOT_COLORS[chakra] || 'bg-gray-300'
+      }`}
+    />
+  ))}
+</div>
                   </div>
                 </div>
               </div>
