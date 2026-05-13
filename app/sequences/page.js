@@ -57,7 +57,7 @@ function SortableSequenceCard({
       style={style}
       className="block rounded-3xl border border-white/70 bg-white/90 p-4 shadow-sm backdrop-blur transition hover:shadow-md"
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-stretch justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <button
             type="button"
@@ -405,13 +405,15 @@ if (sequences.length >= limits.sequences) {
               </p>
             </div>
 
-            <button
-  type="button"
-  onClick={createSequence}
-  className="shrink-0 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:scale-[1.02]"
->
-  ＋ 作成
-</button>
+            <div className="flex items-end">
+  <button
+    type="button"
+    onClick={createSequence}
+    className="shrink-0 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:scale-[1.02]"
+  >
+    ＋ 作成
+  </button>
+</div>
           </div>
         </div>
 
