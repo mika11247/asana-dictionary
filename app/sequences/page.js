@@ -394,7 +394,7 @@ if (sequences.length >= limits.sequences) {
             Sequence
           </p>
 
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-start justify-between gap-3">
             <div>
             <h1 className="text-3xl font-bold leading-tight text-gray-800">
                 🌙 シークエンス
