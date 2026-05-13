@@ -69,7 +69,7 @@ function SortableSequenceCard({
             ☰
           </button>
 
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="mb-1 text-xs font-medium text-violet-400">
               Sequence
             </p>
@@ -84,47 +84,50 @@ function SortableSequenceCard({
               </p>
             )}
 
-            <p className="mt-2 text-xs text-gray-400">
-              最終更新：
-              {new Date(sequence.created_at).toLocaleDateString()}
-            </p>
+<div className="mt-3 flex items-center justify-between gap-3">
+  <p className="text-xs text-gray-400">
+    最終更新：
+    {new Date(sequence.created_at).toLocaleDateString()}
+  </p>
+
+  <div className="flex shrink-0 items-center gap-1">
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault()
+        editSequence(sequence)
+      }}
+      className="rounded-full bg-white px-2 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-200 transition hover:bg-gray-50"
+    >
+      ✏️
+    </button>
+
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault()
+        duplicateSequence(sequence)
+      }}
+      className="rounded-full bg-white px-2 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-200 transition hover:bg-gray-50"
+    >
+      📄
+    </button>
+
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault()
+        deleteSequence(sequence.id)
+      }}
+      className="rounded-full bg-white px-2 py-1 text-xs font-medium text-red-500 ring-1 ring-gray-200 transition hover:bg-red-50"
+    >
+      🗑
+    </button>
+  </div>
+</div>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault()
-              editSequence(sequence)
-            }}
-            className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-200 transition hover:bg-gray-50"
-          >
-            ✏️
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault()
-              duplicateSequence(sequence)
-            }}
-            className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-200 transition hover:bg-gray-50"
-          >
-            📄
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault()
-              deleteSequence(sequence.id)
-            }}
-            className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-red-500 ring-1 ring-gray-200 transition hover:bg-red-50"
-          >
-            🗑
-          </button>
-        </div>
       </div>
     </Link>
   )
@@ -388,12 +391,12 @@ if (sequences.length >= limits.sequences) {
       <div className="mx-auto max-w-3xl">
         <div className="mb-6 rounded-3xl border border-violet-100 bg-white/90 p-6 shadow-sm backdrop-blur">
           <p className="mb-2 text-sm font-medium text-violet-500">
-            Yoga Sequence
+            Sequence
           </p>
 
-          <div className="flex items-end justify-between gap-4">
+          <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">
+            <h1 className="text-3xl font-bold leading-tight text-gray-800">
                 🌙 シークエンス
               </h1>
 
@@ -403,12 +406,12 @@ if (sequences.length >= limits.sequences) {
             </div>
 
             <button
-              type="button"
-              onClick={createSequence}
-              className="rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:scale-[1.02]"
-            >
-              ＋ 新規作成
-            </button>
+  type="button"
+  onClick={createSequence}
+  className="shrink-0 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:scale-[1.02]"
+>
+  ＋ 作成
+</button>
           </div>
         </div>
 

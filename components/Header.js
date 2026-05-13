@@ -118,7 +118,7 @@ export default function Header() {
             onClick={() => setOpen(false)}
             className="rounded-lg px-3 py-2 transition hover:bg-gray-100"
           >
-            📚 アーサナ一覧
+            📚 アーサナ
           </Link>
 
           <Link

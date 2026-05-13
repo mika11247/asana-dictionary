@@ -140,7 +140,7 @@ export default function AsanaListPage() {
       <div className="mx-auto max-w-4xl">
         <div className="mb-6 rounded-3xl border border-sky-100 bg-white/90 p-6 shadow-sm backdrop-blur">
           <p className="mb-2 text-sm font-medium text-sky-500">
-            Asana Dictionary
+            Asana List
           </p>
 
           <div className="flex items-center justify-between gap-4">
