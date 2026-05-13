@@ -73,7 +73,7 @@ function SortableSequenceItem({
               type="button"
               {...attributes}
               {...listeners}
-              className="cursor-grab rounded-xl border border-sky-200 bg-white px-2 py-1 text-xs text-gray-400 active:cursor-grabbing"
+              className="no-print cursor-grab rounded-xl border border-sky-200 bg-white px-2 py-1 text-xs text-gray-400 active:cursor-grabbing"
             >
               ☰
             </button>
@@ -97,7 +97,7 @@ function SortableSequenceItem({
             <button
               type="button"
               onClick={() => toggleSection(item.id)}
-              className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-sky-500 ring-1 ring-sky-100 transition hover:bg-sky-50"
+              className="no-print rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-sky-500 ring-1 ring-sky-100 transition hover:bg-sky-50"
             >
               {closedSections.includes(item.id) ? '▶' : '▼'}
             </button>
@@ -105,7 +105,7 @@ function SortableSequenceItem({
             <button
               type="button"
               onClick={() => editSection(item)}
-              className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-sky-600 ring-1 ring-sky-100 transition hover:bg-sky-50"
+              className="no-print rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-sky-600 ring-1 ring-sky-100 transition hover:bg-sky-50"
             >
               ✏️
             </button>
@@ -113,7 +113,7 @@ function SortableSequenceItem({
             <button
               type="button"
               onClick={() => removeItem(item.id)}
-              className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-red-500 ring-1 ring-red-100 transition hover:bg-red-50"
+              className="no-print rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-red-500 ring-1 ring-red-100 transition hover:bg-red-50"
             >
               🗑️
             </button>
@@ -136,7 +136,7 @@ function SortableSequenceItem({
               type="button"
               {...attributes}
               {...listeners}
-              className="cursor-grab rounded-xl border border-yellow-200 bg-white px-2 py-1 text-xs text-gray-400 active:cursor-grabbing"
+              className="no-print cursor-grab rounded-xl border border-yellow-200 bg-white px-2 py-1 text-xs text-gray-400 active:cursor-grabbing"
             >
               ☰
             </button>
@@ -156,7 +156,7 @@ function SortableSequenceItem({
             <button
               type="button"
               onClick={() => editMemo(item)}
-              className="rounded-full bg-white px-2 py-1 text-[11px] text-yellow-600 ring-1 ring-yellow-200 transition hover:bg-yellow-50"
+              className="no-print rounded-full bg-white px-2 py-1 text-[11px] text-yellow-600 ring-1 ring-yellow-200 transition hover:bg-yellow-50"
             >
               ✏️
             </button>
@@ -164,7 +164,7 @@ function SortableSequenceItem({
             <button
               type="button"
               onClick={() => removeItem(item.id)}
-              className="rounded-full bg-white px-2 py-1 text-[11px] text-red-500 ring-1 ring-red-100 transition hover:bg-red-50"
+              className="no-print rounded-full bg-white px-2 py-1 text-[11px] text-red-500 ring-1 ring-red-100 transition hover:bg-red-50"
             >
               🗑️
             </button>
@@ -188,7 +188,7 @@ function SortableSequenceItem({
               {...attributes}
               {...listeners}
               onClick={(e) => e.stopPropagation()}
-              className="cursor-grab rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs text-gray-400 active:cursor-grabbing"
+              className="no-print cursor-grab rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs text-gray-400 active:cursor-grabbing"
             >
               ☰
             </button>
@@ -212,7 +212,7 @@ function SortableSequenceItem({
               e.stopPropagation()
               removeItem(item.id)
             }}
-            className="rounded-full bg-red-50 px-2 py-1 text-[11px] font-bold text-red-500 ring-1 ring-red-100"
+            className="no-print rounded-full bg-red-50 px-2 py-1 text-[11px] font-bold text-red-500 ring-1 ring-red-100"
           >
             ❌
           </button>
@@ -236,7 +236,7 @@ function SortableSequenceItem({
               {...attributes}
               {...listeners}
               onClick={(e) => e.stopPropagation()}
-              className="cursor-grab rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs text-gray-400 active:cursor-grabbing"
+              className="no-print cursor-grab rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs text-gray-400 active:cursor-grabbing"
             >
               ☰
             </button>
@@ -285,7 +285,7 @@ function SortableSequenceItem({
                 e.stopPropagation()
                 editMemo(item)
               }}
-              className="rounded-full bg-yellow-50 px-2 py-1 text-[11px] text-yellow-600 ring-1 ring-yellow-100"
+              className="no-print rounded-full bg-yellow-50 px-2 py-1 text-[11px] text-yellow-600 ring-1 ring-yellow-100"
             >
               ✏️
             </button>
@@ -296,7 +296,7 @@ function SortableSequenceItem({
                 e.stopPropagation()
                 removeItem(item.id)
               }}
-              className="rounded-full bg-red-50 px-2 py-1 text-[11px] text-red-500 ring-1 ring-red-100"
+              className="no-print rounded-full bg-red-50 px-2 py-1 text-[11px] text-red-500 ring-1 ring-red-100"
             >
               ❌
             </button>
@@ -348,7 +348,7 @@ function SortableSequenceItem({
             {...attributes}
             {...listeners}
             onClick={(e) => e.stopPropagation()}
-            className="cursor-grab rounded-2xl border border-gray-200 bg-white px-2 py-2 text-sm text-gray-400 active:cursor-grabbing"
+            className="no-print cursor-grab rounded-2xl border border-gray-200 bg-white px-2 py-2 text-sm text-gray-400 active:cursor-grabbing"
           >
             ☰
           </button>
@@ -389,7 +389,7 @@ function SortableSequenceItem({
               e.stopPropagation()
               editMemo(item)
             }}
-            className="rounded-full bg-yellow-50 px-2 py-1 text-[11px] text-yellow-600 ring-1 ring-yellow-100"
+            className="no-print rounded-full bg-yellow-50 px-2 py-1 text-[11px] text-yellow-600 ring-1 ring-yellow-100"
           >
             ✏️
           </button>
@@ -400,7 +400,7 @@ function SortableSequenceItem({
               e.stopPropagation()
               removeItem(item.id)
             }}
-            className="rounded-full bg-red-50 px-2 py-1 text-[11px] text-red-500 ring-1 ring-red-100"
+            className="no-print rounded-full bg-red-50 px-2 py-1 text-[11px] text-red-500 ring-1 ring-red-100"
           >
             ❌
           </button>
@@ -773,6 +773,47 @@ if (items.length >= limits.sequenceItems) {
     fetchData()
   }
 
+  async function editSequence() {
+    const newTitle = prompt('シークエンス名を編集', sequence?.title || '')
+    if (newTitle === null) return
+    if (!newTitle.trim()) return
+  
+    const newMemo = prompt('メモを編集', sequence?.memo || '')
+    if (newMemo === null) return
+  
+    const { error } = await supabase
+      .from('sequences')
+      .update({
+        title: newTitle.trim(),
+        memo: newMemo.trim(),
+      })
+      .eq('id', sequenceId)
+  
+    if (error) {
+      alert(`編集エラー: ${error.message}`)
+      return
+    }
+  
+    fetchData()
+  }
+  
+  async function deleteSequence() {
+    const ok = confirm('このシークエンスを削除しますか？')
+    if (!ok) return
+  
+    const { error } = await supabase
+      .from('sequences')
+      .delete()
+      .eq('id', sequenceId)
+  
+    if (error) {
+      alert(`削除エラー: ${error.message}`)
+      return
+    }
+  
+    window.location.href = '/sequences'
+  }
+
   async function removeItem(itemId) {
     const ok = confirm('このアイテムを削除しますか？')
     if (!ok) return
@@ -853,17 +894,41 @@ if (items.length >= limits.sequenceItems) {
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-6">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-6 rounded-3xl border border-violet-100 bg-white/90 p-6 shadow-sm backdrop-blur">
-          <Link
-            href="/sequences"
-            className="text-sm font-medium text-gray-400 transition hover:text-violet-500"
-          >
-            ← シークエンス一覧へ
-          </Link>
+      <div className="print-title-card mb-6 rounded-3xl border border-violet-100 bg-white/90 p-6 shadow-sm backdrop-blur">
+      <div className="no-print flex items-center justify-between">
+  <Link
+    href="/sequences"
+    className="text-sm font-medium text-gray-400 transition hover:text-violet-500"
+  >
+    ← シークエンス一覧へ
+  </Link>
 
-          <p className="mt-5 text-sm font-medium text-violet-500">
-            Sequence
-          </p>
+  <div className="flex items-center gap-2">
+  <button
+  type="button"
+  onClick={editSequence}
+  className="rounded-full border border-gray-200 bg-white px-2 py-1 text-sm text-gray-500 transition hover:bg-gray-50"
+>
+  ✏️
+</button>
+
+<button
+  type="button"
+  onClick={deleteSequence}
+  className="rounded-full border border-red-100 bg-white px-2 py-1 text-sm text-red-500 transition hover:bg-red-50"
+>
+  🗑️
+</button>
+  </div>
+</div>
+
+          <p className="screen-only mt-5 text-sm font-medium text-violet-500">
+  Sequence
+</p>
+
+<p className="print-only mt-5 text-sm font-medium tracking-wide text-gray-400">
+  Asana Dictionary by M.glitter
+</p>
 
           <h1 className="mt-2 text-3xl font-bold text-gray-800">
             🌙 {sequence?.title || 'シークエンス'}
@@ -875,7 +940,7 @@ if (items.length >= limits.sequenceItems) {
             </p>
           )}
 
-          <div className="mt-5 rounded-2xl bg-violet-50/80 p-4 text-sm text-gray-500">
+<div className="no-print mt-5 rounded-2xl bg-violet-50/80 p-4 text-sm text-gray-500">
             <p>
               レッスン構成：{' '}
               <span className="font-bold text-gray-700">{items.length}</span>
@@ -887,7 +952,7 @@ if (items.length >= limits.sequenceItems) {
           </div>
         </div>
 
-        <div className="mb-4">
+        <div className="no-print mb-4">
   <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
     表示モード
   </p>
@@ -914,14 +979,14 @@ if (items.length >= limits.sequenceItems) {
   </div>
 </div>
 
-        <section className="mb-8 rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm backdrop-blur">
+<section className="mb-8 rounded-3xl border border-white/70 bg-white/90 p-6 shadow-sm">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-medium text-sky-500">Lesson Flow</p>
               <h2 className="text-2xl font-bold text-gray-800">レッスン構成</h2>
             </div>
 
-            <div className="flex gap-2">
+            <div className="no-print flex gap-2">
               <button
                 type="button"
                 onClick={addMemo}
@@ -937,7 +1002,17 @@ if (items.length >= limits.sequenceItems) {
               >
                 🌿 セクション追加
               </button>
-            </div>
+            
+
+          <button
+  type="button"
+  onClick={() => window.print()}
+  className="rounded-full bg-violet-500 px-4 py-2 text-sm font-bold text-white shadow-sm"
+>
+  📄 PDF出力
+</button>
+
+</div>
           </div>
 
           {items.length === 0 ? (
@@ -991,7 +1066,7 @@ if (items.length >= limits.sequenceItems) {
           )}
         </section>
 
-        <section className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm backdrop-blur">
+        <section className="no-print rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm backdrop-blur">
           <div className="mb-5">
             <p className="text-sm font-medium text-violet-500">Add Asana</p>
             <h2 className="text-2xl font-bold text-gray-800">アーサナを追加</h2>

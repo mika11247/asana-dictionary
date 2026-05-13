@@ -24,3 +24,130 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* =========================
+   screen / print 切り替え
+========================= */
+
+.screen-only {
+  display: block;
+}
+
+.print-only {
+  display: none;
+}
+
+/* =========================
+   print
+========================= */
+
+@media print {
+
+  .screen-only {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  .mx-auto {
+    max-width: 100% !important;
+  }
+
+  section {
+    padding: 0 !important;
+    margin-bottom: 8px !important;
+
+    background: white !important;
+    box-shadow: none !important;
+  }
+
+  section > div:first-child {
+    margin-bottom: 8px !important;
+  }
+
+  button {
+    box-shadow: none !important;
+  }
+
+  img {
+    break-inside: avoid;
+  }
+
+  .print-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-title-card {
+    position: relative;
+  
+    box-sizing: border-box !important;
+  
+    margin-left: 2px !important;
+    margin-right: 2px !important;
+  
+    padding: 12px 14px !important;
+    margin-bottom: 14px !important;
+  
+    border: 1px solid #e5e7eb !important;
+    border-radius: 12px !important;
+  
+    background: white !important;
+  
+    box-shadow: none !important;
+  }
+
+  .print-title-card h1 {
+    font-size: 24px !important;
+    line-height: 1.2 !important;
+  }
+
+  .print-title-card p {
+    margin-top: 4px !important;
+  }
+
+  .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 6px !important;
+  }
+
+  .rounded-2xl,
+  .rounded-3xl {
+    border-radius: 10px !important;
+  }
+
+  .shadow-sm,
+  .shadow-md,
+  .shadow-xl {
+    box-shadow: none !important;
+  }
+
+  .backdrop-blur {
+    backdrop-filter: none !important;
+  }
+
+  .print-footer-full {
+    display: none !important;
+  }
+
+  footer {
+    margin-top: 0 !important;
+  }
+
+  section:last-of-type {
+    margin-bottom: 0 !important;
+  }
+}

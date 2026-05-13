@@ -26,7 +26,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-white/40 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
+      <header className="no-print sticky top-0 z-30 border-b border-white/40 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between">
 
           <Link href="/" className="group">
