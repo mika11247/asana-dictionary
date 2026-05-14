@@ -192,7 +192,7 @@ export default function SequencesPage() {
 
 if (sequences.length >= limits.sequences) {
   alert(
-    `${PLAN_UI[profile?.plan]?.label || 'Free'}プランでは ${limits.sequences}件まで作成できます✨`
+    `${PLAN_UI[profile?.plan]?.label || 'Free'}では ${limits.sequences}件まで作成できます✨`
   )
   return
 }
@@ -283,7 +283,7 @@ if (sequences.length >= limits.sequences) {
   
     if (limits.sequences !== null && count >= limits.sequences) {
       alert(
-        `${PLAN_UI[profile?.plan]?.label || 'Free'}プランではシークエンスを ${limits.sequences}件まで作成できます✨`
+        `${PLAN_UI[profile?.plan]?.label || 'Free'}ではシークエンスを ${limits.sequences}件まで作成できます✨`
       )
       return
     }

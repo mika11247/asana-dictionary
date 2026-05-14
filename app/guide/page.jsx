@@ -77,15 +77,19 @@ export default function GuidePage() {
         </section>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
-          <h2 className="text-lg font-bold text-orange-700">
-            6. 無料プランについて
-          </h2>
+  <h2 className="text-lg font-bold text-orange-700">
+    6. β版について
+  </h2>
 
-          <p className="mt-2 text-sm leading-7 text-gray-600">
-            現在、無料プランではシークエンスを1件まで作成できます。
-            今後、保存数の追加や便利機能を有料プランとして追加する可能性があります。
-          </p>
-        </section>
+  <p className="mt-2 text-sm leading-7 text-gray-600">
+    現在はβ版として公開しています。
+    一部機能や保存数を調整しながら、使いやすい形へ少しずつ整えています🧘‍♀️
+  </p>
+
+  <p className="mt-2 text-sm leading-7 text-gray-600">
+    ご意見・ご感想も、今後の改善の参考にさせていただきます✨
+  </p>
+</section>
       </div>
     </main>
   )

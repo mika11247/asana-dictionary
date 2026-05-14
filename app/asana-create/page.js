@@ -163,7 +163,7 @@ export default function AsanaCreatePage() {
 
     if (limits.asanas !== null && count >= limits.asanas) {
       alert(
-        `${PLAN_UI[currentPlan]?.label || 'Free'}プランではアーサナを ${limits.asanas}件まで登録できます✨`
+        `${PLAN_UI[currentPlan]?.label || 'Free'}ではアーサナを ${limits.asanas}件まで登録できます✨`
       )
       return
     }

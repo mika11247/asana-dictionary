@@ -598,7 +598,7 @@ export default function SequenceDetailPage() {
 
 if (items.length >= limits.sequenceItems) {
   alert(
-    `${PLAN_UI[profile?.plan]?.label || 'Free'}プランでは、レッスン構成を ${limits.sequenceItems}件まで追加できます✨`
+    `${PLAN_UI[profile?.plan]?.label || 'Free'}では、レッスン構成を ${limits.sequenceItems}件まで追加できます✨`
   )
   return
 }
@@ -654,7 +654,7 @@ if (items.length >= limits.sequenceItems) {
 
 if (items.length >= limits.sequenceItems) {
   alert(
-    `${PLAN_UI[profile?.plan]?.label || 'Free'}プランでは、レッスン構成を ${limits.sequenceItems}件まで追加できます✨`
+    `${PLAN_UI[profile?.plan]?.label || 'Free'}では、レッスン構成を ${limits.sequenceItems}件まで追加できます✨`
   )
   return
 }
@@ -731,7 +731,7 @@ if (items.length >= limits.sequenceItems) {
     
       if (items.length >= limits.sequenceItems) {
         alert(
-          `${PLAN_UI[profile?.plan]?.label || 'Free'}プランでは、レッスン構成を ${limits.sequenceItems}件まで追加できます✨`
+          `${PLAN_UI[profile?.plan]?.label || 'Free'}では、レッスン構成を ${limits.sequenceItems}件まで追加できます✨`
         )
         return
       }

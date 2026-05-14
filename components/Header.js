@@ -55,8 +55,8 @@ export default function Header() {
               </p>
 
               <p className="text-[10px] text-gray-400 sm:text-xs">
-                {PLAN_UI[profile.plan]?.label || 'Free'} Plan
-              </p>
+  β版
+</p>
             </div>
           )}
 
