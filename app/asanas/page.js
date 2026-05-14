@@ -30,6 +30,9 @@ export default function AsanaListPage() {
   const [viewMode, setViewMode] = useState('card')
 
   const [filterOpen, setFilterOpen] = useState(false)
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
+
+  const [printingAsanaId, setPrintingAsanaId] = useState(null)
 
   useEffect(() => {
     fetchAsanas()
@@ -97,6 +100,7 @@ export default function AsanaListPage() {
 
   function clearChakraFilter() {
     setSelectedChakras([])
+    setFavoritesOnly(false)
   }
 
   const filteredAsanas = asanas.filter((asana) => {
@@ -119,7 +123,10 @@ export default function AsanaListPage() {
       selectedChakras.length === 0 ||
       selectedChakras.some((chakra) => asana.chakras?.includes(chakra))
   
-    return matchesSearch && matchesChakra
+      const matchesFavorite =
+  !favoritesOnly || asana.favorite
+
+    return matchesSearch && matchesChakra && matchesFavorite
   })
 
   const groupedAsanas = filteredAsanas.reduce((groups, asana) => {
@@ -135,34 +142,55 @@ export default function AsanaListPage() {
 
   const categoryOrder = [...ASANA_TYPES, '未分類']
 
+const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-6">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-6 rounded-3xl border border-sky-100 bg-white/90 p-6 shadow-sm backdrop-blur">
-          <p className="mb-2 text-sm font-medium text-sky-500">
-            Asana List
-          </p>
+      <div className="mb-6 rounded-3xl border border-sky-100 bg-white/90 p-6 shadow-sm backdrop-blur">
+  <div className="flex items-center justify-between gap-4">
+    <div>
+      {/* 通常表示 */}
+      <div className="screen-only">
+        <p className="mb-2 text-sm font-medium text-sky-500">
+          Asana List
+        </p>
 
-          <div className="flex items-center justify-between gap-4">
-            <div>
-            <h1 className="text-3xl font-bold leading-tight text-gray-800">
-  🪷 アーサナ
-</h1>
-<p className="mt-1 text-sm leading-relaxed text-gray-500">
-                ポーズ・チャクラ・分類から探せます
-              </p>
-            </div>
+        <h1 className="text-3xl font-bold leading-tight text-gray-800">
+          🪷 アーサナ
+        </h1>
 
-            <Link
-  href="/asana-create"
-  className="shrink-0 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm"
->
-  ＋ 登録
-</Link>
-          </div>
-        </div>
+        <p className="mt-1 text-sm leading-relaxed text-gray-500">
+          ポーズ・チャクラ・分類から探せます
+        </p>
+      </div>
 
-        <section className="mb-6 rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm backdrop-blur">
+      {/* 印刷表示 */}
+      <div className="print-only">
+        <p className="mb-2 text-sm font-medium tracking-wide text-gray-400">
+          Asana Dictionary by M.glitter
+        </p>
+
+        <h1 className="text-3xl font-bold leading-tight text-gray-800">
+          🪷 {printingAsana?.title || 'アーサナ'}
+        </h1>
+
+        <p className="mt-1 text-sm leading-relaxed text-gray-500">
+          {printingAsana?.sanskrit || 'サンスクリット名なし'}
+        </p>
+      </div>
+    </div>
+
+    <Link
+      href="/asana-create"
+      className="no-print shrink-0 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm"
+    >
+      ＋ 登録
+    </Link>
+  </div>
+</div>
+
+        <section className="no-print mb-6 rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm backdrop-blur">
           <input
             type="text"
             value={searchText}
@@ -178,9 +206,9 @@ export default function AsanaListPage() {
 
   <div className="flex gap-2">
     {[
-      ['card', 'カード'],
-      ['compact', '一覧'],
-      ['minimal', '最小'],
+      ['card', '詳細'],
+      ['compact', '管理'],
+      ['minimal', '検索'],
     ].map(([value, label]) => (
       <button
         key={value}
@@ -247,6 +275,17 @@ export default function AsanaListPage() {
       >
         ALL
       </button>
+      <button
+  type="button"
+  onClick={() => setFavoritesOnly(!favoritesOnly)}
+  className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+    favoritesOnly
+      ? 'border-yellow-400 bg-yellow-400 text-white'
+      : 'border-gray-200 bg-white text-gray-600'
+  }`}
+>
+  ⭐ お気に入り
+</button>
 
       {CHAKRAS.map((chakra) => {
         const isSelected = selectedChakras.includes(chakra)
@@ -287,7 +326,7 @@ export default function AsanaListPage() {
                       [category]: !prev[category],
                     }))
                   }
-                  className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition hover:scale-[1.01] ${
+                  className={`no-print flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition hover:scale-[1.01] ${
                     TYPE_STYLES[category] || TYPE_STYLES['未分類']
                   }`}
                 >
@@ -316,7 +355,9 @@ export default function AsanaListPage() {
                           <div
                             key={`${category}-${asana.id}`}
                             onClick={() => setOpenId(isOpen ? null : asana.id)}
-                            className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm transition active:scale-[0.99]"
+                            className={`rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm transition active:scale-[0.99] ${
+                              printingAsanaId && printingAsanaId !== asana.id ? 'print-hide' : ''
+                            }`}
                           >
                             <div className="flex items-center justify-between gap-3">
                               
@@ -329,7 +370,7 @@ export default function AsanaListPage() {
                                       e.stopPropagation()
                                       toggleFavorite(asana)
                                     }}
-                                    className="shrink-0 text-sm"
+                                    className="no-print shrink-0 text-sm"
                                   >
                                     {asana.favorite ? '⭐' : '☆'}
                                   </button>
@@ -361,24 +402,24 @@ export default function AsanaListPage() {
                             {isOpen && (
                               <div className="mt-3 border-t border-gray-100 pt-3">
                                 <div className="flex justify-end gap-2">
-                                  <Link
-                                    href={`/asanas/${asana.id}/edit`}
-                                    className="rounded-full bg-gray-800 px-3 py-1 text-xs font-bold text-white"
-                                  >
-                                    編集
-                                  </Link>
-                      
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleDelete(asana.id)
-                                    }}
-                                    className="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white"
-                                  >
-                                    削除
-                                  </button>
-                                </div>
+  <Link
+    href={`/asanas/${asana.id}/edit`}
+    className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
+  >
+    ✏️
+  </Link>
+
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation()
+      handleDelete(asana.id)
+    }}
+    className="rounded-full border border-red-100 bg-white px-2.5 py-1 text-sm text-red-500 transition hover:bg-red-50"
+  >
+    🗑️
+  </button>
+</div>
                               </div>
                             )}
                           </div>
@@ -387,10 +428,12 @@ export default function AsanaListPage() {
 
                       if (viewMode === 'compact') {
                         return (
-                          <div
-                            key={`${category}-${asana.id}`}
-                            onClick={() => setOpenId(isOpen ? null : asana.id)}
-                            className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm transition active:scale-[0.99]"
+                            <div
+                              key={`${category}-${asana.id}`}
+                              onClick={() => setOpenId(isOpen ? null : asana.id)}
+                              className={`rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm transition active:scale-[0.99] ${
+                                printingAsanaId && printingAsanaId !== asana.id ? 'print-hide' : ''
+                              }`}
                           >
                             <div className="flex items-start justify-between gap-3">
                               
@@ -439,36 +482,56 @@ export default function AsanaListPage() {
                                 </div>
                               </div>
                       
-                              <span className="text-xs text-gray-400">
-                                {isOpen ? '▲' : '▼'}
-                              </span>
+                              <div className="flex shrink-0 items-center gap-1">
+  <Link
+    href={`/asanas/${asana.id}/edit`}
+    onClick={(e) => e.stopPropagation()}
+    className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
+  >
+    ✏️
+  </Link>
+
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation()
+      handleDelete(asana.id)
+    }}
+    className="rounded-full border border-red-100 bg-white px-2.5 py-1 text-sm text-red-500 transition hover:bg-red-50"
+  >
+    🗑️
+  </button>
+
+  
+</div>
                             </div>
                       
                             {isOpen && (
                               <div className="mt-3 border-t border-gray-100 pt-3">
                                 <div className="flex justify-end gap-2">
-                                  <Link
-                                    href={`/asanas/${asana.id}/edit`}
-                                    className="rounded-full bg-gray-800 px-3 py-1 text-xs font-bold text-white"
-                                  >
-                                    編集
-                                  </Link>
-                      
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleDelete(asana.id)
-                                    }}
-                                    className="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white"
-                                  >
-                                    削除
-                                  </button>
-                                </div>
+  <Link
+    href={`/asanas/${asana.id}/edit`}
+    className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
+  >
+    ✏️
+  </Link>
+
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation()
+      handleDelete(asana.id)
+    }}
+    className="rounded-full border border-red-100 bg-white px-2.5 py-1 text-sm text-red-500 transition hover:bg-red-50"
+  >
+    🗑️
+  </button>
+</div>
                       
                                 <div className="mt-3 space-y-2">
                                   <Info label="効果" value={asana.effect} />
                                   <Info label="注意" value={asana.caution} />
+                                  <Info label="メモ" value={asana.note} />
                                 </div>
                               </div>
                             )}
@@ -479,7 +542,9 @@ export default function AsanaListPage() {
                       return (
                         <div
                           key={`${category}-${asana.id}`}
-                          className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition hover:shadow-md"
+                          className={`overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition hover:shadow-md ${
+                            printingAsanaId && printingAsanaId !== asana.id ? 'print-hide' : ''
+                          }`}
                         >
                           <div
   role="button"
@@ -490,7 +555,7 @@ export default function AsanaListPage() {
       setOpenId(isOpen ? null : asana.id)
     }
   }}
-  className="flex w-full cursor-pointer items-center justify-between gap-3 p-3 text-left sm:p-4"
+  className="no-print flex w-full cursor-pointer items-center justify-between gap-3 p-3 text-left sm:p-4"
 >
   <div className="flex min-w-0 flex-1 items-start gap-3">
     
@@ -545,7 +610,7 @@ export default function AsanaListPage() {
     </div>
   </div>
 
-  <span className="shrink-0 rounded-full bg-gray-100 px-3 py-1.5 text-[11px] font-bold text-gray-600 transition hover:bg-gray-200 sm:px-3 sm:py-1 sm:text-xs">
+  <span className="no-print shrink-0 rounded-full bg-gray-100 px-3 py-1.5 text-[11px] font-bold text-gray-600 transition hover:bg-gray-200 sm:px-3 sm:py-1 sm:text-xs">
     {isOpen ? '閉じる' : '詳細'}
   </span>
 </div>
@@ -553,62 +618,168 @@ export default function AsanaListPage() {
 
                           {isOpen && (
                             <div className="space-y-4 border-t border-gray-100 bg-gray-50/60 p-4 text-sm text-gray-700">
-                              <div className="flex justify-end gap-2">
-                                <Link
-                                  href={`/asanas/${asana.id}/edit`}
-                                  className="rounded-full bg-gray-800 px-3 py-1.5 text-xs font-bold text-white"
-                                >
-                                  ✏ 編集
-                                </Link>
 
-                                <button
-                                  type="button"
-                                  onClick={() => handleDelete(asana.id)}
-                                  className="rounded-full bg-red-500 px-3 py-1.5 text-xs font-bold text-white"
-                                >
-                                  🗑 削除
-                                </button>
-                              </div>
+                              {/* ======================
+   PDF用レイアウト
+====================== */}
 
-                              <div className="flex flex-wrap gap-2">
-                                {asana.types?.map((type) => (
-                                  <span
-                                    key={type}
-                                    className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
-                                      TYPE_STYLES[type] ||
-                                      TYPE_STYLES['未分類']
-                                    }`}
-                                  >
-                                    {TYPE_LABELS[type]?.ja || type}
-                                  </span>
-                                ))}
+<div className="print-only space-y-6">
 
-                                {asana.chakras?.map((chakra) => (
-                                  <span
-                                    key={chakra}
-                                    className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
-                                      CHAKRA_STYLES[chakra] ||
-                                      'border-gray-200 bg-gray-50 text-gray-700'
-                                    }`}
-                                  >
-                                    {CHAKRA_LABELS[chakra] || chakra}
-                                  </span>
-                                ))}
-                              </div>
+{/* 分類・チャクラ */}
+<div className="flex flex-wrap items-center gap-2">
+  {asana.types?.map((type) => (
+    <span
+      key={type}
+      className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs text-green-700"
+    >
+      {TYPE_LABELS[type]?.ja || type}
+    </span>
+  ))}
 
-                              {asana.alias && (
-  <div className="mb-4">
-    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+  {asana.chakras?.map((chakra) => (
+    <span
+      key={chakra}
+      className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs text-red-500"
+    >
+      {chakra}
+    </span>
+  ))}
+</div>
+
+{/* 別名 */}
+{asana.alias && (
+  <div>
+    <p className="mb-2 text-xs font-bold tracking-wide text-gray-400">
       別名・検索ワード
     </p>
 
     <div className="flex flex-wrap gap-2">
-      {asana.alias.split(',').map((word) => (
+    {asana.alias.split(',').map((alias) => (
         <span
-          key={word}
-          className="rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs text-gray-700"
+          key={alias}
+          className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500"
         >
-          #{word.trim()}
+          #{alias}
+        </span>
+      ))}
+    </div>
+  </div>
+)}
+
+{/* 2カラム */}
+<div className="grid grid-cols-[220px_1fr] gap-8">
+
+  {/* 左 */}
+  <div className="space-y-4">
+
+    {asana.image_url && (
+      <img
+        src={asana.image_url}
+        alt={asana.title}
+        className="w-full rounded-2xl object-contain"
+      />
+    )}
+
+    <Info label="誘導" value={asana.howto} />
+    <Info label="効果効能" value={asana.effect} />
+    <Info label="メモ" value={asana.memo} />
+
+  </div>
+
+  {/* 右 */}
+  <div className="space-y-4">
+
+    <Info label="筋力" value={asana.strength} />
+    <Info label="柔軟性" value={asana.flexibility} />
+    <Info label="軽減法" value={asana.modification} />
+    <Info label="注意" value={asana.caution} />
+    <Info label="バリエーション" value={asana.variation} />
+
+  </div>
+
+</div>
+</div>
+
+   {/* ======================
+   通常表示用
+====================== */}
+
+<div className="no-print space-y-4">
+
+<div className="flex justify-end gap-2">
+
+  <Link
+    href={`/asanas/${asana.id}/edit`}
+    className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
+  >
+    ✏️
+  </Link>
+
+  <button
+    type="button"
+    onClick={() => handleDelete(asana.id)}
+    className="rounded-full border border-red-100 bg-white px-2.5 py-1 text-sm text-red-500 transition hover:bg-red-50"
+  >
+    🗑️
+  </button>
+
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation()
+      setPrintingAsanaId(asana.id)
+
+      setTimeout(() => {
+        window.print()
+        setPrintingAsanaId(null)
+      }, 100)
+    }}
+    className="rounded-full border border-violet-200 bg-white px-2.5 py-1 text-sm text-violet-600 transition hover:bg-violet-50"
+  >
+    📄
+  </button>
+
+</div>
+
+<div className="flex flex-wrap gap-2">
+  {asana.types?.map((type) => (
+    <span
+      key={type}
+      className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
+        TYPE_STYLES[type] ||
+        TYPE_STYLES['未分類']
+      }`}
+    >
+      {TYPE_LABELS[type]?.ja || type}
+    </span>
+  ))}
+
+  {asana.chakras?.map((chakra) => (
+    <span
+      key={chakra}
+      className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
+        CHAKRA_STYLES[chakra] ||
+        'border-gray-200 bg-gray-50 text-gray-700'
+      }`}
+    >
+      {CHAKRA_LABELS[chakra] || chakra}
+    </span>
+  ))}
+</div>
+
+{asana.alias && (
+  <div>
+    <p className="mb-2 text-xs font-bold tracking-wide text-gray-400">
+      別名・検索ワード
+    </p>
+
+    <div className="flex flex-wrap gap-2">
+      {asana.alias.split(',').map((alias) => (
+        <span
+          key={alias.trim()}
+          className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500"
+        >
+          #{alias.trim()}
         </span>
       ))}
     </div>
@@ -623,17 +794,21 @@ export default function AsanaListPage() {
   />
 )}
 
-                              <div className="space-y-3">
-                                <Info label="誘導" value={asana.howto} />
-                                <Info label="効果効能" value={asana.effect} />
-                                <Info label="注意" value={asana.caution} />
-                                <Info label="バリエーション" value={asana.variation} />
-                                <Info label="筋力" value={asana.strength} />
-                                <Info label="柔軟性" value={asana.flexibility} />
-                                <Info label="軽減法" value={asana.modification} />
-                                <Info label="メモ" value={asana.note} />
-                              </div>
-                            </div>
+<div className="space-y-3">
+  <Info label="誘導" value={asana.howto} />
+  <Info label="効果効能" value={asana.effect} />
+  <Info label="注意" value={asana.caution} />
+  <Info label="バリエーション" value={asana.variation} />
+  <Info label="筋力" value={asana.strength} />
+  <Info label="柔軟性" value={asana.flexibility} />
+  <Info label="軽減法" value={asana.modification} />
+  <Info label="メモ" value={asana.note} />
+</div>
+
+</div>
+
+                              
+</div>
                           )}
                         </div>
                       )

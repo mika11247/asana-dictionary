@@ -1,0 +1,14 @@
+---
+alwaysApply: true
+---
+
+<p className="mb-2 text-sm font-medium text-sky-500">
+            Asana List
+          </p>
+
+          <div className="flex items-center justify-between gap-4">
+            <div>
+            <h1 className="text-3xl font-bold leading-tight text-gray-800">
+  🪷 アーサナ
+</h1>
+<p className="mt-1 tex

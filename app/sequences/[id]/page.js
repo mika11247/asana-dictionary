@@ -959,9 +959,9 @@ if (items.length >= limits.sequenceItems) {
 
   <div className="flex gap-2">
     {[
-      ['card', 'カード'],
-      ['compact', '一覧'],
-      ['minimal', '最小'],
+      ['card', '詳細'],
+      ['compact', '管理'],
+      ['minimal', '検索'],
     ].map(([value, label]) => (
       <button
         key={value}

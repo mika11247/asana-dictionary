@@ -148,6 +148,10 @@ body {
     visibility: hidden !important;
   }
 
+  .print-hide {
+    display: none !important;
+  }
+
   footer {
     margin-top: 0 !important;
   }
