@@ -445,6 +445,29 @@ const remainingDays = scheduledDeleteDate
         </section>
       )}
 
+<section className="rounded-3xl bg-gradient-to-br from-purple-50 to-pink-50 p-5 shadow-sm ring-1 ring-purple-100">
+  <div className="space-y-3 text-center">
+    <p className="text-sm font-bold text-purple-700">
+      🌙 Support M.glitter
+    </p>
+
+    <p className="text-xs leading-relaxed text-gray-600">
+      このアプリや制作活動を
+      応援していただける方向けの
+      サポートページです✨
+    </p>
+
+    <a
+      href="https://mglitter.net/support/"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center justify-center rounded-full bg-purple-500 px-4 py-2 text-sm font-bold text-white shadow transition hover:bg-purple-600"
+    >
+      ✨ M.glitter を応援する
+    </a>
+  </div>
+</section>
+
         <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-red-100">
           <div className="space-y-3">
             <button

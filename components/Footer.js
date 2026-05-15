@@ -8,6 +8,7 @@ export default function Footer() {
       <div className="mx-auto flex max-w-4xl flex-col items-center gap-5">
 
         <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
+
           <Link
             href="/guide"
             className="transition hover:text-orange-600"
@@ -28,6 +29,23 @@ export default function Footer() {
           >
             Privacy
           </Link>
+
+          <Link
+            href="/contact"
+            className="transition hover:text-sky-600"
+          >
+            Contact
+          </Link>
+
+          <a
+            href="https://mglitter.net/support/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition hover:text-pink-500"
+          >
+            🌙 Support
+          </a>
+
         </div>
 
         <div className="text-center">
