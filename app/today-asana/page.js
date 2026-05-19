@@ -5,6 +5,7 @@ import Link from 'next/link'
 
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/components/AuthProvider'
+import { TYPE_LABELS } from '@/lib/categories'
 
 const messages = [
   '今日は、呼吸とともに自分の中心へ戻る時間を大切にしましょう。',
@@ -126,6 +127,14 @@ export default function TodayAsanaPage() {
     }
   }
 
+  function formatTypes(types) {
+  if (!types?.length) return '未設定'
+
+  return types
+    .map((type) => TYPE_LABELS[type]?.ja || type)
+    .join(' / ')
+}
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-violet-50 via-white to-sky-50 p-4">
       <div className="mx-auto max-w-3xl space-y-6">
@@ -216,9 +225,7 @@ export default function TodayAsanaPage() {
                   <p className="text-xs font-bold text-sky-600">分類</p>
 
                   <p className="mt-2 text-sm text-gray-600">
-                    {selectedAsana.types?.length
-                      ? selectedAsana.types.join(' / ')
-                      : '未設定'}
+                    {formatTypes(selectedAsana.types)}
                   </p>
                 </div>
 
