@@ -60,11 +60,31 @@ export default function Home() {
             </div>
           </Link>
 
-          <Link href="/sequences">
+          <Link href="/today-asana">
             <div className="rounded-3xl border border-violet-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
               <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-2xl">
                   🌙
+                </div>
+
+                <div>
+                  <h2 className="text-lg font-bold text-gray-800">
+                    今日のアーサナ
+                  </h2>
+
+                  <p className="text-sm text-gray-500">
+                    今日のメッセージを受け取る
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/sequences">
+            <div className="rounded-3xl border border-pink-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-100 text-2xl">
+                  📝
                 </div>
 
                 <div>
@@ -81,9 +101,9 @@ export default function Home() {
           </Link>
 
           <Link href="/sequences/create">
-            <div className="rounded-3xl border border-pink-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
+            <div className="rounded-3xl border border-orange-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-100 text-2xl">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-100 text-2xl">
                   ✨
                 </div>
 
@@ -101,6 +121,16 @@ export default function Home() {
           </Link>
 
         </div>
+
+        {/* β版案内 */}
+        <div className="mt-10 rounded-3xl border border-violet-100 bg-white/80 p-5 text-center shadow-sm">
+          <p className="text-sm leading-7 text-gray-600">
+            β版のため、一部機能や保存数を調整しています🧘‍♀️
+            <br />
+            ご意見を参考にしながら、少しずつ整えています✨
+          </p>
+        </div>
+
       </div>
     </main>
   );

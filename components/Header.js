@@ -138,6 +138,14 @@ export default function Header() {
           </Link>
 
           <Link
+  href="/today-asana"
+  onClick={() => setOpen(false)}
+  className="rounded-lg px-3 py-2 transition hover:bg-violet-50 hover:text-violet-700"
+>
+  🌙 今日のアーサナ
+</Link>
+
+          <Link
             href="/mypage"
             onClick={() => setOpen(false)}
             className="rounded-lg px-3 py-2 transition hover:bg-sky-50 hover:text-sky-700"
