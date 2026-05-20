@@ -20,7 +20,7 @@ export async function POST(req) {
 
     await resend.emails.send({
       from: 'M.glitter <noreply@mglitter.net>',
-      to: 'mika11247@gmail.com',
+      to: 'mglitter.info@gmail.com',
       subject: `【Asana Dictionary】お問い合わせ：${category || '未選択'}`,
       replyTo: email,
       text: `
