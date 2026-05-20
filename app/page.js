@@ -13,7 +13,8 @@ export default function Home() {
           </h1>
 
           <p className="text-sm text-gray-500">
-            自分だけのヨガレッスン資産を育てよう
+            「身体を整える、自分だけのシークエンスを育てよう」
+
           </p>
         </div>
 
