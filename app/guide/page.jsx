@@ -23,15 +23,15 @@ export default function GuidePage() {
         </div>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
-  <h2 className="text-lg font-bold text-orange-700">
-    はじめに
-  </h2>
+          <h2 className="text-lg font-bold text-orange-700">
+            はじめに
+          </h2>
 
-  <p className="mt-2 text-sm leading-7 text-gray-600">
-    初回登録時には、太陽礼拝や基本的なシークエンスなどのサンプルデータがあらかじめ追加されています。
-    まずは実際に触りながら、自由に編集・追加してご利用ください🧘‍♀️
-  </p>
-</section>
+          <p className="mt-2 text-sm leading-7 text-gray-600">
+            初回登録時には、太陽礼拝などのサンプルデータがあらかじめ追加されています。
+            まずは実際に触りながら、自由に編集・追加してご利用ください🧘‍♀️
+          </p>
+        </section>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
           <h2 className="text-lg font-bold text-orange-700">
@@ -39,34 +39,68 @@ export default function GuidePage() {
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-  「アーサナ登録」から、ポーズ名・サンスクリット名・分類・チャクラ・画像・誘導文などを登録できます。
+            「アーサナ登録」から、ポーズ名・サンスクリット名・分類・チャクラ・画像・誘導文などを登録できます。
+          </p>
 
-  必要な項目だけ入力して保存できるため、
-  最初は名前だけの簡単登録でも大丈夫です✨
+          <p className="mt-2 text-sm leading-7 text-gray-600">
+            必要な項目だけ入力して保存できるため、最初は名前だけの簡単登録でも大丈夫です✨
+          </p>
 
-  「検索ワード」には、ひらがな・略称・関連ワードなどを自由に登録できます。
-後から検索しやすいよう、自分なりのキーワードを追加するのがおすすめです✨
+          <p className="mt-2 text-sm leading-7 text-gray-600">
+            「検索ワード」には、ひらがな・略称・関連ワードなどを自由に登録できます。
+            後から検索しやすいよう、自分なりのキーワードを追加するのがおすすめです。
+          </p>
 
-  ヨガのアーサナだけでなく、ピラティスやモビリティ、
-  軽い筋力メニューの記録にも活用できます。
-</p>
+          <p className="mt-2 text-sm leading-7 text-gray-600">
+            ヨガのアーサナだけでなく、ピラティスやモビリティ、
+            軽い筋力メニューの記録にも活用できます。
+          </p>
         </section>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
           <h2 className="text-lg font-bold text-orange-700">
-            2. 一覧から探す・整理する
+            2. テンプレートから追加する
+          </h2>
+
+          <p className="mt-2 text-sm leading-7 text-gray-600">
+            「テンプレート」では、よく使うアーサナやレッスンのベースになるセットをまとめて追加できます。
+            お試しアーサナセットなど、必要に応じて辞書に追加してご利用ください。
+          </p>
+
+          <p className="mt-2 text-sm leading-7 text-gray-600">
+            同じテンプレート由来のアーサナは、重複しないよう自動でスキップされます。
+          </p>
+
+          <p className="mt-2 rounded-2xl bg-orange-50 px-4 py-3 text-xs leading-6 text-orange-700">
+            ※ テンプレート内容は参考用です。
+            流派やレッスン内容によって、アーサナ名・順番・分類などが異なる場合があります。
+            追加後は、ご自身の使いやすい形に自由に編集・調整してご利用ください✨
+          </p>
+        </section>
+
+        <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
+          <h2 className="text-lg font-bold text-orange-700">
+            3. 一覧から探す・整理する
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
             アーサナ一覧では、検索・分類フィルター・チャクラフィルター・お気に入りを使って、
             登録した内容を探せます。
+          </p>
+
+          <p className="mt-2 text-sm leading-7 text-gray-600">
+            検索では、ポーズ名・サンスクリット名・検索ワード・効果効能・筋力・柔軟性なども対象になります。
+            レッスンテーマや身体の目的に合わせて探しやすくなっています。
+          </p>
+
+          <p className="mt-2 text-sm leading-7 text-gray-600">
             表示モードは「詳細」「管理」「検索」から選べるため、確認したい内容に合わせて使い分けできます。
           </p>
         </section>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
           <h2 className="text-lg font-bold text-orange-700">
-            3. 今日のアーサナを引く
+            4. 今日のアーサナを引く
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
@@ -78,18 +112,24 @@ export default function GuidePage() {
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
           <h2 className="text-lg font-bold text-orange-700">
-            4. シークエンスを作る
+            5. シークエンスを作る
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
             「シークエンス」からレッスン構成を作成できます。
-            登録済みのアーサナや動きを追加しながら、ヨガ・ピラティス・コンディショニングなどの流れを組み立てられます。
+            登録済みのアーサナや動きを検索しながら追加し、
+            ヨガ・ピラティス・コンディショニングなどの流れを組み立てられます。
+          </p>
+
+          <p className="mt-2 text-sm leading-7 text-gray-600">
+            シークエンス画面では、上部のアーサナ追加パネルから素材を選び、
+            下部のレッスン構成エリアで流れを整えていく形で使えます。
           </p>
         </section>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
           <h2 className="text-lg font-bold text-orange-700">
-            5. セクション・メモを追加する
+            6. セクション・メモを追加する
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
@@ -101,7 +141,7 @@ export default function GuidePage() {
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
           <h2 className="text-lg font-bold text-orange-700">
-            6. 並び替えてレッスンの流れを整える
+            7. 並び替えてレッスンの流れを整える
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
@@ -112,7 +152,7 @@ export default function GuidePage() {
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
           <h2 className="text-lg font-bold text-orange-700">
-            7. PDFとして保存・印刷する
+            8. PDFとして保存・印刷する
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
@@ -123,7 +163,7 @@ export default function GuidePage() {
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
           <h2 className="text-lg font-bold text-orange-700">
-            8. β版について
+            9. β版について
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
