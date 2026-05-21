@@ -145,6 +145,14 @@ export default function Header() {
   🌙 今日のアーサナ
 </Link>
 
+<Link
+  href="/presets"
+  onClick={() => setOpen(false)}
+  className="rounded-lg px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
+>
+  📦 テンプレート
+</Link>
+
           <Link
             href="/mypage"
             onClick={() => setOpen(false)}
