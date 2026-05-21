@@ -12,6 +12,15 @@ const PLAN_RANK = {
   pro: 3,
 }
 
+const GROUP_LABELS = {
+  sequence: '☀️ シークエンステンプレ',
+  asana_pack: '📦 拡張パック',
+  trial: '📦 拡張パック',
+  pilates: '🧘 ピラティス',
+}
+
+const GROUP_ORDER = ['sequence', 'asana_pack', 'trial', 'pilates']
+
 export default function PresetsPage() {
   const { user, profile } = useAuth()
 
@@ -27,6 +36,7 @@ export default function PresetsPage() {
     const { data, error } = await supabase
       .from('initial_sequences')
       .select('*')
+      .order('display_order', { ascending: true })
       .order('position', { ascending: true })
 
     if (error) {
@@ -45,6 +55,23 @@ export default function PresetsPage() {
       PLAN_RANK[preset.plan_required || 'free'] || PLAN_RANK.free
 
     return userRank >= requiredRank
+  }
+
+  function getPresetGroup(preset) {
+    if (preset.display_group === 'trial') return 'asana_pack'
+    return preset.display_group || 'asana_pack'
+  }
+
+  function getGroupedPresets() {
+    return GROUP_ORDER.map((groupKey) => {
+      const items = presets.filter((preset) => getPresetGroup(preset) === groupKey)
+
+      return {
+        groupKey,
+        label: GROUP_LABELS[groupKey],
+        items,
+      }
+    }).filter((group) => group.items.length > 0)
   }
 
   async function getPresetItems(presetId) {
@@ -76,12 +103,14 @@ export default function PresetsPage() {
         return
       }
 
+      const label = preset.preset_key === 'pilates_basic' ? 'エクササイズ' : 'アーサナ'
+
       alert(
-        `${result.addedCount}件のアーサナを追加しました✨\n${result.skippedCount}件は登録済みのためスキップしました🌙`
+        `${result.addedCount}件の${label}を追加しました✨\n${result.skippedCount}件は登録済みのためスキップしました🌙`
       )
     } catch (error) {
       console.error(error)
-      alert('アーサナ追加に失敗しました💦')
+      alert('追加に失敗しました💦')
     } finally {
       setAddingKey(null)
     }
@@ -168,7 +197,6 @@ export default function PresetsPage() {
         .map((item, index) => {
           if (item.type === 'asana') {
             const asanaId = asanaMap.get(item.preset_key)
-
             if (!asanaId) return null
 
             return {
@@ -213,8 +241,10 @@ export default function PresetsPage() {
         if (insertItemsError) throw insertItemsError
       }
 
+      const label = preset.preset_key === 'pilates_basic' ? 'エクササイズ' : 'アーサナ'
+
       alert(
-        `シークエンスを追加しました✨\n\nアーサナ追加: ${asanaResult.addedCount}件\nスキップ: ${asanaResult.skippedCount}件`
+        `シークエンスを追加しました✨\n\n${label}追加: ${asanaResult.addedCount}件\nスキップ: ${asanaResult.skippedCount}件`
       )
     } catch (error) {
       console.error(error)
@@ -239,20 +269,19 @@ export default function PresetsPage() {
     )
 
     const items = await getPresetItems(preset.id)
-
     const asanaItems = items.filter((item) => item.type === 'asana')
 
     const uniqueItems = Array.from(
-  new Map(
-    asanaItems
-      .filter(
-        (item) =>
-          item.preset_key &&
-          !existingPresetKeys.has(item.preset_key)
-      )
-      .map((item) => [item.preset_key, item])
-  ).values()
-)
+      new Map(
+        asanaItems
+          .filter(
+            (item) =>
+              item.preset_key &&
+              !existingPresetKeys.has(item.preset_key)
+          )
+          .map((item) => [item.preset_key, item])
+      ).values()
+    )
 
     const skippedCount = asanaItems.length - uniqueItems.length
 
@@ -268,7 +297,7 @@ export default function PresetsPage() {
 
     if (Number.isFinite(limits.asanas) && nextCount > limits.asanas) {
       alert(
-        `アーサナ上限を超えるため追加できません💦\n\n現在: ${currentCount}件\n追加予定: ${uniqueItems.length}件\n上限: ${limits.asanas}件`
+        `登録上限を超えるため追加できません💦\n\n現在: ${currentCount}件\n追加予定: ${uniqueItems.length}件\n上限: ${limits.asanas}件`
       )
 
       return {
@@ -282,7 +311,6 @@ export default function PresetsPage() {
 
       title: item.asana_title || '',
       sanskrit: item.asana_sanskrit || '',
-
       alias: item.alias || '',
 
       types: item.types || [],
@@ -297,7 +325,6 @@ export default function PresetsPage() {
 
       variation: item.variation || '',
       modification: item.modification || '',
-
       note: item.note || '',
       image_url: item.image_url || null,
 
@@ -342,6 +369,22 @@ export default function PresetsPage() {
     }
   }
 
+  function getAddOnlyLabel(preset) {
+    if (addingKey === `${preset.id}-asanas`) return '追加中...'
+
+    return preset.preset_key === 'pilates_basic'
+      ? 'エクササイズのみ追加'
+      : 'アーサナのみ追加'
+  }
+
+  function getAddSequenceLabel(preset) {
+    if (addingKey === `${preset.id}-sequence`) return '追加中...'
+
+    return preset.preset_key === 'pilates_basic'
+      ? 'エクササイズ＋シークエンス追加'
+      : 'アーサナ＋シークエンス追加'
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-4">
       <div className="mx-auto max-w-2xl space-y-5">
@@ -374,57 +417,57 @@ export default function PresetsPage() {
             読み込み中...
           </div>
         ) : (
-          presets.map((preset) => (
-            <section
-              key={preset.id}
-              className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-sky-100"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-bold text-gray-800">
-                    {preset.title}
-                  </h2>
+          getGroupedPresets().map((group) => (
+            <div key={group.groupKey} className="space-y-3">
+              <h2 className="px-1 text-sm font-bold text-gray-600">
+                {group.label}
+              </h2>
 
-                  {preset.memo && (
-                    <p className="mt-2 text-sm leading-7 text-gray-500">
-                      {preset.memo}
-                    </p>
-                  )}
-                </div>
-
-                {getPlanBadge(preset.plan_required || 'free')}
-              </div>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => addAsanasOnly(preset)}
-                  disabled={addingKey === `${preset.id}-asanas`}
-                  className="rounded-2xl bg-sky-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-sky-600 disabled:opacity-50"
+              {group.items.map((preset) => (
+                <section
+                  key={preset.id}
+                  className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-sky-100"
                 >
-                  {addingKey === `${preset.id}-asanas`
-  ? '追加中...'
-  : preset.preset_key === 'pilates_basic'
-    ? 'エクササイズのみ追加'
-    : 'アーサナのみ追加'}
-                </button>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-800">
+                        {preset.title}
+                      </h3>
 
-                {preset.is_sequence_template && (
-  <button
-    type="button"
-    onClick={() => addAsanasAndSequence(preset)}
-    disabled={addingKey === `${preset.id}-sequence`}
-    className="rounded-2xl bg-violet-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-violet-600 disabled:opacity-50"
-  >
-    {addingKey === `${preset.id}-sequence`
-  ? '追加中...'
-  : preset.preset_key === 'pilates_basic'
-    ? 'エクササイズ＋シークエンス追加'
-    : 'アーサナ＋シークエンス追加'}
-  </button>
-)}
-              </div>
-            </section>
+                      {preset.memo && (
+                        <p className="mt-2 text-sm leading-7 text-gray-500">
+                          {preset.memo}
+                        </p>
+                      )}
+                    </div>
+
+                    {getPlanBadge(preset.plan_required || 'free')}
+                  </div>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => addAsanasOnly(preset)}
+                      disabled={addingKey === `${preset.id}-asanas`}
+                      className="rounded-2xl bg-sky-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-sky-600 disabled:opacity-50"
+                    >
+                      {getAddOnlyLabel(preset)}
+                    </button>
+
+                    {preset.is_sequence_template && (
+                      <button
+                        type="button"
+                        onClick={() => addAsanasAndSequence(preset)}
+                        disabled={addingKey === `${preset.id}-sequence`}
+                        className="rounded-2xl bg-violet-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-violet-600 disabled:opacity-50"
+                      >
+                        {getAddSequenceLabel(preset)}
+                      </button>
+                    )}
+                  </div>
+                </section>
+              ))}
+            </div>
           ))
         )}
       </div>
