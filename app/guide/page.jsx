@@ -17,79 +17,124 @@ export default function GuidePage() {
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
             アーサナ辞書＆シークエンス管理アプリの基本的な使い方です。
-            アーサナを登録し、レッスン構成を作りながら、メモや誘導文も一緒に管理できます。
+            アーサナやピラティス、コンディショニングの動きを記録しながら、
+            レッスン構成・メモ・誘導文・PDF資料作成までまとめて管理できます。
           </p>
         </div>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
+  <h2 className="text-lg font-bold text-orange-700">
+    はじめに
+  </h2>
+
+  <p className="mt-2 text-sm leading-7 text-gray-600">
+    初回登録時には、太陽礼拝や基本的なシークエンスなどのサンプルデータがあらかじめ追加されています。
+    まずは実際に触りながら、自由に編集・追加してご利用ください🧘‍♀️
+  </p>
+</section>
+
+        <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
           <h2 className="text-lg font-bold text-orange-700">
-            1. アーサナを登録する
+            1. アーサナや動きを登録する
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-            「アーサナ登録」から、ポーズ名・サンスクリット名・カテゴリ・チャクラなどを登録できます。
-            登録したアーサナは一覧ページで確認できます。
+  「アーサナ登録」から、ポーズ名・サンスクリット名・分類・チャクラ・画像・誘導文などを登録できます。
+
+  必要な項目だけ入力して保存できるため、
+  最初は名前だけの簡単登録でも大丈夫です✨
+
+  「検索ワード」には、ひらがな・略称・関連ワードなどを自由に登録できます。
+後から検索しやすいよう、自分なりのキーワードを追加するのがおすすめです✨
+
+  ヨガのアーサナだけでなく、ピラティスやモビリティ、
+  軽い筋力メニューの記録にも活用できます。
+</p>
+        </section>
+
+        <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
+          <h2 className="text-lg font-bold text-orange-700">
+            2. 一覧から探す・整理する
+          </h2>
+
+          <p className="mt-2 text-sm leading-7 text-gray-600">
+            アーサナ一覧では、検索・分類フィルター・チャクラフィルター・お気に入りを使って、
+            登録した内容を探せます。
+            表示モードは「詳細」「管理」「検索」から選べるため、確認したい内容に合わせて使い分けできます。
           </p>
         </section>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
           <h2 className="text-lg font-bold text-orange-700">
-            2. アーサナを探す
+            3. 今日のアーサナを引く
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-            アーサナ一覧では、検索・カテゴリ別表示・チャクラフィルターを使ってポーズを探せます。
-            レッスンテーマや身体の部位、チャクラに合わせて選びやすくなっています。
+            「今日のアーサナ」では、登録してあるアーサナの中から1つをランダムで選び、
+            今日のメッセージと一緒に表示します。
+            レッスンテーマやセルフプラクティスのヒントとしてご利用ください。
           </p>
         </section>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
           <h2 className="text-lg font-bold text-orange-700">
-            3. シークエンスを作る
+            4. シークエンスを作る
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-            「シークエンス」からレッスンを作成できます。
-            作成したシークエンスを開き、登録済みのアーサナを追加してレッスン構成を作ります。
+            「シークエンス」からレッスン構成を作成できます。
+            登録済みのアーサナや動きを追加しながら、ヨガ・ピラティス・コンディショニングなどの流れを組み立てられます。
           </p>
         </section>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
           <h2 className="text-lg font-bold text-orange-700">
-            4. 並び替える
+            5. セクション・メモを追加する
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-            シークエンス内の「☰」をドラッグすると、アーサナやメモの順番を自由に並び替えできます。
+            シークエンス内では、アーサナだけでなく「セクション」や「メモ」も追加できます。
+            ウォームアップ・メイン・クールダウンなどに分けたり、
+            今日のテーマ・呼吸の誘導・声かけ・シャバーサナ台本などを自由に残せます。
+          </p>
+        </section>
+
+        <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
+          <h2 className="text-lg font-bold text-orange-700">
+            6. 並び替えてレッスンの流れを整える
+          </h2>
+
+          <p className="mt-2 text-sm leading-7 text-gray-600">
+            シークエンス内の「☰」をドラッグすると、アーサナ・セクション・メモの順番を自由に並び替えできます。
             レッスンの流れを考えながら、直感的に構成を調整できます。
           </p>
         </section>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
           <h2 className="text-lg font-bold text-orange-700">
-            5. メモを追加する
+            7. PDFとして保存・印刷する
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-            「メモ追加」から、今日のテーマ・呼吸の誘導・声かけ・シャバーサナ台本などを自由に書けます。
-            メモは複数行に対応していて、アーサナと一緒に並び替えることもできます。
+            アーサナ詳細やシークエンスは、PDF保存や印刷に対応しています。
+            GoodNotesに読み込んで手書きで追記したり、レッスン準備用の資料として活用できます。
           </p>
         </section>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-100">
-  <h2 className="text-lg font-bold text-orange-700">
-    6. β版について
-  </h2>
+          <h2 className="text-lg font-bold text-orange-700">
+            8. β版について
+          </h2>
 
-  <p className="mt-2 text-sm leading-7 text-gray-600">
-    現在はβ版として公開しています。
-    一部機能や保存数を調整しながら、使いやすい形へ少しずつ整えています🧘‍♀️
-  </p>
+          <p className="mt-2 text-sm leading-7 text-gray-600">
+            現在はβ版として公開しています。
+            一部機能や保存数を調整しながら、使いやすい形へ少しずつ整えています🧘‍♀️
+          </p>
 
-  <p className="mt-2 text-sm leading-7 text-gray-600">
-    ご意見・ご感想も、今後の改善の参考にさせていただきます✨
-  </p>
-</section>
+          <p className="mt-2 text-sm leading-7 text-gray-600">
+            ご意見・ご感想も、今後の改善の参考にさせていただきます✨
+          </p>
+        </section>
       </div>
     </main>
   )

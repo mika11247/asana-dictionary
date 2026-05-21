@@ -18,7 +18,8 @@ export default function AsanaListPage() {
   const [asanas, setAsanas] = useState([])
   const [openId, setOpenId] = useState(null)
   const [searchText, setSearchText] = useState('')
-  const [selectedChakras, setSelectedChakras] = useState([])
+const [selectedChakras, setSelectedChakras] = useState([])
+const [selectedTypes, setSelectedTypes] = useState([])
 
   const [openCategories, setOpenCategories] = useState(
     ASANA_TYPES.reduce((acc, type) => {
@@ -90,44 +91,63 @@ export default function AsanaListPage() {
     fetchAsanas()
   }
 
-  function toggleChakraFilter(chakra) {
-    setSelectedChakras((prev) =>
-      prev.includes(chakra)
-        ? prev.filter((item) => item !== chakra)
-        : [...prev, chakra]
-    )
-  }
+  function toggleTypeFilter(type) {
+  setSelectedTypes((prev) =>
+    prev.includes(type)
+      ? prev.filter((item) => item !== type)
+      : [...prev, type]
+  )
+}
 
-  function clearChakraFilter() {
-    setSelectedChakras([])
-    setFavoritesOnly(false)
-  }
+function toggleChakraFilter(chakra) {
+  setSelectedChakras((prev) =>
+    prev.includes(chakra)
+      ? prev.filter((item) => item !== chakra)
+      : [...prev, chakra]
+  )
+}
+
+function clearChakraFilter() {
+  setSelectedChakras([])
+  setSelectedTypes([])
+  setFavoritesOnly(false)
+}
 
   const filteredAsanas = asanas.filter((asana) => {
-    const keyword = searchText.trim().toLowerCase()
-  
-    const matchesSearch =
-      keyword === '' ||
-      asana.title?.toLowerCase().includes(keyword) ||
-      asana.alias?.toLowerCase().includes(keyword) ||
-      asana.sanskrit?.toLowerCase().includes(keyword) ||
-      asana.howto?.toLowerCase().includes(keyword) ||
-      asana.effect?.toLowerCase().includes(keyword) ||
-      asana.caution?.toLowerCase().includes(keyword) ||
-      asana.variation?.toLowerCase().includes(keyword) ||
-      asana.note?.toLowerCase().includes(keyword) ||
-      asana.types?.some((type) => type.toLowerCase().includes(keyword)) ||
-      asana.chakras?.some((chakra) => chakra.toLowerCase().includes(keyword))
-  
-    const matchesChakra =
-      selectedChakras.length === 0 ||
-      selectedChakras.some((chakra) => asana.chakras?.includes(chakra))
-  
-      const matchesFavorite =
-  !favoritesOnly || asana.favorite
+  const keyword = searchText.trim().toLowerCase()
 
-    return matchesSearch && matchesChakra && matchesFavorite
-  })
+  const matchesSearch =
+    keyword === '' ||
+    asana.title?.toLowerCase().includes(keyword) ||
+    asana.alias?.toLowerCase().includes(keyword) ||
+    asana.sanskrit?.toLowerCase().includes(keyword) ||
+    asana.howto?.toLowerCase().includes(keyword) ||
+    asana.effect?.toLowerCase().includes(keyword) ||
+    asana.caution?.toLowerCase().includes(keyword) ||
+    asana.variation?.toLowerCase().includes(keyword) ||
+    asana.note?.toLowerCase().includes(keyword) ||
+    asana.strength?.toLowerCase().includes(keyword) ||
+    asana.flexibility?.toLowerCase().includes(keyword) ||
+    asana.modification?.toLowerCase().includes(keyword) ||
+    asana.types?.some((type) =>
+      type.toLowerCase().includes(keyword)
+    ) ||
+    asana.chakras?.some((chakra) =>
+      chakra.toLowerCase().includes(keyword)
+    )
+
+  const matchesType =
+    selectedTypes.length === 0 ||
+    selectedTypes.some((type) => asana.types?.includes(type))
+
+  const matchesChakra =
+    selectedChakras.length === 0 ||
+    selectedChakras.some((chakra) => asana.chakras?.includes(chakra))
+
+  const matchesFavorite = !favoritesOnly || asana.favorite
+
+  return matchesSearch && matchesType && matchesChakra && matchesFavorite
+})
 
   const groupedAsanas = filteredAsanas.reduce((groups, asana) => {
     const types = asana.types?.length ? asana.types : ['未分類']
@@ -231,7 +251,11 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
               {filteredAsanas.length}件のアーサナ
             </p>
 
-            {selectedChakras.length > 0 && (
+            {(
+  selectedChakras.length > 0 ||
+  selectedTypes.length > 0 ||
+  favoritesOnly
+) && (
               <button
                 type="button"
                 onClick={clearChakraFilter}
@@ -263,50 +287,90 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
   </button>
 
   {filterOpen && (
-    <div className="mt-3 flex flex-wrap gap-2">
+  <div className="mt-3 space-y-4">
+    <div className="flex flex-wrap gap-2">
       <button
         type="button"
         onClick={clearChakraFilter}
         className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
-          selectedChakras.length === 0
+          selectedChakras.length === 0 &&
+          selectedTypes.length === 0 &&
+          !favoritesOnly
             ? 'border-gray-800 bg-gray-800 text-white'
             : 'border-gray-200 bg-white text-gray-600'
         }`}
       >
-        ALL
+        ALL（解除）
       </button>
+
       <button
-  type="button"
-  onClick={() => setFavoritesOnly(!favoritesOnly)}
-  className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
-    favoritesOnly
-      ? 'border-yellow-400 bg-yellow-400 text-white'
-      : 'border-gray-200 bg-white text-gray-600'
-  }`}
->
-  ⭐ お気に入り
-</button>
-
-      {CHAKRAS.map((chakra) => {
-        const isSelected = selectedChakras.includes(chakra)
-
-        return (
-          <button
-            key={chakra}
-            type="button"
-            onClick={() => toggleChakraFilter(chakra)}
-            className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
-              isSelected
-                ? CHAKRA_STYLES[chakra]
-                : 'border-gray-200 bg-white text-gray-600'
-            }`}
-          >
-            {CHAKRA_LABELS[chakra] || chakra}
-          </button>
-        )
-      })}
+        type="button"
+        onClick={() => setFavoritesOnly(!favoritesOnly)}
+        className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+          favoritesOnly
+            ? 'border-yellow-400 bg-yellow-400 text-white'
+            : 'border-gray-200 bg-white text-gray-600'
+        }`}
+      >
+        ⭐ お気に入り
+      </button>
     </div>
-  )}
+
+    <div>
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+        分類
+      </p>
+
+      <div className="flex flex-wrap gap-2">
+        {ASANA_TYPES.map((type) => {
+          const isSelected = selectedTypes.includes(type)
+
+          return (
+            <button
+              key={type}
+              type="button"
+              onClick={() => toggleTypeFilter(type)}
+              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                isSelected
+                  ? TYPE_STYLES[type]
+                  : 'border-gray-200 bg-white text-gray-600'
+              }`}
+            >
+              {TYPE_LABELS[type]?.ja || type}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+
+    <div>
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+        チャクラ
+      </p>
+
+      <div className="flex flex-wrap gap-2">
+        {CHAKRAS.map((chakra) => {
+          const isSelected = selectedChakras.includes(chakra)
+
+          return (
+            <button
+              key={chakra}
+              type="button"
+              onClick={() => toggleChakraFilter(chakra)}
+              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                isSelected
+                  ? CHAKRA_STYLES[chakra]
+                  : 'border-gray-200 bg-white text-gray-600'
+              }`}
+            >
+              {CHAKRA_LABELS[chakra] || chakra}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  </div>
+)}
 </div>
         </section>
 
