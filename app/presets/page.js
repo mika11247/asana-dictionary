@@ -403,8 +403,10 @@ export default function PresetsPage() {
                   className="rounded-2xl bg-sky-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-sky-600 disabled:opacity-50"
                 >
                   {addingKey === `${preset.id}-asanas`
-                    ? '追加中...'
-                    : 'アーサナのみ追加'}
+  ? '追加中...'
+  : preset.preset_key === 'pilates_basic'
+    ? 'エクササイズのみ追加'
+    : 'アーサナのみ追加'}
                 </button>
 
                 {preset.is_sequence_template && (
@@ -415,8 +417,10 @@ export default function PresetsPage() {
     className="rounded-2xl bg-violet-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-violet-600 disabled:opacity-50"
   >
     {addingKey === `${preset.id}-sequence`
-      ? '追加中...'
-      : 'アーサナ＋シークエンス追加'}
+  ? '追加中...'
+  : preset.preset_key === 'pilates_basic'
+    ? 'エクササイズ＋シークエンス追加'
+    : 'アーサナ＋シークエンス追加'}
   </button>
 )}
               </div>
