@@ -87,11 +87,6 @@ body {
     break-inside: avoid;
   }
 
-  .print-card {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
   .print-title-card {
     position: relative;
   
@@ -150,6 +145,26 @@ body {
 
   .print-hide {
     display: none !important;
+  }
+
+  .print-grid > div {
+    width: 100% !important;
+  }
+
+  .print-card {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+    .print-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .print-card {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   footer {

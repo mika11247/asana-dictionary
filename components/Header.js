@@ -78,7 +78,7 @@ export default function Header() {
       )}
 
       <aside
-        className={`no-print fixed right-0 top-0 z-50 h-full w-72 overflow-y-auto bg-white p-6 shadow-xl transition-transform duration-300 ${
+        className={`no-print fixed right-0 top-0 z-50 h-full w-72 overflow-y-auto bg-white bg-white text-gray-800 p-6 shadow-xl transition-transform duration-300 ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -104,11 +104,11 @@ export default function Header() {
           </button>
         </div>
 
-        <nav className="flex flex-col gap-4 text-lg">
+        <nav className="flex flex-col gap-4 text-lg text-gray-800">
           <Link
             href="/"
             onClick={() => setOpen(false)}
-            className="rounded-lg px-3 py-2 transition hover:bg-gray-100"
+            className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
           >
             🏠 ホーム
           </Link>
@@ -116,7 +116,7 @@ export default function Header() {
           <Link
             href="/asanas"
             onClick={() => setOpen(false)}
-            className="rounded-lg px-3 py-2 transition hover:bg-gray-100"
+            className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
           >
             📚 アーサナ一覧
           </Link>
@@ -124,7 +124,7 @@ export default function Header() {
           <Link
             href="/asana-create"
             onClick={() => setOpen(false)}
-            className="rounded-lg px-3 py-2 transition hover:bg-gray-100"
+            className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
           >
             ➕ アーサナ登録
           </Link>
@@ -132,7 +132,7 @@ export default function Header() {
           <Link
             href="/sequences"
             onClick={() => setOpen(false)}
-            className="rounded-lg px-3 py-2 transition hover:bg-gray-100"
+            className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
           >
             🧘‍♀️ シークエンス
           </Link>

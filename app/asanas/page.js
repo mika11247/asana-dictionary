@@ -167,7 +167,7 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-6">
       <div className="mx-auto max-w-4xl">
-      <div className="mb-6 rounded-3xl border border-sky-100 bg-white/90 p-6 shadow-sm backdrop-blur">
+      <div className="no-print mb-6 rounded-3xl border border-sky-100 bg-white/90 p-6 shadow-sm backdrop-blur">
   <div className="flex items-center justify-between gap-4">
     <div>
       {/* 通常表示 */}
@@ -185,20 +185,6 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
         </p>
       </div>
 
-      {/* 印刷表示 */}
-      <div className="print-only">
-        <p className="mb-2 text-sm font-medium tracking-wide text-gray-400">
-          Asana Dictionary by M.glitter
-        </p>
-
-        <h1 className="text-3xl font-bold leading-tight text-gray-800">
-          🪷 {printingAsana?.title || 'アーサナ'}
-        </h1>
-
-        <p className="mt-1 text-sm leading-relaxed text-gray-500">
-          {printingAsana?.sanskrit || 'サンスクリット名なし'}
-        </p>
-      </div>
     </div>
 
     <Link
@@ -374,7 +360,67 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
 </div>
         </section>
 
-        <div className="space-y-6">
+        {printingAsana && (
+  <div className="print-only">
+    <div className="print-card rounded-3xl border border-gray-200 bg-white p-6">
+      <div className="mb-6 rounded-2xl border border-gray-200 p-5">
+        <p className="mb-2 text-sm font-medium text-gray-400">
+          Asana Dictionary by M.glitter
+        </p>
+
+        <h1 className="text-3xl font-bold text-gray-800">
+          🪷 {printingAsana.title}
+        </h1>
+
+        <p className="mt-2 text-sm text-gray-500">
+          {printingAsana.sanskrit || 'サンスクリット名なし'}
+        </p>
+      </div>
+
+{printingAsana.image_url && (
+  <div className="mb-6 rounded-2xl bg-gray-50 p-4">
+    <img
+      src={printingAsana.image_url}
+      alt={printingAsana.title}
+      className="mx-auto max-h-72 w-full object-contain"
+    />
+  </div>
+)}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {printingAsana.types?.map((type) => (
+          <span
+            key={type}
+            className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs text-green-700"
+          >
+            {TYPE_LABELS[type]?.ja || type}
+          </span>
+        ))}
+
+        {printingAsana.chakras?.map((chakra) => (
+          <span
+            key={chakra}
+            className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs text-red-500"
+          >
+            {chakra}
+          </span>
+        ))}
+      </div>
+
+      <div className="print-grid grid gap-4 md:grid-cols-2">
+        <Info label="誘導" value={printingAsana.howto} />
+        <Info label="効果効能" value={printingAsana.effect} />
+        <Info label="メモ" value={printingAsana.note} />
+        <Info label="筋力" value={printingAsana.strength} />
+        <Info label="柔軟性" value={printingAsana.flexibility} />
+        <Info label="軽減法" value={printingAsana.modification} />
+        <Info label="注意" value={printingAsana.caution} />
+        <Info label="バリエーション" value={printingAsana.variation} />
+      </div>
+    </div>
+  </div>
+)}
+
+        <div className="no-print space-y-6">
           {categoryOrder
             .filter((category) => groupedAsanas[category])
             .map((category) => (
@@ -683,87 +729,6 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
                           {isOpen && (
                             <div className="space-y-4 border-t border-gray-100 bg-gray-50/60 p-4 text-sm text-gray-700">
 
-                              {/* ======================
-   PDF用レイアウト
-====================== */}
-
-<div className="print-only space-y-6">
-
-{/* 分類・チャクラ */}
-<div className="flex flex-wrap items-center gap-2">
-  {asana.types?.map((type) => (
-    <span
-      key={type}
-      className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs text-green-700"
-    >
-      {TYPE_LABELS[type]?.ja || type}
-    </span>
-  ))}
-
-  {asana.chakras?.map((chakra) => (
-    <span
-      key={chakra}
-      className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs text-red-500"
-    >
-      {chakra}
-    </span>
-  ))}
-</div>
-
-{/* 別名 */}
-{asana.alias && (
-  <div>
-    <p className="mb-2 text-xs font-bold tracking-wide text-gray-400">
-      別名・検索ワード
-    </p>
-
-    <div className="flex flex-wrap gap-2">
-    {asana.alias.split(',').map((alias) => (
-        <span
-          key={alias}
-          className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500"
-        >
-          #{alias}
-        </span>
-      ))}
-    </div>
-  </div>
-)}
-
-{/* 2カラム */}
-<div className="grid grid-cols-[220px_1fr] gap-8">
-
-  {/* 左 */}
-  <div className="space-y-4">
-
-    {asana.image_url && (
-      <img
-        src={asana.image_url}
-        alt={asana.title}
-        className="w-full rounded-2xl object-contain"
-      />
-    )}
-
-    <Info label="誘導" value={asana.howto} />
-    <Info label="効果効能" value={asana.effect} />
-    <Info label="メモ" value={asana.memo} />
-
-  </div>
-
-  {/* 右 */}
-  <div className="space-y-4">
-
-    <Info label="筋力" value={asana.strength} />
-    <Info label="柔軟性" value={asana.flexibility} />
-    <Info label="軽減法" value={asana.modification} />
-    <Info label="注意" value={asana.caution} />
-    <Info label="バリエーション" value={asana.variation} />
-
-  </div>
-
-</div>
-</div>
-
    {/* ======================
    通常表示用
 ====================== */}
@@ -889,7 +854,7 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
 
 function Info({ label, value }) {
   return (
-    <div className="rounded-2xl bg-white p-3">
+    <div className="print-card rounded-2xl bg-white p-3">
       <p className="mb-1 text-xs font-bold text-gray-400">{label}</p>
       <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
         {value || '-'}
