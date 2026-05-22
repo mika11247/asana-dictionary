@@ -166,10 +166,12 @@ const isFilteringByType = selectedTypes.length > 0
     }, {})
   : {
       アーサナ: filteredAsanas.filter(
-        (a) =>
-          !a.types?.includes('Pilates') &&
-          !a.types?.includes('Training')
-      ),
+  (a) =>
+    a.main_category !== 'pilates' &&
+    a.main_category !== 'training' &&
+    !a.types?.includes('Pilates') &&
+    !a.types?.includes('Training')
+),
 
       ピラティス: filteredAsanas.filter(
   (a) =>
