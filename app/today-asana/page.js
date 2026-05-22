@@ -144,12 +144,14 @@ export default function TodayAsanaPage() {
           </Link>
 
           <h1 className="mt-4 text-2xl font-bold text-violet-800">
-            🌙 今日のアーサナ
+            🌙 今日のおすすめ
           </h1>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-            登録してあるアーサナの中から、今日の1ポーズをランダムで選びます。
-            レッスンテーマやセルフプラクティスのヒントにどうぞ🧘‍♀️
+            登録した動きの中から、
+今日のおすすめをランダムで表示します。
+
+レッスン・セルフケア・トレーニングのヒントにどうぞ✨
           </p>
 
           {!canDrawUnlimited && (
@@ -168,14 +170,14 @@ export default function TodayAsanaPage() {
         {!loading && asanas.length === 0 && (
           <div className="rounded-3xl bg-white p-6 text-center shadow-sm ring-1 ring-violet-100">
             <p className="text-sm leading-7 text-gray-600">
-              まだアーサナが登録されていません。
+              まだ登録がありません。
               <br />
-              まずはアーサナを登録してから、今日のアーサナを引いてみましょう✨
+              まずは新規登録から追加してみましょう✨
             </p>
 
             <Link href="/asana-create">
               <button className="mt-5 rounded-2xl bg-violet-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-violet-600">
-                アーサナを登録する
+                新規登録する
               </button>
             </Link>
           </div>
@@ -185,7 +187,7 @@ export default function TodayAsanaPage() {
           <section className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-violet-100">
             <div className="bg-gradient-to-r from-violet-100 to-sky-100 p-6 text-center">
               <p className="text-xs font-bold tracking-[0.25em] text-violet-500">
-                TODAY&apos;S ASANA
+                TODAY&apos;S PICK
               </p>
 
               <h2 className="mt-3 text-3xl font-bold text-gray-800">
@@ -265,7 +267,7 @@ export default function TodayAsanaPage() {
 
                 <Link href="/asanas" className="flex-1">
                   <button className="w-full rounded-2xl border border-violet-200 bg-white px-5 py-3 text-sm font-bold text-violet-600 shadow-sm transition hover:bg-violet-50">
-                    アーサナ一覧で見る
+                    一覧で見る
                   </button>
                 </Link>
               </div>

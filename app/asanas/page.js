@@ -113,6 +113,8 @@ function clearChakraFilter() {
   setFavoritesOnly(false)
 }
 
+const isFilteringByType = selectedTypes.length > 0
+
   const filteredAsanas = asanas.filter((asana) => {
   const keyword = searchText.trim().toLowerCase()
 
@@ -149,18 +151,54 @@ function clearChakraFilter() {
   return matchesSearch && matchesType && matchesChakra && matchesFavorite
 })
 
-  const groupedAsanas = filteredAsanas.reduce((groups, asana) => {
-    const types = asana.types?.length ? asana.types : ['未分類']
+  const groupedAsanas = isFilteringByType
+  ? filteredAsanas.reduce((groups, asana) => {
+      const types = asana.types?.length
+        ? asana.types
+        : ['未分類']
 
-    types.forEach((type) => {
-      if (!groups[type]) groups[type] = []
-      groups[type].push(asana)
-    })
+      types.forEach((type) => {
+        if (!groups[type]) groups[type] = []
+        groups[type].push(asana)
+      })
 
-    return groups
-  }, {})
+      return groups
+    }, {})
+  : {
+      アーサナ: filteredAsanas.filter(
+        (a) =>
+          !a.types?.includes('Pilates') &&
+          !a.types?.includes('Training')
+      ),
 
-  const categoryOrder = [...ASANA_TYPES, '未分類']
+      ピラティス: filteredAsanas.filter((a) =>
+        a.types?.includes('Pilates')
+      ),
+
+      種目: filteredAsanas.filter((a) =>
+        a.types?.includes('Training')
+      ),
+    }
+
+  const categoryOrder = isFilteringByType
+  ? [...ASANA_TYPES, '未分類']
+  : ['アーサナ', 'ピラティス', '種目']
+
+  function getCategoryStyle(category) {
+  switch (category) {
+    case 'アーサナ':
+      return 'border-sky-200 bg-sky-50 text-sky-700'
+
+    case 'ピラティス':
+      return 'border-amber-200 bg-amber-50 text-amber-700'
+
+    case '種目':
+      return 'border-pink-200 bg-pink-50 text-pink-700'
+
+    default:
+      return TYPE_STYLES[category] || TYPE_STYLES['未分類']
+  }
+}
 
 const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
 
@@ -177,11 +215,11 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
         </p>
 
         <h1 className="text-3xl font-bold leading-tight text-gray-800">
-          🪷 アーサナ
+          🪷 一覧
         </h1>
 
         <p className="mt-1 text-sm leading-relaxed text-gray-500">
-          ポーズ・チャクラ・分類から探せます
+          名前・チャクラ・分類から探せます
         </p>
       </div>
 
@@ -201,7 +239,7 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="ポーズ名・チャクラ・分類で検索"
+            placeholder="名前・チャクラ・分類で検索"
             className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-800 shadow-sm outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
           />
 
@@ -234,7 +272,7 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
 
           <div className="mt-4 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              {filteredAsanas.length}件のアーサナ
+              {filteredAsanas.length}件
             </p>
 
             {(
@@ -373,7 +411,7 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
         </h1>
 
         <p className="mt-2 text-sm text-gray-500">
-          {printingAsana.sanskrit || 'サンスクリット名なし'}
+          {printingAsana.sanskrit || '名前未登録'}
         </p>
       </div>
 
@@ -437,7 +475,7 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
                     }))
                   }
                   className={`no-print flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition hover:scale-[1.01] ${
-                    TYPE_STYLES[category] || TYPE_STYLES['未分類']
+                    getCategoryStyle(category)
                   }`}
                 >
                   <span>

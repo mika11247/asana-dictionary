@@ -6,19 +6,16 @@ export default function Home() {
     <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-6">
       <div className="mx-auto flex max-w-md flex-col items-center pt-16">
 
-        {/* タイトル */}
         <div className="mb-10 text-center">
           <h1 className="mb-3 text-4xl font-bold text-gray-800">
-            🧘‍♀️ アーサナ辞書
+            🧘‍♀️ My Dictionary
           </h1>
 
           <p className="text-sm text-gray-500">
-            「身体を整える、自分だけのシークエンスを育てよう」
-
+            「身体を整える、自分だけのレッスンとメニューを育てよう」
           </p>
         </div>
 
-        {/* メニュー */}
         <div className="w-full space-y-4">
 
           <Link href="/asanas">
@@ -30,11 +27,11 @@ export default function Home() {
 
                 <div>
                   <h2 className="text-lg font-bold text-gray-800">
-                    アーサナ一覧
+                    一覧
                   </h2>
 
                   <p className="text-sm text-gray-500">
-                    ポーズを検索・確認
+                    ポーズ・エクササイズ・種目を確認
                   </p>
                 </div>
               </div>
@@ -50,11 +47,11 @@ export default function Home() {
 
                 <div>
                   <h2 className="text-lg font-bold text-gray-800">
-                    アーサナ登録
+                    新規登録
                   </h2>
 
                   <p className="text-sm text-gray-500">
-                    新しいポーズを追加
+                    新しい動きを追加
                   </p>
                 </div>
               </div>
@@ -70,11 +67,11 @@ export default function Home() {
 
                 <div>
                   <h2 className="text-lg font-bold text-gray-800">
-                    今日のアーサナ
+                    今日のおすすめ
                   </h2>
 
                   <p className="text-sm text-gray-500">
-                    今日のメッセージを受け取る
+                    今日のヒントを受け取る
                   </p>
                 </div>
               </div>
@@ -94,7 +91,7 @@ export default function Home() {
                   </h2>
 
                   <p className="text-sm text-gray-500">
-                    レッスン構成を管理
+                    レッスン構成・メニューを管理
                   </p>
                 </div>
               </div>
@@ -114,7 +111,7 @@ export default function Home() {
                   </h2>
 
                   <p className="text-sm text-gray-500">
-                    新しいレッスンを作る
+                    新しいレッスン・メニューを作る
                   </p>
                 </div>
               </div>
@@ -123,10 +120,9 @@ export default function Home() {
 
         </div>
 
-        {/* β版案内 */}
         <div className="mt-10 rounded-3xl border border-violet-100 bg-white/80 p-5 text-center shadow-sm">
           <p className="text-sm leading-7 text-gray-600">
-            β版のため、一部機能や保存数を調整しています🧘‍♀️
+            β版のため、一部機能や保存数を調整しています🌙
             <br />
             ご意見を参考にしながら、少しずつ整えています✨
           </p>

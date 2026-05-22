@@ -38,6 +38,9 @@ export default function AsanaEditPage() {
   const [imageFile, setImageFile] = useState(null)
 const [imagePreview, setImagePreview] = useState('')
 
+const [mainCategory, setMainCategory] =
+  useState('yoga')
+
   const inputClass =
     'w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-800 shadow-sm outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100'
 
@@ -77,6 +80,7 @@ const [imagePreview, setImagePreview] = useState('')
     setFlexibility(data.flexibility || '')
     setModification(data.modification || '')
     setTypes(data.types || [])
+    setMainCategory(data.main_category || 'yoga')
     setChakras(data.chakras || [])
     setLoading(false)
   }
@@ -203,6 +207,7 @@ const [imagePreview, setImagePreview] = useState('')
           modification,
           types,
           chakras,
+          main_category: mainCategory,
         })
         .eq('id', id)
   
@@ -236,15 +241,15 @@ const [imagePreview, setImagePreview] = useState('')
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 rounded-3xl border border-violet-100 bg-white p-6 shadow-sm">
           <p className="mb-2 text-sm font-medium text-violet-500">
-            Edit Asana
+            Edit Item
           </p>
 
           <h1 className="mb-2 text-3xl font-bold text-gray-800">
-            ✏️ アーサナ編集
+            ✏️ 編集
           </h1>
 
           <p className="text-sm text-gray-500">
-            アーサナ情報を更新できます
+            登録内容を更新できます
           </p>
         </div>
 
@@ -256,7 +261,7 @@ const [imagePreview, setImagePreview] = useState('')
             <h2 className="text-lg font-bold text-gray-800">基本情報</h2>
 
             <div>
-              <label className={labelClass}>ポーズ名</label>
+              <label className={labelClass}>ポーズ / エクササイズ / 種目名</label>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -266,7 +271,7 @@ const [imagePreview, setImagePreview] = useState('')
             </div>
 
             <div>
-              <label className={labelClass}>サンスクリット名</label>
+              <label className={labelClass}>サンスクリット名 / 英語名</label>
               <input
                 value={sanskrit}
                 onChange={(e) => setSanskrit(e.target.value)}
@@ -292,6 +297,50 @@ const [imagePreview, setImagePreview] = useState('')
     カンマ区切りで複数登録できます
   </p>
 </div>
+
+<section className="space-y-4 rounded-3xl border border-gray-100 bg-white p-4">
+  <h2 className="text-lg font-bold text-gray-800">
+    カテゴリ
+  </h2>
+
+  <div className="flex flex-wrap gap-2">
+    <button
+      type="button"
+      onClick={() => setMainCategory('yoga')}
+      className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+        mainCategory === 'yoga'
+          ? 'bg-sky-500 text-white'
+          : 'border border-gray-200 bg-white text-gray-600'
+      }`}
+    >
+      ☀️ ヨガ
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setMainCategory('pilates')}
+      className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+        mainCategory === 'pilates'
+          ? 'bg-amber-500 text-white'
+          : 'border border-gray-200 bg-white text-gray-600'
+      }`}
+    >
+      🧘 ピラティス
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setMainCategory('training')}
+      className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+        mainCategory === 'training'
+          ? 'bg-pink-500 text-white'
+          : 'border border-gray-200 bg-white text-gray-600'
+      }`}
+    >
+      🏋️ トレーニング
+    </button>
+  </div>
+</section>
 
           <section className="space-y-4 rounded-3xl bg-sky-50/60 p-4">
             <h2 className="text-lg font-bold text-gray-800">分類</h2>
@@ -344,7 +393,7 @@ const [imagePreview, setImagePreview] = useState('')
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800">レッスンメモ</h2>
+            <h2 className="text-lg font-bold text-gray-800">メモ・ポイント</h2>
 
             <div>
               <label className={labelClass}>誘導</label>
@@ -420,7 +469,7 @@ const [imagePreview, setImagePreview] = useState('')
 
           <section className="space-y-4">
   <div>
-    <label className={labelClass}>アーサナ画像</label>
+    <label className={labelClass}>画像</label>
 
     <input
       type="file"

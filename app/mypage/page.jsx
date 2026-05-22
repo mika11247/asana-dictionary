@@ -435,9 +435,9 @@ const remainingDays = scheduledDeleteDate
     <h2 className="text-sm font-bold text-sky-700">使用量</h2>
 
           <div className="mt-4 space-y-3">
-            <UsageCard label="アーサナ" count={asanaCount} limit={limits.asanas} />
+            <UsageCard label="登録動き数" count={asanaCount} limit={limits.asanas} />
             <UsageCard
-              label="シークエンス"
+              label="登録シークエンス数"
               count={sequenceCount}
               limit={limits.sequences}
             />

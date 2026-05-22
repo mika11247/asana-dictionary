@@ -247,7 +247,7 @@ function SortableSequenceItem({
               </h3>
 
               <p className="truncate text-xs text-gray-500">
-                {item.asanas?.sanskrit || 'サンスクリット名なし'}
+                {item.asanas?.sanskrit || '名前未登録'}
               </p>
 
               <div className="mt-1 flex flex-wrap items-center gap-1">
@@ -605,7 +605,7 @@ export default function SequenceDetailPage() {
 
 if (items.length >= limits.sequenceItems) {
   alert(
-    `${PLAN_UI[profile?.plan]?.label || 'Free'}では、レッスン構成を ${limits.sequenceItems}件まで追加できます✨`
+    `${PLAN_UI[profile?.plan]?.label || 'Free'}では、シークエンスは ${limits.sequenceItems}件まで追加できます✨`
   )
   return
 }
@@ -974,7 +974,7 @@ if (items.length >= limits.sequenceItems) {
 
 <div className="no-print mt-5 rounded-2xl bg-violet-50/80 p-4 text-sm text-gray-500">
             <p>
-              レッスン構成：{' '}
+              シークエンス構成：{' '}
               <span className="font-bold text-gray-700">{items.length}</span>
               件
             </p>
@@ -1021,11 +1021,11 @@ if (items.length >= limits.sequenceItems) {
   >
     <div className="text-left">
       <p className="text-sm font-medium text-violet-500">
-        Add Asana
+        Add Item
       </p>
 
       <h2 className="text-2xl font-bold text-gray-800">
-        アーサナを追加
+        動きを追加
       </h2>
     </div>
 
@@ -1050,7 +1050,7 @@ if (items.length >= limits.sequenceItems) {
       />
 
       <p className="text-sm text-gray-500">
-        {filteredAsanas.length}件のアーサナ
+        {filteredAsanas.length}件
       </p>
 
     </div>
@@ -1157,8 +1157,8 @@ if (items.length >= limits.sequenceItems) {
 <section className="mb-8 rounded-3xl border border-white/70 bg-white/90 p-6 shadow-sm">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-sky-500">Lesson Flow</p>
-              <h2 className="text-2xl font-bold text-gray-800">レッスン構成</h2>
+              <p className="text-sm font-medium text-sky-500">Sequence Flow</p>
+              <h2 className="text-2xl font-bold text-gray-800">シークエンス構成</h2>
             </div>
 
             <div className="no-print flex gap-2">
@@ -1192,7 +1192,7 @@ if (items.length >= limits.sequenceItems) {
 
           {items.length === 0 ? (
             <div className="rounded-3xl border border-gray-100 bg-gray-50 p-8 text-center text-gray-500">
-              まだアーサナが追加されていません
+              まだ動きが追加されていません
             </div>
           ) : (
             <DndContext

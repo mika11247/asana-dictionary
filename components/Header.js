@@ -42,7 +42,7 @@ export default function Header() {
                 </h1>
 
                 <p className="text-[11px] tracking-[0.2em] text-gray-400">
-                  YOGA SEQUENCE APP
+                  YOGA • PILATES • TRAINING
                 </p>
               </div>
             </div>
@@ -91,7 +91,7 @@ export default function Header() {
             </h2>
 
             <p className="text-sm text-gray-500">
-              Yoga Asana App
+              YOGA • PILATES • TRAINING
             </p>
           </div>
 
@@ -118,7 +118,7 @@ export default function Header() {
             onClick={() => setOpen(false)}
             className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
           >
-            📚 アーサナ一覧
+            📚 一覧
           </Link>
 
           <Link
@@ -126,7 +126,7 @@ export default function Header() {
             onClick={() => setOpen(false)}
             className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
           >
-            ➕ アーサナ登録
+            ➕ 新規登録
           </Link>
 
           <Link
@@ -142,7 +142,7 @@ export default function Header() {
   onClick={() => setOpen(false)}
   className="rounded-lg px-3 py-2 transition hover:bg-violet-50 hover:text-violet-700"
 >
-  🌙 今日のアーサナ
+  🌙 今日のおすすめ
 </Link>
 
 <Link

@@ -1,4 +1,9 @@
 export const ASANA_TYPES = [
+  // ジャンル横断
+  'Pilates',
+  'Training',
+
+  // 姿勢・方向
   'Standing',
   'Seated',
 
@@ -6,25 +11,35 @@ export const ASANA_TYPES = [
   'Backbend',
   'Twist',
 
+  // バランス
   'Balance',
   'Inversion',
-
-  'Hip Opening',
-  'Core',
   'Arm Balance',
 
-  'Pilates',
+  // 身体テーマ
+  'Core',
   'Strength',
   'Mobility',
+  'Hip Opening',
 
+  // 回復・呼吸
   'Restorative',
   'Breath Meditation',
 ]
 
-export const TYPE_LABELS: Record<string, { ja: string; en: string }> = {
-  Standing: { ja: '立位', en: 'Standing' },
+export const TYPE_LABELS: Record<
+  string,
+  { ja: string; en: string }
+> = {
+  Standing: {
+    ja: '立位',
+    en: 'Standing',
+  },
 
-  Seated: { ja: '座位', en: 'Seated' },
+  Seated: {
+    ja: '座位',
+    en: 'Seated',
+  },
 
   'Forward Bend': {
     ja: '前屈',
@@ -51,24 +66,14 @@ export const TYPE_LABELS: Record<string, { ja: string; en: string }> = {
     en: 'Inversion',
   },
 
-  'Hip Opening': {
-    ja: '股関節',
-    en: 'Hip Opening',
-  },
-
-  Core: {
-    ja: 'コア',
-    en: 'Core',
-  },
-
   'Arm Balance': {
     ja: 'アームバランス',
     en: 'Arm Balance',
   },
 
-  Pilates: {
-    ja: 'ピラティス',
-    en: 'Pilates',
+  Core: {
+    ja: 'コア',
+    en: 'Core',
   },
 
   Strength: {
@@ -79,6 +84,21 @@ export const TYPE_LABELS: Record<string, { ja: string; en: string }> = {
   Mobility: {
     ja: 'モビリティ',
     en: 'Mobility',
+  },
+
+  'Hip Opening': {
+    ja: '股関節',
+    en: 'Hip Opening',
+  },
+
+  Pilates: {
+    ja: '🧘 ピラティス',
+    en: 'Pilates',
+  },
+
+  Training: {
+    ja: '🏋️ トレーニング',
+    en: 'Training',
   },
 
   Restorative: {
@@ -119,23 +139,26 @@ export const TYPE_STYLES: Record<string, string> = {
   Inversion:
     'bg-indigo-50 text-indigo-700 border-indigo-200',
 
-  'Hip Opening':
-    'bg-rose-50 text-rose-700 border-rose-200',
-
-  Core:
-    'bg-orange-50 text-orange-700 border-orange-200',
-
   'Arm Balance':
     'bg-cyan-50 text-cyan-700 border-cyan-200',
 
-  Pilates:
-    'bg-amber-50 text-amber-700 border-amber-200',
+  Core:
+    'bg-orange-50 text-orange-700 border-orange-200',
 
   Strength:
     'bg-red-50 text-red-700 border-red-200',
 
   Mobility:
     'bg-blue-50 text-blue-700 border-blue-200',
+
+  'Hip Opening':
+    'bg-rose-50 text-rose-700 border-rose-200',
+
+  Pilates:
+    'bg-amber-100 text-amber-800 border-amber-300',
+
+  Training:
+    'bg-pink-100 text-pink-800 border-pink-300',
 
   Restorative:
     'bg-teal-50 text-teal-700 border-teal-200',

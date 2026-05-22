@@ -16,7 +16,7 @@ export default function PrivacyPage() {
           </h1>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-            本ページでは、アーサナ辞書＆シークエンス管理アプリにおける
+            本ページでは、Asana Dictionary における
             個人情報の取り扱いについて説明します。
           </p>
         </div>
@@ -74,6 +74,26 @@ export default function PrivacyPage() {
           <p className="mt-2 text-sm leading-7 text-gray-600">
             本ポリシーは、必要に応じて内容を変更する場合があります。
           </p>
+        </section>
+
+        <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-purple-100">
+          <h2 className="text-lg font-bold text-purple-700">
+            お問い合わせ
+          </h2>
+
+          <p className="mt-2 text-sm leading-7 text-gray-600">
+            ご質問・不具合報告・お問い合わせは、
+            M.glitter のお問い合わせフォームよりお願いいたします。
+          </p>
+
+          <a
+            href="/contact"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex rounded-2xl bg-purple-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-purple-600"
+          >
+            お問い合わせフォーム
+          </a>
         </section>
       </div>
     </main>

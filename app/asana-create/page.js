@@ -37,6 +37,7 @@ export default function AsanaCreatePage() {
   const [modification, setModification] = useState('')
   const [chakras, setChakras] = useState([])
   const [types, setTypes] = useState([])
+  const [mainCategory, setMainCategory] = useState('yoga')
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
   const [loading, setLoading] = useState(false)
@@ -163,7 +164,7 @@ export default function AsanaCreatePage() {
 
     if (limits.asanas !== null && count >= limits.asanas) {
       alert(
-        `${PLAN_UI[currentPlan]?.label || 'Free'}ではアーサナを ${limits.asanas}件まで登録できます✨`
+        `${PLAN_UI[currentPlan]?.label || 'Free'}では登録数は ${limits.asanas}件までです✨`
       )
       return
     }
@@ -190,7 +191,8 @@ export default function AsanaCreatePage() {
         modification,
         chakras,
         types,
-        user_id: user.id,
+main_category: mainCategory,
+user_id: user.id,
       },
     ])
 
@@ -216,11 +218,11 @@ export default function AsanaCreatePage() {
           </p>
 
           <h1 className="mb-2 text-3xl font-bold text-gray-800">
-            ✨ アーサナ登録
+            ✨ 新規登録
           </h1>
 
           <p className="text-sm text-gray-500">
-            ポーズの誘導・効果・チャクラを記録して、自分だけの辞書を育てよう
+            ポーズ・エクササイズ・種目のメモを記録して、自分だけの辞書を育てよう
           </p>
         </div>
 
@@ -232,7 +234,7 @@ export default function AsanaCreatePage() {
             <h2 className="text-lg font-bold text-gray-800">基本情報</h2>
 
             <div>
-              <label className={labelClass}>ポーズ名</label>
+              <label className={labelClass}>ポーズ / エクササイズ / 種目名</label>
               <input
                 type="text"
                 value={title}
@@ -244,7 +246,7 @@ export default function AsanaCreatePage() {
             </div>
 
             <div>
-              <label className={labelClass}>サンスクリット名</label>
+              <label className={labelClass}>サンスクリット名 / 英語名</label>
               <input
                 type="text"
                 value={sanskrit}
@@ -270,7 +272,7 @@ export default function AsanaCreatePage() {
             </div>
 
             <div>
-              <label className={labelClass}>アーサナ画像</label>
+              <label className={labelClass}>画像</label>
 
               <input
                 type="file"
@@ -290,6 +292,52 @@ export default function AsanaCreatePage() {
 )}
             </div>
           </section>
+
+          <section className="space-y-4 rounded-3xl bg-white p-4 border border-gray-100">
+  <h2 className="text-lg font-bold text-gray-800">
+    カテゴリ
+  </h2>
+
+  <div className="flex flex-wrap gap-2">
+    
+    <button
+      type="button"
+      onClick={() => setMainCategory('yoga')}
+      className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+        mainCategory === 'yoga'
+          ? 'bg-sky-500 text-white'
+          : 'border border-gray-200 bg-white text-gray-600'
+      }`}
+    >
+      ☀️ ヨガ
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setMainCategory('pilates')}
+      className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+        mainCategory === 'pilates'
+          ? 'bg-amber-500 text-white'
+          : 'border border-gray-200 bg-white text-gray-600'
+      }`}
+    >
+      🧘 ピラティス
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setMainCategory('training')}
+      className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+        mainCategory === 'training'
+          ? 'bg-pink-500 text-white'
+          : 'border border-gray-200 bg-white text-gray-600'
+      }`}
+    >
+      🏋️ トレーニング
+    </button>
+
+  </div>
+</section>
 
           <section className="space-y-4 rounded-3xl bg-sky-50/60 p-4">
             <h2 className="text-lg font-bold text-gray-800">分類</h2>
@@ -350,7 +398,7 @@ export default function AsanaCreatePage() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800">レッスンメモ</h2>
+            <h2 className="text-lg font-bold text-gray-800">メモ・ポイント</h2>
 
             <div>
               <label className={labelClass}>誘導</label>
@@ -447,7 +495,7 @@ export default function AsanaCreatePage() {
             disabled={loading}
             className="w-full rounded-2xl bg-gradient-to-r from-sky-500 to-violet-500 px-6 py-4 text-base font-bold text-white shadow-md transition hover:scale-[1.01] hover:shadow-lg disabled:opacity-50"
           >
-            {loading ? '登録中...' : 'アーサナを登録する'}
+            {loading ? '登録中...' : '登録する'}
           </button>
         </form>
       </div>

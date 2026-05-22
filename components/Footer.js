@@ -49,20 +49,20 @@ export default function Footer() {
         </div>
 
         <div className="text-center">
-          <p className="text-sm font-bold tracking-wide text-gray-700">
-            🪷 Asana Dictionary
-          </p>
+  <p className="text-sm font-bold tracking-wide text-gray-700">
+    🪷 Asana Dictionary
+  </p>
 
-          <p className="mt-1 text-xs text-gray-400">
-            Yoga Sequence & Asana Management App
-          </p>
+  <p className="mt-1 text-xs text-gray-400">
+    YOGA • PILATES • TRAINING
+  </p>
 
-          <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-sky-200 to-violet-200" />
+  <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-sky-200 to-violet-200" />
 
-          <p className="mt-4 text-xs text-gray-400">
-            © 2026 Asana Dictionary by M.glitter
-          </p>
-        </div>
+  <p className="mt-4 text-xs text-gray-400">
+    © 2026 Asana Dictionary by M.glitter
+  </p>
+</div>
       </div>
     </footer>
   )

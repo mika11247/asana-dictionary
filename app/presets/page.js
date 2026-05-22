@@ -98,13 +98,12 @@ export default function PresetsPage() {
 
     try {
       const result = await addMissingAsanas(preset)
+      const label = getPresetItemLabel(preset)
 
       if (result.addedCount === 0) {
-        alert('追加できる新しいアーサナはありません✨')
+        alert('追加できる新しい動きはありません✨')
         return
       }
-
-      const label = preset.preset_key === 'pilates_basic' ? 'エクササイズ' : 'アーサナ'
 
       alert(
         `${result.addedCount}件の${label}を追加しました✨\n${result.skippedCount}件は登録済みのためスキップしました🌙`
@@ -242,7 +241,7 @@ export default function PresetsPage() {
         if (insertItemsError) throw insertItemsError
       }
 
-      const label = preset.preset_key === 'pilates_basic' ? 'エクササイズ' : 'アーサナ'
+      const label = getPresetItemLabel(preset)
 
       alert(
         `シークエンスを追加しました✨\n\n${label}追加: ${asanaResult.addedCount}件\nスキップ: ${asanaResult.skippedCount}件`
@@ -345,6 +344,18 @@ export default function PresetsPage() {
     }
   }
 
+  function getPresetItemLabel(preset) {
+  if (preset.display_group === 'training') {
+    return '種目'
+  }
+
+  if (preset.display_group === 'pilates') {
+    return 'エクササイズ'
+  }
+
+  return '動き'
+}
+
   function getPlanBadge(plan) {
     switch (plan) {
       case 'special':
@@ -435,15 +446,15 @@ function getSequenceButtonClass(preset) {
           </h1>
 
           <p className="mt-2 text-sm leading-7 text-gray-500">
-            よく使うアーサナや、レッスンのベースになるセットをまとめて追加できます✨
+            よく使う動きや、シークエンス・メニューのベースになるセットをまとめて追加できます✨
           </p>
 
           <p className="mt-3 rounded-2xl bg-violet-50 px-4 py-3 text-xs leading-6 text-violet-700">
-            同じテンプレート由来のアーサナやシークエンスは、
+            同じテンプレート由来の動きやシークエンスは、
             重複しないよう自動でスキップされます🌙
             <br />
             ※ テンプレート内容は参考用です。流派やレッスン内容によって、
-            アーサナ名・順番・分類などが異なる場合があります。
+            名前・順番・分類などが異なる場合があります。
             <br />
             ※ 追加後は、ご自身の使いやすい形に自由に編集・調整してご利用ください✨
           </p>

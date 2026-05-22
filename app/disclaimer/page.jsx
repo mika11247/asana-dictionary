@@ -16,7 +16,7 @@ export default function DisclaimerPage() {
           </h1>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-            本ページは、アーサナ辞書＆シークエンス管理アプリのご利用にあたっての注意事項です。
+            本ページは、Asana Dictionary のご利用にあたっての注意事項です。
           </p>
         </div>
 
@@ -26,7 +26,8 @@ export default function DisclaimerPage() {
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-            本アプリは、ヨガのアーサナ情報やレッスン構成を管理するための補助ツールです。
+            本アプリは、ヨガ・ピラティス・トレーニングなどの動きや、
+            シークエンス・メニュー構成を管理するための補助ツールです。
             医療的な診断、治療、助言を目的としたものではありません。
           </p>
         </section>
@@ -37,7 +38,7 @@ export default function DisclaimerPage() {
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-            アーサナの実践やレッスン指導にあたっては、利用者ご自身の責任において、
+            動きの実践や指導にあたっては、利用者ご自身の責任において、
             体調・経験・柔軟性・既往歴などを考慮し、安全に配慮して行ってください。
           </p>
         </section>
@@ -48,7 +49,7 @@ export default function DisclaimerPage() {
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-            登録内容やメモ、シークエンス構成は利用者自身が管理する情報です。
+            登録内容・メモ・シークエンス構成などは利用者自身が管理する情報です。
             内容の正確性・完全性・安全性について、当アプリは保証するものではありません。
           </p>
         </section>
@@ -59,8 +60,9 @@ export default function DisclaimerPage() {
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-            本アプリの利用により生じた身体的トラブル、指導上の問題、データの消失、
-            その他の損害について、運営者は一切の責任を負いかねます。
+            本アプリの利用により生じた身体的トラブル、指導上の問題、
+            データの消失、その他の損害について、
+            運営者は一切の責任を負いかねます。
           </p>
         </section>
 
@@ -70,7 +72,8 @@ export default function DisclaimerPage() {
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-gray-600">
-            本アプリは開発中のため、機能・表示・利用条件などを予告なく変更する場合があります。
+            本アプリはβ版開発中のため、
+            機能・表示・利用条件などを予告なく変更する場合があります。
           </p>
         </section>
       </div>
