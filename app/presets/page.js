@@ -316,6 +316,8 @@ export default function PresetsPage() {
       types: item.types || [],
       chakras: item.chakras || [],
 
+      main_category: preset.main_category || 'yoga',
+
       strength: item.strength || '',
       flexibility: item.flexibility || '',
 

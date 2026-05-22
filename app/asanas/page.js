@@ -171,13 +171,17 @@ const isFilteringByType = selectedTypes.length > 0
           !a.types?.includes('Training')
       ),
 
-      ピラティス: filteredAsanas.filter((a) =>
-        a.types?.includes('Pilates')
-      ),
+      ピラティス: filteredAsanas.filter(
+  (a) =>
+    a.main_category === 'pilates' ||
+    a.types?.includes('Pilates')
+),
 
-      種目: filteredAsanas.filter((a) =>
-        a.types?.includes('Training')
-      ),
+      種目: filteredAsanas.filter(
+  (a) =>
+    a.main_category === 'training' ||
+    a.types?.includes('Training')
+),
     }
 
   const categoryOrder = isFilteringByType
