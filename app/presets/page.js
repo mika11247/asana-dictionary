@@ -17,9 +17,10 @@ const GROUP_LABELS = {
   asana_pack: '📦 拡張パック',
   trial: '📦 拡張パック',
   pilates: '🧘 ピラティス',
+  training: '🏋️ トレーニング',
 }
 
-const GROUP_ORDER = ['sequence', 'asana_pack', 'trial', 'pilates']
+const GROUP_ORDER = ['sequence', 'asana_pack', 'trial', 'pilates','training',]
 
 export default function PresetsPage() {
   const { user, profile } = useAuth()
@@ -370,20 +371,56 @@ export default function PresetsPage() {
   }
 
   function getAddOnlyLabel(preset) {
-    if (addingKey === `${preset.id}-asanas`) return '追加中...'
+  if (addingKey === `${preset.id}-asanas`) return '追加中...'
 
-    return preset.preset_key === 'pilates_basic'
-      ? 'エクササイズのみ追加'
-      : 'アーサナのみ追加'
+  if (preset.display_group === 'training') {
+    return '種目のみ追加'
   }
+
+  if (preset.display_group === 'pilates') {
+    return 'エクササイズのみ追加'
+  }
+
+  return 'アーサナのみ追加'
+}
 
   function getAddSequenceLabel(preset) {
-    if (addingKey === `${preset.id}-sequence`) return '追加中...'
+  if (addingKey === `${preset.id}-sequence`) return '追加中...'
 
-    return preset.preset_key === 'pilates_basic'
-      ? 'エクササイズ＋シークエンス追加'
-      : 'アーサナ＋シークエンス追加'
+  if (preset.display_group === 'training') {
+    return '種目＋シークエンス追加'
   }
+
+  if (preset.display_group === 'pilates') {
+    return 'エクササイズ＋シークエンス追加'
+  }
+
+  return 'アーサナ＋シークエンス追加'
+}
+
+function getAddOnlyButtonClass(preset) {
+  if (preset.display_group === 'training') {
+    return 'rounded-2xl bg-pink-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-pink-700 disabled:opacity-50'
+  }
+
+  if (preset.display_group === 'pilates') {
+    return 'rounded-2xl bg-orange-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:opacity-50'
+  }
+
+  return 'rounded-2xl bg-sky-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-sky-600 disabled:opacity-50'
+}
+
+function getSequenceButtonClass(preset) {
+  if (preset.display_group === 'training') {
+    return 'rounded-2xl bg-fuchsia-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-fuchsia-700 disabled:opacity-50'
+  }
+
+  if (preset.display_group === 'pilates') {
+    return 'rounded-2xl bg-amber-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-amber-600 disabled:opacity-50'
+  }
+
+  return 'rounded-2xl bg-cyan-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-cyan-600 disabled:opacity-50'
+}
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-4">
@@ -449,7 +486,7 @@ export default function PresetsPage() {
                       type="button"
                       onClick={() => addAsanasOnly(preset)}
                       disabled={addingKey === `${preset.id}-asanas`}
-                      className="rounded-2xl bg-sky-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-sky-600 disabled:opacity-50"
+                      className={getAddOnlyButtonClass(preset)}
                     >
                       {getAddOnlyLabel(preset)}
                     </button>
@@ -459,7 +496,7 @@ export default function PresetsPage() {
                         type="button"
                         onClick={() => addAsanasAndSequence(preset)}
                         disabled={addingKey === `${preset.id}-sequence`}
-                        className="rounded-2xl bg-violet-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-violet-600 disabled:opacity-50"
+                        className={getSequenceButtonClass(preset)}
                       >
                         {getAddSequenceLabel(preset)}
                       </button>
