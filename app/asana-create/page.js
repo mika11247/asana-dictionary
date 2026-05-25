@@ -358,7 +358,7 @@ user_id: user.id,
 </section>
 
           <section className="space-y-4 rounded-3xl bg-sky-50/60 p-4">
-            <h2 className="text-lg font-bold text-gray-800">分類</h2>
+            <h2 className="text-lg font-bold text-gray-800">分類/タグ</h2>
 
             <div className="flex flex-wrap gap-2">
               {ASANA_TYPES.map((type) => {

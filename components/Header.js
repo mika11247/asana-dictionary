@@ -54,9 +54,22 @@ export default function Header() {
                 {profile.display_name} 様
               </p>
 
-              <p className="text-[10px] text-gray-400 sm:text-xs">
-  β版
-</p>
+              <div className="flex items-center justify-end gap-2">
+  <p className="text-[10px] text-gray-400 sm:text-xs">
+    β版
+  </p>
+
+  {profile?.plan && (
+    <span
+      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+        PLAN_UI[profile.plan]?.badge ||
+        'bg-gray-100 text-gray-500'
+      }`}
+    >
+      {PLAN_UI[profile.plan]?.label || profile.plan}
+    </span>
+  )}
+</div>
             </div>
           )}
 

@@ -4,18 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
-
-const planLabels = {
-  free: "Free",
-  special: "Special",
-  pro: "Pro",
-};
-
-const planLimits = {
-  free: { asanas: 30, sequences: 3 },
-  special: { asanas: 50, sequences: 10 },
-  pro: { asanas: null, sequences: null },
-};
+import { PLAN_UI } from "@/lib/planUI";
+import { PLAN_LIMITS } from "@/lib/planLimits";
 
 export default function MyPage() {
   const router = useRouter();
@@ -246,7 +236,36 @@ setMessage("退会申請を取り消しました✨");
   }
 
   const isGoogleUser = user?.app_metadata?.provider === "google";
-  const limits = planLimits[plan] || planLimits.free;
+  const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
+
+  const planCardStyles = {
+  free: {
+    bg: "bg-gray-50",
+    text: "text-gray-700",
+    ring: "ring-gray-100",
+  },
+
+  support: {
+    bg: "bg-emerald-50",
+    text: "text-emerald-700",
+    ring: "ring-emerald-100",
+  },
+
+  special: {
+    bg: "bg-sky-50",
+    text: "text-sky-700",
+    ring: "ring-sky-100",
+  },
+
+  pro: {
+    bg: "bg-violet-50",
+    text: "text-violet-700",
+    ring: "ring-violet-100",
+  },
+};
+
+const currentPlanStyle =
+  planCardStyles[plan] || planCardStyles.free;
 
   const deletionDate = deletedAt ? new Date(deletedAt) : null;
 const scheduledDeleteDate = deletionDate
@@ -420,12 +439,23 @@ const remainingDays = scheduledDeleteDate
               </>
             )}
 
-            <div className="rounded-2xl bg-sky-50 p-4">
-              <p className="text-xs font-bold text-gray-500">現在のプラン</p>
-              <p className="mt-1 text-lg font-bold text-sky-700">
-                {planLabels[plan] || "Free"}
-              </p>
-            </div>
+            <div
+  className={`rounded-2xl p-4 ring-1 ${currentPlanStyle.bg} ${currentPlanStyle.ring}`}
+>
+  <p className="text-xs font-bold text-gray-500">
+    現在のプラン
+  </p>
+
+  <p
+    className={`mt-1 text-lg font-bold ${currentPlanStyle.text}`}
+  >
+    {PLAN_UI[plan]?.label || "Free"}
+  </p>
+
+  <p className="mt-2 text-xs leading-relaxed text-gray-500">
+    {PLAN_UI[plan]?.description}
+  </p>
+</div>
           </div>
           </section>
 )}
@@ -435,15 +465,46 @@ const remainingDays = scheduledDeleteDate
     <h2 className="text-sm font-bold text-sky-700">使用量</h2>
 
           <div className="mt-4 space-y-3">
-            <UsageCard label="登録動き数" count={asanaCount} limit={limits.asanas} />
             <UsageCard
-              label="登録シークエンス数"
-              count={sequenceCount}
-              limit={limits.sequences}
-            />
+  label="登録動き数"
+  count={asanaCount}
+  limit={limits.asanas}
+  plan={plan}
+/>
+<UsageCard
+  label="登録シークエンス数"
+  count={sequenceCount}
+  limit={limits.sequences}
+  plan={plan}
+/>
           </div>
         </section>
       )}
+
+      <div className="mt-5 rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-pink-50 p-4">
+  <div className="space-y-3">
+    
+    <div>
+      <p className="text-sm font-bold text-violet-700">
+        🌙 プラン管理
+      </p>
+
+      <p className="mt-1 text-xs leading-relaxed text-gray-600">
+  現在のプラン確認や、
+  今後追加予定の機能・
+  アップグレード内容を確認できます 🌙
+</p>
+    </div>
+
+    <button
+      type="button"
+      onClick={() => router.push('/upgrade')}
+      className="w-full rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 px-4 py-3 text-sm font-bold text-white shadow transition hover:scale-[1.01]"
+    >
+      🌙 プランを見る
+    </button>
+  </div>
+</div>
 
 <section className="rounded-3xl bg-gradient-to-br from-purple-50 to-pink-50 p-5 shadow-sm ring-1 ring-purple-100">
   <div className="space-y-3 text-center">
@@ -512,15 +573,44 @@ const remainingDays = scheduledDeleteDate
   );
 }
 
-function UsageCard({ label, count, limit }) {
+function UsageCard({ label, count, limit, plan }) {
   const isUnlimited = limit === null;
   const percent = isUnlimited ? 0 : Math.min((count / limit) * 100, 100);
 
+const usageStyles = {
+  free: {
+    bg: "bg-gray-50",
+    text: "text-gray-700",
+    bar: "bg-gray-400",
+  },
+
+  support: {
+    bg: "bg-emerald-50",
+    text: "text-emerald-700",
+    bar: "bg-emerald-400",
+  },
+
+  special: {
+    bg: "bg-sky-50",
+    text: "text-sky-700",
+    bar: "bg-sky-400",
+  },
+
+  pro: {
+    bg: "bg-violet-50",
+    text: "text-violet-700",
+    bar: "bg-violet-400",
+  },
+};
+
+const style =
+  usageStyles[plan] || usageStyles.free;
+
   return (
-    <div className="rounded-2xl bg-sky-50 p-4">
+    <div className={`rounded-2xl p-4 ${style.bg}`}>
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold text-gray-700">{label}</p>
-        <p className="text-sm font-bold text-sky-700">
+        <p className={`text-sm font-bold ${style.text}`}>
           {isUnlimited ? `${count} / 無制限` : `${count} / ${limit}`}
         </p>
       </div>
@@ -528,7 +618,7 @@ function UsageCard({ label, count, limit }) {
       {!isUnlimited && (
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
           <div
-            className="h-full rounded-full bg-sky-400"
+            className={`h-full rounded-full ${style.bar}`}
             style={{ width: `${percent}%` }}
           />
         </div>

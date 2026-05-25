@@ -35,6 +35,8 @@ const [selectedTypes, setSelectedTypes] = useState([])
 
   const [printingAsanaId, setPrintingAsanaId] = useState(null)
 
+  const [selectedMainCategories, setSelectedMainCategories] = useState([])
+
   useEffect(() => {
     fetchAsanas()
   }, [])
@@ -92,6 +94,14 @@ const [selectedTypes, setSelectedTypes] = useState([])
     fetchAsanas()
   }
 
+  function toggleMainCategoryFilter(category) {
+  setSelectedMainCategories((prev) =>
+    prev.includes(category)
+      ? prev.filter((item) => item !== category)
+      : [...prev, category]
+  )
+}
+
   function toggleTypeFilter(type) {
   setSelectedTypes((prev) =>
     prev.includes(type)
@@ -111,6 +121,7 @@ function toggleChakraFilter(chakra) {
 function clearChakraFilter() {
   setSelectedChakras([])
   setSelectedTypes([])
+  setSelectedMainCategories([])
   setFavoritesOnly(false)
 }
 
@@ -144,13 +155,42 @@ const isFilteringByType = selectedTypes.length > 0
     selectedTypes.length === 0 ||
     selectedTypes.some((type) => asana.types?.includes(type))
 
+  const matchesMainCategory =
+  selectedMainCategories.length === 0 ||
+  selectedMainCategories.some((category) => {
+    if (category === 'yoga') {
+      return (
+        asana.main_category !== 'pilates' &&
+        asana.main_category !== 'training' &&
+        !asana.types?.includes('Pilates') &&
+        !asana.types?.includes('Training')
+      )
+    }
+
+    if (category === 'pilates') {
+      return (
+        asana.main_category === 'pilates' ||
+        asana.types?.includes('Pilates')
+      )
+    }
+
+    if (category === 'training') {
+      return (
+        asana.main_category === 'training' ||
+        asana.types?.includes('Training')
+      )
+    }
+
+    return false
+  })
+
   const matchesChakra =
     selectedChakras.length === 0 ||
     selectedChakras.some((chakra) => asana.chakras?.includes(chakra))
 
   const matchesFavorite = !favoritesOnly || asana.favorite
 
-  return matchesSearch && matchesType && matchesChakra && matchesFavorite
+  return matchesSearch && matchesType && matchesMainCategory && matchesChakra && matchesFavorite
 })
 
   const groupedAsanas = isFilteringByType
@@ -286,6 +326,7 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
             {(
   selectedChakras.length > 0 ||
   selectedTypes.length > 0 ||
+  selectedMainCategories.length > 0 ||
   favoritesOnly
 ) && (
               <button
@@ -326,8 +367,9 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
         onClick={clearChakraFilter}
         className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
           selectedChakras.length === 0 &&
-          selectedTypes.length === 0 &&
-          !favoritesOnly
+selectedTypes.length === 0 &&
+selectedMainCategories.length === 0 &&
+!favoritesOnly
             ? 'border-gray-800 bg-gray-800 text-white'
             : 'border-gray-200 bg-white text-gray-600'
         }`}
@@ -349,8 +391,39 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
     </div>
 
     <div>
+  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+    カテゴリ
+  </p>
+
+  <div className="flex flex-wrap gap-2">
+    {[
+      ['yoga', '☀️ ヨガ'],
+      ['pilates', '🧘 ピラティス'],
+      ['training', '🏋️ トレーニング'],
+    ].map(([value, label]) => {
+      const isSelected = selectedMainCategories.includes(value)
+
+      return (
+        <button
+          key={value}
+          type="button"
+          onClick={() => toggleMainCategoryFilter(value)}
+          className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+            isSelected
+              ? 'border-gray-800 bg-gray-800 text-white'
+              : 'border-gray-200 bg-white text-gray-600'
+          }`}
+        >
+          {label}
+        </button>
+      )
+    })}
+  </div>
+</div>
+
+    <div>
       <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-        分類
+        分類/タグ
       </p>
 
       <div className="flex flex-wrap gap-2">
