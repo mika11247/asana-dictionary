@@ -34,6 +34,7 @@ export default function AsanaEditPage() {
   const [saving, setSaving] = useState(false)
 
   const [alias, setAlias] = useState('')
+  const [yomi, setYomi] = useState('')
 
   const [imageFile, setImageFile] = useState(null)
 const [imagePreview, setImagePreview] = useState('')
@@ -196,6 +197,7 @@ const [mainCategory, setMainCategory] =
           title,
           sanskrit,
           alias,
+          yomi,
           howto,
           effect,
           caution,
@@ -295,6 +297,22 @@ const [mainCategory, setMainCategory] =
 
   <p className="mt-2 text-xs text-gray-400">
     カンマ区切りで複数登録できます
+  </p>
+</div>
+
+<div>
+  <label className={labelClass}>よみ</label>
+
+  <input
+    type="text"
+    value={yomi}
+    onChange={(e) => setYomi(e.target.value)}
+    placeholder="例：やまのぽーず"
+    className={inputClass}
+  />
+
+  <p className="mt-2 text-xs text-gray-400">
+    一覧の並び順や検索に使用されます
   </p>
 </div>
 

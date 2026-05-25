@@ -50,7 +50,8 @@ const [selectedTypes, setSelectedTypes] = useState([])
       .from('asanas')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      .order('yomi', { ascending: true, nullsFirst: false })
+.order('created_at', { ascending: false })
 
     if (error) {
       console.error(error)
@@ -121,6 +122,7 @@ const isFilteringByType = selectedTypes.length > 0
   const matchesSearch =
     keyword === '' ||
     asana.title?.toLowerCase().includes(keyword) ||
+    asana.yomi?.toLowerCase().includes(keyword) ||
     asana.alias?.toLowerCase().includes(keyword) ||
     asana.sanskrit?.toLowerCase().includes(keyword) ||
     asana.howto?.toLowerCase().includes(keyword) ||

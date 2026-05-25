@@ -311,6 +311,7 @@ export default function PresetsPage() {
 
       title: item.asana_title || '',
       sanskrit: item.asana_sanskrit || '',
+      yomi: item.yomi || '',
       alias: item.alias || '',
 
       types: item.types || [],

@@ -27,6 +27,7 @@ export default function AsanaCreatePage() {
   const [title, setTitle] = useState('')
   const [sanskrit, setSanskrit] = useState('')
   const [alias, setAlias] = useState('')
+  const [yomi, setYomi] = useState('')
   const [howto, setHowto] = useState('')
   const [effect, setEffect] = useState('')
   const [caution, setCaution] = useState('')
@@ -180,6 +181,7 @@ export default function AsanaCreatePage() {
         title,
         sanskrit,
         alias,
+        yomi,
         howto,
         effect,
         caution,
@@ -270,6 +272,22 @@ user_id: user.id,
                 カンマ区切りで複数登録できます
               </p>
             </div>
+
+            <div>
+  <label className={labelClass}>よみ</label>
+
+  <input
+    type="text"
+    value={yomi}
+    onChange={(e) => setYomi(e.target.value)}
+    placeholder="例：やまのぽーず"
+    className={inputClass}
+  />
+
+  <p className="mt-2 text-xs text-gray-400">
+    一覧の並び順や検索に使用されます
+  </p>
+</div>
 
             <div>
               <label className={labelClass}>画像</label>
