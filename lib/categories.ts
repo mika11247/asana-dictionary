@@ -2,10 +2,14 @@ export const ASANA_TYPES = [
   // ジャンル横断
   'Pilates',
   'Training',
+  'Rusie Dutton',
 
   // 姿勢・方向
   'Standing',
   'Seated',
+  'Kneeling',
+  'Prone',
+  'Supine',
 
   'Forward Bend',
   'Backbend',
@@ -39,6 +43,21 @@ export const TYPE_LABELS: Record<
   Seated: {
     ja: '座位',
     en: 'Seated',
+  },
+
+  Kneeling: {
+    ja: '膝立ち',
+    en: 'Kneeling',
+  },
+
+  Prone: {
+    ja: 'うつ伏せ',
+    en: 'Prone',
+  },
+
+  Supine: {
+    ja: '仰向け',
+    en: 'Supine',
   },
 
   'Forward Bend': {
@@ -101,6 +120,11 @@ export const TYPE_LABELS: Record<
     en: 'Training',
   },
 
+  'Rusie Dutton': {
+    ja: '🌿 ルーシーダットン',
+    en: 'Rusie Dutton',
+  },
+
   Restorative: {
     ja: 'リストラティブ',
     en: 'Restorative',
@@ -123,6 +147,15 @@ export const TYPE_STYLES: Record<string, string> = {
 
   Seated:
     'bg-emerald-50 text-emerald-700 border-emerald-200',
+
+  Kneeling:
+    'bg-green-50 text-green-700 border-green-200',
+
+  Prone:
+    'bg-teal-50 text-teal-700 border-teal-200',
+
+  Supine:
+    'bg-purple-50 text-purple-700 border-purple-200',
 
   'Forward Bend':
     'bg-sky-50 text-sky-700 border-sky-200',
@@ -159,6 +192,9 @@ export const TYPE_STYLES: Record<string, string> = {
 
   Training:
     'bg-pink-100 text-pink-800 border-pink-300',
+
+  'Rusie Dutton':
+    'bg-green-100 text-green-800 border-green-300',
 
   Restorative:
     'bg-teal-50 text-teal-700 border-teal-200',

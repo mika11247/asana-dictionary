@@ -35,6 +35,7 @@ export default function AsanaCreatePage() {
   const [note, setNote] = useState('')
   const [strength, setStrength] = useState('')
   const [flexibility, setFlexibility] = useState('')
+  const [adjustment, setAdjustment] = useState('')
   const [modification, setModification] = useState('')
   const [chakras, setChakras] = useState([])
   const [types, setTypes] = useState([])
@@ -190,6 +191,7 @@ export default function AsanaCreatePage() {
         image_url: uploadedImageUrl,
         strength,
         flexibility,
+        adjustment,
         modification,
         chakras,
         types,
@@ -460,6 +462,19 @@ user_id: user.id,
                 rows={3}
               />
             </div>
+            <div>
+  <label className={labelClass}>アジャスト</label>
+
+  <textarea
+    value={adjustment}
+    onChange={(e) =>
+      setAdjustment(e.target.value)
+    }
+    className={textareaClass}
+    rows={4}
+    placeholder="触れる場所・誘導方向・補助方法など"
+  />
+</div>
           </section>
 
           <section className="space-y-4 rounded-3xl bg-gray-50 p-4">
@@ -486,14 +501,18 @@ user_id: user.id,
             </div>
 
             <div>
-              <label className={labelClass}>軽減法</label>
-              <input
-                type="text"
-                value={modification}
-                onChange={(e) => setModification(e.target.value)}
-                className={inputClass}
-              />
-            </div>
+  <label className={labelClass}>軽減法</label>
+
+  <textarea
+    value={modification}
+    onChange={(e) =>
+      setModification(e.target.value)
+    }
+    className={textareaClass}
+    rows={5}
+    placeholder="ブロック・ベルト・膝をつく・壁を使う等"
+  />
+</div>
           </section>
 
           <section className="space-y-4">

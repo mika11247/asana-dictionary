@@ -19,10 +19,13 @@ export default function AsanaEditPage() {
 
   const [title, setTitle] = useState('')
   const [sanskrit, setSanskrit] = useState('')
+  const [alias, setAlias] = useState('')
+  const [yomi, setYomi] = useState('')
   const [howto, setHowto] = useState('')
   const [effect, setEffect] = useState('')
   const [caution, setCaution] = useState('')
   const [variation, setVariation] = useState('')
+  const [adjustment, setAdjustment] = useState('')
   const [note, setNote] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [strength, setStrength] = useState('')
@@ -30,17 +33,11 @@ export default function AsanaEditPage() {
   const [modification, setModification] = useState('')
   const [types, setTypes] = useState([])
   const [chakras, setChakras] = useState([])
+  const [mainCategory, setMainCategory] = useState('yoga')
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-
-  const [alias, setAlias] = useState('')
-  const [yomi, setYomi] = useState('')
-
-  const [imageFile, setImageFile] = useState(null)
-const [imagePreview, setImagePreview] = useState('')
-
-const [mainCategory, setMainCategory] =
-  useState('yoga')
 
   const inputClass =
     'w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-800 shadow-sm outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100'
@@ -69,21 +66,22 @@ const [mainCategory, setMainCategory] =
 
     setTitle(data.title || '')
     setSanskrit(data.sanskrit || '')
-    setImagePreview(data.image_url || '')
     setAlias(data.alias || '')
     setYomi(data.yomi || '')
     setHowto(data.howto || '')
     setEffect(data.effect || '')
     setCaution(data.caution || '')
     setVariation(data.variation || '')
+    setAdjustment(data.adjustment || '')
     setNote(data.note || '')
     setImageUrl(data.image_url || '')
+    setImagePreview(data.image_url || '')
     setStrength(data.strength || '')
     setFlexibility(data.flexibility || '')
     setModification(data.modification || '')
     setTypes(data.types || [])
-    setMainCategory(data.main_category || 'yoga')
     setChakras(data.chakras || [])
+    setMainCategory(data.main_category || 'yoga')
     setLoading(false)
   }
 
@@ -105,9 +103,8 @@ const [mainCategory, setMainCategory] =
 
   function handleImageChange(e) {
     const file = e.target.files?.[0] || null
-  
     setImageFile(file)
-  
+
     if (file) {
       setImagePreview(URL.createObjectURL(file))
     }
@@ -117,39 +114,34 @@ const [mainCategory, setMainCategory] =
     return new Promise((resolve) => {
       const img = new Image()
       const reader = new FileReader()
-  
+
       reader.readAsDataURL(file)
-  
+
       reader.onload = (event) => {
         img.src = event.target?.result
       }
-  
+
       img.onload = () => {
         const canvas = document.createElement('canvas')
-  
         const maxWidth = 1200
-  
         const scale = Math.min(1, maxWidth / img.width)
-  
+
         canvas.width = img.width * scale
         canvas.height = img.height * scale
-  
+
         const ctx = canvas.getContext('2d')
-  
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-  
+
         canvas.toBlob(
           (blob) => {
             if (!blob) return
-  
+
             const compressedFile = new File(
               [blob],
               file.name.replace(/\.\w+$/, '.webp'),
-              {
-                type: 'image/webp',
-              }
+              { type: 'image/webp' }
             )
-  
+
             resolve(compressedFile)
           },
           'image/webp',
@@ -162,36 +154,33 @@ const [mainCategory, setMainCategory] =
   async function handleSubmit(e) {
     e.preventDefault()
     setSaving(true)
-  
+
     let uploadedImageUrl = imageUrl
-  
+
     try {
       if (imageFile) {
-
         const compressedFile = await compressImage(imageFile)
         const fileExt = compressedFile.name.split('.').pop()
-  
+
         const fileName = `${Date.now()}-${Math.random()
           .toString(36)
           .slice(2)}.${fileExt}`
-  
+
         const { error: uploadError } = await supabase.storage
           .from('asana-images')
           .upload(fileName, compressedFile)
-  
-        if (uploadError) {
-          throw uploadError
-        }
-  
+
+        if (uploadError) throw uploadError
+
         const {
           data: { publicUrl },
         } = supabase.storage
           .from('asana-images')
           .getPublicUrl(fileName)
-  
+
         uploadedImageUrl = publicUrl
       }
-  
+
       const { error } = await supabase
         .from('asanas')
         .update({
@@ -203,6 +192,7 @@ const [mainCategory, setMainCategory] =
           effect,
           caution,
           variation,
+          adjustment,
           note,
           image_url: uploadedImageUrl || null,
           strength,
@@ -213,12 +203,12 @@ const [mainCategory, setMainCategory] =
           main_category: mainCategory,
         })
         .eq('id', id)
-  
+
       if (error) {
         alert(`更新エラー: ${error.message}`)
         return
       }
-  
+
       alert('更新できたよ！')
       router.push('/asanas')
       router.refresh()
@@ -281,85 +271,79 @@ const [mainCategory, setMainCategory] =
                 className={inputClass}
               />
             </div>
+
+            <div>
+              <label className={labelClass}>検索用キーワード</label>
+              <input
+                type="text"
+                value={alias}
+                onChange={(e) => setAlias(e.target.value)}
+                placeholder="例：略称・英語名・別名など"
+                className={inputClass}
+              />
+
+              <p className="mt-2 text-xs text-gray-400">
+                カンマ区切りで複数登録できます
+              </p>
+            </div>
+
+            <div>
+              <label className={labelClass}>よみ</label>
+              <input
+                type="text"
+                value={yomi}
+                onChange={(e) => setYomi(e.target.value)}
+                placeholder="例：やまのぽーず"
+                className={inputClass}
+              />
+
+              <p className="mt-2 text-xs text-gray-400">
+                一覧の並び順や検索に使用されます
+              </p>
+            </div>
           </section>
 
-          <div>
-  <label className="mb-2 block text-sm font-bold text-gray-700">
-    検索用キーワード
-  </label>
+          <section className="space-y-4 rounded-3xl border border-gray-100 bg-white p-4">
+            <h2 className="text-lg font-bold text-gray-800">カテゴリ</h2>
 
-  <input
-    type="text"
-    value={alias}
-    onChange={(e) => setAlias(e.target.value)}
-    placeholder="例：略称・英語名・別名など"
-    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-800 shadow-sm outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-  />
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setMainCategory('yoga')}
+                className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+                  mainCategory === 'yoga'
+                    ? 'bg-sky-500 text-white'
+                    : 'border border-gray-200 bg-white text-gray-600'
+                }`}
+              >
+                ☀️ ヨガ
+              </button>
 
-  <p className="mt-2 text-xs text-gray-400">
-    カンマ区切りで複数登録できます
-  </p>
-</div>
+              <button
+                type="button"
+                onClick={() => setMainCategory('pilates')}
+                className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+                  mainCategory === 'pilates'
+                    ? 'bg-amber-500 text-white'
+                    : 'border border-gray-200 bg-white text-gray-600'
+                }`}
+              >
+                🧘 ピラティス
+              </button>
 
-<div>
-  <label className={labelClass}>よみ</label>
-
-  <input
-    type="text"
-    value={yomi}
-    onChange={(e) => setYomi(e.target.value)}
-    placeholder="例：やまのぽーず"
-    className={inputClass}
-  />
-
-  <p className="mt-2 text-xs text-gray-400">
-    一覧の並び順や検索に使用されます
-  </p>
-</div>
-
-<section className="space-y-4 rounded-3xl border border-gray-100 bg-white p-4">
-  <h2 className="text-lg font-bold text-gray-800">
-    カテゴリ
-  </h2>
-
-  <div className="flex flex-wrap gap-2">
-    <button
-      type="button"
-      onClick={() => setMainCategory('yoga')}
-      className={`rounded-full px-4 py-2 text-sm font-bold transition ${
-        mainCategory === 'yoga'
-          ? 'bg-sky-500 text-white'
-          : 'border border-gray-200 bg-white text-gray-600'
-      }`}
-    >
-      ☀️ ヨガ
-    </button>
-
-    <button
-      type="button"
-      onClick={() => setMainCategory('pilates')}
-      className={`rounded-full px-4 py-2 text-sm font-bold transition ${
-        mainCategory === 'pilates'
-          ? 'bg-amber-500 text-white'
-          : 'border border-gray-200 bg-white text-gray-600'
-      }`}
-    >
-      🧘 ピラティス
-    </button>
-
-    <button
-      type="button"
-      onClick={() => setMainCategory('training')}
-      className={`rounded-full px-4 py-2 text-sm font-bold transition ${
-        mainCategory === 'training'
-          ? 'bg-pink-500 text-white'
-          : 'border border-gray-200 bg-white text-gray-600'
-      }`}
-    >
-      🏋️ トレーニング
-    </button>
-  </div>
-</section>
+              <button
+                type="button"
+                onClick={() => setMainCategory('training')}
+                className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+                  mainCategory === 'training'
+                    ? 'bg-pink-500 text-white'
+                    : 'border border-gray-200 bg-white text-gray-600'
+                }`}
+              >
+                🏋️ トレーニング
+              </button>
+            </div>
+          </section>
 
           <section className="space-y-4 rounded-3xl bg-sky-50/60 p-4">
             <h2 className="text-lg font-bold text-gray-800">分類/タグ</h2>
@@ -421,6 +405,18 @@ const [mainCategory, setMainCategory] =
                 onChange={(e) => setHowto(e.target.value)}
                 className={textareaClass}
                 rows={4}
+                placeholder="呼吸や身体の使い方など"
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>アジャスト</label>
+              <textarea
+                value={adjustment}
+                onChange={(e) => setAdjustment(e.target.value)}
+                className={textareaClass}
+                rows={4}
+                placeholder="触れる場所・誘導方向・補助方法など"
               />
             </div>
 
@@ -478,47 +474,48 @@ const [mainCategory, setMainCategory] =
 
             <div>
               <label className={labelClass}>軽減法</label>
-              <input
+              <textarea
                 value={modification}
                 onChange={(e) => setModification(e.target.value)}
-                className={inputClass}
+                className={textareaClass}
+                rows={5}
+                placeholder="ブロック・ベルト・膝をつく・壁を使う等"
               />
             </div>
           </section>
 
           <section className="space-y-4">
-  <div>
-    <label className={labelClass}>画像</label>
+            <div>
+              <label className={labelClass}>画像</label>
 
-    <input
-      type="file"
-      accept="image/*"
-      onChange={handleImageChange}
-      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
-    />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
+              />
 
-    {imagePreview && (
-      <div className="mt-4 rounded-3xl bg-gray-50 p-4">
-        <img
-          src={imagePreview}
-          alt="プレビュー"
-          className="h-56 w-full rounded-2xl object-contain"
-        />
-      </div>
-    )}
-  </div>
+              {imagePreview && (
+                <div className="mt-4 rounded-3xl bg-gray-50 p-4">
+                  <img
+                    src={imagePreview}
+                    alt="プレビュー"
+                    className="h-56 w-full rounded-2xl object-contain"
+                  />
+                </div>
+              )}
+            </div>
 
-  <div>
-    <label className={labelClass}>メモ</label>
-
-    <textarea
-      value={note}
-      onChange={(e) => setNote(e.target.value)}
-      className={textareaClass}
-      rows={4}
-    />
-  </div>
-</section>
+            <div>
+              <label className={labelClass}>メモ</label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className={textareaClass}
+                rows={4}
+              />
+            </div>
+          </section>
 
           <button
             type="submit"

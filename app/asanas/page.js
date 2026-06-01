@@ -140,6 +140,7 @@ const isFilteringByType = selectedTypes.length > 0
     asana.effect?.toLowerCase().includes(keyword) ||
     asana.caution?.toLowerCase().includes(keyword) ||
     asana.variation?.toLowerCase().includes(keyword) ||
+    asana.adjustment?.toLowerCase().includes(keyword) ||
     asana.note?.toLowerCase().includes(keyword) ||
     asana.strength?.toLowerCase().includes(keyword) ||
     asana.flexibility?.toLowerCase().includes(keyword) ||
@@ -527,6 +528,7 @@ selectedMainCategories.length === 0 &&
 
       <div className="print-grid grid gap-4 md:grid-cols-2">
         <Info label="誘導" value={printingAsana.howto} />
+        <Info label="アジャスト" value={printingAsana.adjustment} />
         <Info label="効果効能" value={printingAsana.effect} />
         <Info label="メモ" value={printingAsana.note} />
         <Info label="筋力" value={printingAsana.strength} />
@@ -944,6 +946,7 @@ selectedMainCategories.length === 0 &&
 
 <div className="space-y-3">
   <Info label="誘導" value={asana.howto} />
+  <Info label="アジャスト" value={asana.adjustment} />
   <Info label="効果効能" value={asana.effect} />
   <Info label="注意" value={asana.caution} />
   <Info label="バリエーション" value={asana.variation} />
