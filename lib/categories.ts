@@ -13,6 +13,7 @@ export const ASANA_TYPES = [
 
   'Forward Bend',
   'Backbend',
+  'Side Bend',
   'Twist',
 
   // バランス
@@ -74,6 +75,11 @@ export const TYPE_LABELS: Record<
     ja: 'ねじり',
     en: 'Twist',
   },
+
+  'Side Bend': {
+  ja: '側屈',
+  en: 'Side Bend',
+},
 
   Balance: {
     ja: 'バランス',
@@ -162,6 +168,9 @@ export const TYPE_STYLES: Record<string, string> = {
 
   Backbend:
     'bg-pink-50 text-pink-700 border-pink-200',
+
+  'Side Bend':
+  'bg-cyan-50 text-cyan-700 border-cyan-200',
 
   Twist:
     'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',

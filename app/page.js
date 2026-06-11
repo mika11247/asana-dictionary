@@ -1,7 +1,11 @@
-// src/app/page.js
+"use client";
+
 import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function Home() {
+  const { profile } = useAuth();
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-6">
       <div className="mx-auto flex max-w-md flex-col items-center pt-16">
@@ -117,6 +121,28 @@ export default function Home() {
               </div>
             </div>
           </Link>
+
+          {profile?.is_admin && (
+  <Link href="/admin">
+    <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
+      <div className="flex items-center gap-4">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-2xl">
+          🔒
+        </div>
+
+        <div>
+          <h2 className="text-lg font-bold text-gray-800">
+            管理者ルーム
+          </h2>
+
+          <p className="text-sm text-gray-500">
+            管理者専用ページ
+          </p>
+        </div>
+      </div>
+    </div>
+  </Link>
+)}
 
         </div>
 

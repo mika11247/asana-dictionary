@@ -16,11 +16,18 @@ const GROUP_LABELS = {
   sequence: '☀️ シークエンステンプレ',
   asana_pack: '📦 拡張パック',
   trial: '📦 拡張パック',
+  rusie_dutton: '🌿 ルーシーダットン',
   pilates: '🧘 ピラティス',
   training: '🏋️ トレーニング',
 }
 
-const GROUP_ORDER = ['sequence', 'asana_pack', 'trial', 'pilates','training',]
+const GROUP_ORDER = [
+  'sequence',
+  'asana_pack',
+  'rusie_dutton',
+  'pilates',
+  'training',
+]
 
 export default function PresetsPage() {
   const { user, profile } = useAuth()
@@ -356,6 +363,10 @@ export default function PresetsPage() {
     return 'エクササイズ'
   }
 
+  if (preset.display_group === 'rusie_dutton') {
+    return 'ルーシーダットン'
+  }
+
   return '動き'
 }
 
@@ -409,6 +420,10 @@ export default function PresetsPage() {
     return 'エクササイズ＋シークエンス追加'
   }
 
+  if (preset.display_group === 'rusie_dutton') {
+    return 'ルーシーダットン追加'
+  }
+
   return 'アーサナ＋シークエンス追加'
 }
 
@@ -419,6 +434,10 @@ function getAddOnlyButtonClass(preset) {
 
   if (preset.display_group === 'pilates') {
     return 'rounded-2xl bg-orange-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:opacity-50'
+  }
+
+  if (preset.display_group === 'rusie_dutton') {
+    return 'rounded-2xl bg-green-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-700 disabled:opacity-50'
   }
 
   return 'rounded-2xl bg-sky-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-sky-600 disabled:opacity-50'
