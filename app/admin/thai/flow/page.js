@@ -50,7 +50,7 @@ const categories = [
         title: "応用ストレッチ",
         description:
           "応用手技・ストレッチ",
-        href: "/admin/thai/advanced",
+        href: "/admin/thai/flow/advanced",
       },
     ],
   },

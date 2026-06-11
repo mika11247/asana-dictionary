@@ -174,6 +174,14 @@ export default function Header() {
             👤 マイページ
           </Link>
 
+          <Link
+  href="/admin"
+  onClick={() => setOpen(false)}
+  className="rounded-lg px-3 py-2 transition hover:bg-amber-50 hover:text-amber-700"
+>
+  🔒 管理者ルーム
+</Link>
+
           <div className="mt-6 border-t pt-6">
             <p className="mb-3 px-3 text-xs font-bold uppercase tracking-widest text-gray-400">
               Support
