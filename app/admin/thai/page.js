@@ -39,16 +39,16 @@ export default function ThaiPage() {
             </div>
           </Link>
 
-          <Link href="/admin/thai/courses">
-            <div className="rounded-3xl border border-teal-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
-              <h2 className="text-lg font-bold text-gray-800">
-              📝 施術の流れ
-              </h2>
-              <p className="mt-1 text-sm text-gray-500">
-                施術の流れを整理
-              </p>
-            </div>
-          </Link>
+          <Link href="/admin/thai/flow">
+  <div className="rounded-3xl border border-teal-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
+    <h2 className="text-lg font-bold text-gray-800">
+      📝 施術の流れ
+    </h2>
+    <p className="mt-1 text-sm text-gray-500">
+      フルコース・短縮コースを確認
+    </p>
+  </div>
+</Link>
 
           <Link href="/admin/thai/safety">
             <div className="rounded-3xl border border-red-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">

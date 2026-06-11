@@ -10,7 +10,7 @@ const groups = [
           {
             code: "TP",
             name: "サムプレス",
-            image: "/images/thai/tp.jpg",
+            image: "/images/thai/techniques/tp.jpg",
             description: "親指で圧を加える",
             memo: [
               "体重移動を使う",
@@ -20,7 +20,7 @@ const groups = [
           {
             code: "TC",
             name: "サムサークル",
-            image: "/images/thai/tc.jpg",
+            image: "/images/thai/techniques/tc.jpg",
             description: "親指で円を描く",
             memo: [
               "小さな円を意識",
@@ -30,7 +30,7 @@ const groups = [
           {
             code: "TS",
             name: "サムスライド",
-            image: "/images/thai/ts.jpg",
+            image: "/images/thai/techniques/ts.jpg",
             description: "親指ですべらせる",
             memo: [
               "センに沿って行う"
@@ -45,28 +45,28 @@ const groups = [
           {
             code: "PP",
             name: "パームプレス",
-            image: "/images/thai/pp.jpg",
+            image: "/images/thai/techniques/pp.jpg",
             description: "手のひらで圧を加える",
             memo: ["手首だけで押さず、体重移動を使う"]
           },
           {
             code: "BF",
             name: "バタフライ",
-            image: "/images/thai/bf.jpg",
+            image: "/images/thai/techniques/bf.jpg",
             description: "両手を近づけるように手のひら全体で圧を加える",
             memo: ["左右の手の圧をそろえる"]
           },
           {
             code: "PC",
             name: "パームサークル",
-            image: "/images/thai/pc.jpg",
+            image: "/images/thai/techniques/pc.jpg",
             description: "手のひらで円を描く",
             memo: ["大きく雑に回さず、相手の反応を見る"]
           },
           {
             code: "PS",
             name: "パームスライド",
-            image: "/images/thai/ps.jpg",
+            image: "/images/thai/techniques/ps.jpg",
             description: "手のひらですべらせる",
             memo: ["圧を抜きすぎず、なめらかに動かす"]
           },
@@ -78,21 +78,21 @@ const groups = [
           {
             code: "EC",
             name: "エルボーサークル",
-            image: "/images/thai/ec.jpg",
+            image: "/images/thai/techniques/ec.jpg",
             description: "肘で円を描くように圧を加える",
             memo: ["圧が強くなりやすいので慎重に"]
           },
           {
             code: "EP",
             name: "エルボープレス",
-            image: "/images/thai/ep.jpg",
+            image: "/images/thai/techniques/ep.jpg",
             description: "肘で圧を加える",
             memo: ["骨に当てないように注意"]
           },
           {
             code: "ER",
             name: "エルボーローリング",
-            image: "/images/thai/er.jpg",
+            image: "/images/thai/techniques/er.jpg",
             description: "肘をつけて前腕を回すように圧を加える",
             memo: ["強さを確認しながら行う"]
           },
@@ -104,28 +104,28 @@ const groups = [
           {
             code: "FC",
             name: "フィンガーサークル",
-            image: "/images/thai/fc.jpg",
+            image: "/images/thai/techniques/fc.jpg",
             description: "指先で円を描くように圧を加える",
             memo: ["細かい部分に使いやすい"]
           },
           {
             code: "FS",
             name: "フィンガースライド",
-            image: "/images/thai/fs.jpg",
+            image: "/images/thai/techniques/fs.jpg",
             description: "指先または指で挟んですべらせる",
             memo: ["圧をかけすぎない"]
           },
           {
             code: "NC",
             name: "ナックルサークル",
-            image: "/images/thai/nc.jpg",
+            image: "/images/thai/techniques/nc.jpg",
             description: "拳や指の関節で円を描く",
             memo: ["当たり方が硬くなりすぎないように"]
           },
           {
             code: "NS",
             name: "ナックルスライド",
-            image: "/images/thai/ns.jpg",
+            image: "/images/thai/techniques/ns.jpg",
             description: "拳や指の関節ですべらせる",
             memo: ["痛みが出ない圧で行う"]
           },
@@ -137,21 +137,21 @@ const groups = [
           {
             code: "KP",
             name: "ニープレス",
-            image: "/images/thai/kp.jpg",
+            image: "/images/thai/techniques/kp.jpg",
             description: "膝で圧を加える",
             memo: ["体重が乗りすぎないように注意"]
           },
           {
             code: "HP",
             name: "ヒールプレス",
-            image: "/images/thai/hp.jpg",
+            image: "/images/thai/techniques/hp.jpg",
             description: "かかとで圧を加える",
             memo: ["足元を安定させて行う"]
           },
           {
             code: "FP",
             name: "フットプレス",
-            image: "/images/thai/fp.jpg",
+            image: "/images/thai/techniques/fp.jpg",
             description: "足裏全体で圧を加える",
             memo: ["踏み込みすぎない"]
           },
@@ -163,14 +163,14 @@ const groups = [
           {
             code: "CHOP",
             name: "チョップ",
-            image: "/images/thai/chop.jpg",
+            image: "/images/thai/techniques/chop.jpg",
             description: "手のひらを開き、小指側でたたく",
             memo: ["リズムよく軽めに"]
           },
           {
             code: "TAP",
             name: "タップ",
-            image: "/images/thai/tap.jpg",
+            image: "/images/thai/techniques/tap.jpg",
             description: "拳を軽く握り、小指側でたたく",
             memo: ["強く叩きすぎない"]
           },
@@ -238,9 +238,10 @@ export default function ThaiBasicPage() {
                   <div className="space-y-3">
                     {group.items.map((item) => (
                       <div
-  key={item.code}
-  className="rounded-2xl bg-white p-4"
->
+                      id={item.code.toLowerCase()}
+                      key={item.code}
+                      className="rounded-2xl bg-white p-4"
+                    >
   <div className="flex items-center gap-3 mb-3">
     <div className="rounded-xl bg-green-100 px-3 py-2 font-bold text-green-700">
       {item.code}
