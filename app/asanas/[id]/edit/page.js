@@ -495,15 +495,27 @@ export default function AsanaEditPage() {
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
               />
 
-              {imagePreview && (
-                <div className="mt-4 rounded-3xl bg-gray-50 p-4">
-                  <img
-                    src={imagePreview}
-                    alt="プレビュー"
-                    className="h-56 w-full rounded-2xl object-contain"
-                  />
-                </div>
-              )}
+{imagePreview && (
+  <div className="mt-4 rounded-3xl bg-gray-50 p-4">
+    <img
+      src={imagePreview}
+      alt="プレビュー"
+      className="h-56 w-full rounded-2xl object-contain"
+    />
+
+    <button
+      type="button"
+      onClick={() => {
+        setImageFile(null)
+        setImagePreview('')
+        setImageUrl('')
+      }}
+      className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-100"
+    >
+      🗑️ 画像を削除
+    </button>
+  </div>
+)}
             </div>
 
             <div>

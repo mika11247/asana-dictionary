@@ -308,6 +308,17 @@ user_id: user.id,
       alt="プレビュー"
       className="h-56 w-full rounded-2xl object-contain"
     />
+
+    <button
+      type="button"
+      onClick={() => {
+        setImageFile(null)
+        setImagePreview('')
+      }}
+      className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-600"
+    >
+      🗑️ 画像を取り消す
+    </button>
   </div>
 )}
             </div>
