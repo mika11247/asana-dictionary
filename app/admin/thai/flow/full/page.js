@@ -2,105 +2,92 @@ import Link from "next/link";
 
 const sections = [
   {
-    title: "SECTION.1 うつ伏せ",
+    title: "🌿 うつ伏せ",
     items: [
       {
         title: "足底部への施術",
         href: "/admin/thai/flow/full/sole",
-        count: "16手順",
-        status: "completed",
       },
       {
         title: "下腿部への施術",
         href: "/admin/thai/flow/full/lower-leg",
-        count: "未作成",
       },
       {
         title: "大腿部・臀部への施術",
         href: "/admin/thai/flow/full/thigh",
-        count: "未作成",
       },
       {
         title: "仙腸関節の調整",
         href: "/admin/thai/flow/full/pelvis",
-        count: "未作成",
       },
       {
         title: "背部への施術",
         href: "/admin/thai/flow/full/back",
-        count: "未作成",
       },
     ],
   },
 
   {
-    title: "SECTION.2 横向き",
+    title: "🌙 横向き",
     items: [
       {
         title: "下腿部・大腿部への施術",
         href: "/admin/thai/flow/full/side-leg",
-        count: "未作成",
       },
       {
         title: "臀部・腰部・背部への施術",
         href: "/admin/thai/flow/full/side-back",
-        count: "未作成",
       },
     ],
   },
 
   {
-    title: "SECTION.3 仰向け",
+    title: "☀️ 仰向け",
     items: [
       {
         title: "つま先から足首・下腿部への施術",
         href: "/admin/thai/flow/full/supine-leg",
-        count: "未作成",
       },
       {
         title: "脚・腰への施術",
         href: "/admin/thai/flow/full/supine-hip",
-        count: "未作成",
       },
       {
         title: "手・腕への施術",
         href: "/admin/thai/flow/full/arm",
-        count: "未作成",
       },
       {
         title: "肩・首・頭部への施術",
         href: "/admin/thai/flow/full/head",
-        count: "未作成",
       },
     ],
   },
 
   {
-    title: "SECTION.4 座位",
+    title: "🪷 座位",
     items: [
       {
         title: "首・肩・背部への施術",
         href: "/admin/thai/flow/full/seated-back",
-        count: "未作成",
       },
       {
         title: "調整とストレッチ",
         href: "/admin/thai/flow/full/stretch",
-        count: "未作成",
       },
     ],
   },
 
   {
-    title: "SECTION.5 仕上げ",
+    title: "✨ 仕上げ",
     items: [
       {
         title: "仕上げの施術",
         href: "/admin/thai/flow/full/finish",
-        count: "未作成",
       },
     ],
   },
+
+  
 ];
 
 export default function ThaiFullCoursePage() {
@@ -119,7 +106,7 @@ export default function ThaiFullCoursePage() {
         </h1>
 
         <p className="mt-2 text-sm text-gray-500">
-          基本の施術順を確認
+          タイ古式ボディケアの施術フロー
         </p>
 
         <div className="mt-6 space-y-4">
@@ -147,16 +134,6 @@ export default function ThaiFullCoursePage() {
 
                       <span className="flex-1 text-gray-700">
                         {item.title}
-                      </span>
-
-                      {item.status === "completed" && (
-                        <span className="text-green-600">
-                          ✓
-                        </span>
-                      )}
-
-                      <span className="text-xs text-gray-400">
-                        {item.count}
                       </span>
 
                       <span className="text-gray-400">
