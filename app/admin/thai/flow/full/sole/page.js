@@ -16,9 +16,10 @@ const steps = [
     title: "ワーイ",
     image: "/images/thai/flow/sole/01.jpg",
     count: "ー",
+    description:
+      "シワカ・コマラパ師への感謝と、クライアントの健康と幸せを祈ります。神に祈りをささげるため、施術を行う前に胸の前で手を合わせます。",
     memo: "開始前の声かけ・準備",
   },
-
   {
     title: (
       <>
@@ -27,9 +28,8 @@ const steps = [
     ),
     image: "/images/thai/flow/sole/02.jpg",
     count: "1回",
-    memo: "足裏全体をやさしく確認",
+    description: "フットプレスで、両足底部をほぐします。",
   },
-
   {
     title: (
       <>
@@ -38,9 +38,9 @@ const steps = [
     ),
     image: "/images/thai/flow/sole/03.jpg",
     count: "2回",
-    memo: "圧を少しずつ調整",
+    description:
+      "フットプレスで、左足底部全体をほぐします。これを2回行います。",
   },
-
   {
     title: (
       <>
@@ -49,9 +49,9 @@ const steps = [
     ),
     image: "/images/thai/flow/sole/04.jpg",
     count: "1回",
-    memo: "強くなりすぎないよう注意",
+    description:
+      "強いヒールプレスで、足底部中央へ体重をかけるように圧を加えます。",
   },
-
   {
     title: (
       <>
@@ -59,10 +59,10 @@ const steps = [
       </>
     ),
     image: "/images/thai/flow/sole/05.jpg",
-    count: "2往復ずつ",
-    memo: "親指だけで押さず体重移動",
+    count: "2往復",
+    description:
+      "サムプレスで、中央、内側、外側の順に親指で圧を加えます。",
   },
-
   {
     title: (
       <>
@@ -71,10 +71,10 @@ const steps = [
     ),
     image: "/images/thai/flow/sole/06.jpg",
     count: "5回",
-    memo: "なめらかに滑らせる",
-    point: "Yを描くようにすべらせる",
+    description:
+      "両手のサムスライドで、足底部を足先の方からこすってほぐします。",
+    point: "サムスライドをする際には、Yを描くようにこすりましょう。",
   },
-
   {
     title: (
       <>
@@ -83,10 +83,10 @@ const steps = [
     ),
     image: "/images/thai/flow/sole/07.jpg",
     count: "5回",
-    memo: "圧を抜きすぎない",
-    point: "Aを描くようにすべらせる",
+    description:
+      "同様に、両手のサムスライドで、足底部をかかとの方からこすってほぐします。",
+    point: "サムスライドをする際には、Aを描くようにこすりましょう。",
   },
-
   {
     title: (
       <>
@@ -95,10 +95,10 @@ const steps = [
     ),
     image: "/images/thai/flow/sole/08.jpg",
     count: "2セット",
-    memo: "細かく圧を調整",
-    point: "外側から内側へ向かって圧を加える",
+    description:
+      "両手のサムプレスで、母指球と小指球から中央にかけて圧を加えます。",
+    point: "足底部の外側から内側に向けて、圧を加えましょう。",
   },
-
   {
     title: (
       <>
@@ -107,9 +107,8 @@ const steps = [
     ),
     image: "/images/thai/flow/sole/09.jpg",
     count: "5回",
-    memo: "痛みがないか確認",
+    description: "フィンガースライドで、左足首をこすります。",
   },
-
   {
     title: (
       <>
@@ -118,9 +117,8 @@ const steps = [
     ),
     image: "/images/thai/flow/sole/10.jpg",
     count: "5回",
-    memo: "やさしく流す",
+    description: "フィンガースライドで、左足の甲をこすります。",
   },
-
   {
     title: (
       <>
@@ -129,9 +127,9 @@ const steps = [
     ),
     image: "/images/thai/flow/sole/11.jpg",
     count: "1回",
-    memo: "繊細な部位なので慎重に",
+    description:
+      "アキレス腱を親指と人差し指で挟み、フィンガーサークルで円を描くように圧を加えます。",
   },
-
   {
     title: (
       <>
@@ -140,17 +138,18 @@ const steps = [
     ),
     image: "/images/thai/flow/sole/12.jpg",
     count: "2往復",
-    memo: "小さな円を意識",
-    point: "母指外転筋のラインを意識",
+    description:
+      "土踏まずの内側に、左手親指のサムサークルで圧を加えます。さらに、かかとから指の付け根に向けて円を描くようにこすります。",
+    point: "圧を加えるのは、母指外転筋のラインです。",
   },
-
   {
     title: "指のけん引",
     image: "/images/thai/flow/sole/13.jpg",
     count: "1回",
+    description:
+      "足の指を人差し指と中指で挟み、1本ずつ引っ張ります。",
     memo: "無理に引っ張らない",
   },
-
   {
     title: (
       <>
@@ -159,9 +158,9 @@ const steps = [
     ),
     image: "/images/thai/flow/sole/14.jpg",
     count: "2往復",
-    memo: "硬く当てすぎない",
+    description:
+      "片方の手で足先を固定し、ナックルサークルで円を描くように足底部全体をこすります。",
   },
-
   {
     title: (
       <>
@@ -170,9 +169,9 @@ const steps = [
     ),
     image: "/images/thai/flow/sole/15.jpg",
     count: "5回",
-    memo: "痛みが出ない圧で",
+    description:
+      "足先を固定したまま、ナックルスライドでかかとから指先に向けて、縦方向に圧を加えます。",
   },
-
   {
     title: (
       <>
@@ -181,7 +180,8 @@ const steps = [
     ),
     image: "/images/thai/flow/sole/16.jpg",
     count: "2往復",
-    memo: "最後に広く整える",
+    description:
+      "パームプレスで、かかとからつま先の順に圧を加えます。",
   },
 ];
 
@@ -204,52 +204,69 @@ export default function SoleFlowPage() {
           SECTION.1 うつ伏せ
         </p>
 
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-5">
           {steps.map((step, index) => (
-            <div
+            <article
               key={index}
-              className="rounded-3xl border border-green-100 bg-white p-4 shadow-sm"
+              className="rounded-3xl border border-green-100 bg-white p-5 shadow-sm"
             >
-              <div className="flex gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-700">
+              <div className="flex items-start gap-4">
+                <div className="shrink-0 text-3xl font-bold leading-none text-green-600">
                   {index + 1}
                 </div>
 
-                <div className="flex-1">
-                  <h2 className="font-bold text-gray-800">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-bold leading-relaxed text-gray-800">
                     {step.title}
                   </h2>
 
                   <p className="mt-1 text-xs text-gray-500">
                     回数：{step.count}
                   </p>
-
-                  {step.image && (
-                    <img
-                      src={step.image}
-                      alt=""
-                      className="mt-3 w-full rounded-2xl shadow-sm"
-                    />
-                  )}
-
-                  <p className="mt-3 rounded-2xl bg-gray-50 p-3 text-sm text-gray-600">
-                    {step.memo}
-                  </p>
-
-                  {step.point && (
-                    <div className="mt-3 rounded-2xl bg-amber-50 p-3">
-                      <p className="text-xs font-bold text-amber-700">
-                        POINT
-                      </p>
-
-                      <p className="mt-1 text-sm text-amber-800">
-                        {step.point}
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
-            </div>
+
+              {step.description && (
+                <div className="mt-4 rounded-2xl bg-sky-50 p-3">
+                  <p className="mb-1 text-xs font-bold text-sky-700">
+                    施術内容
+                  </p>
+                  <p className="text-sm leading-7 text-sky-900">
+                    {step.description}
+                  </p>
+                </div>
+              )}
+
+              {step.point && (
+                <div className="mt-3 rounded-2xl bg-amber-50 p-3">
+                  <p className="mb-1 text-xs font-bold text-amber-700">
+                    POINT
+                  </p>
+                  <p className="text-sm leading-7 text-amber-900">
+                    {step.point}
+                  </p>
+                </div>
+              )}
+
+              {step.image && (
+                <img
+                  src={step.image}
+                  alt=""
+                  className="mt-4 w-full rounded-2xl shadow-sm"
+                />
+              )}
+
+              {step.memo && (
+                <div className="mt-3 rounded-2xl bg-gray-50 p-3">
+                  <p className="mb-1 text-xs font-bold text-gray-500">
+                    美香メモ
+                  </p>
+                  <p className="text-sm leading-7 text-gray-700">
+                    {step.memo}
+                  </p>
+                </div>
+              )}
+            </article>
           ))}
         </div>
       </div>
