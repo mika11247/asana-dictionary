@@ -35,10 +35,12 @@ export default function LoginPage() {
     try {
       if (isSignup) {
         const { error } = await supabase.auth.signUp({ email, password });
-      
+
         if (error) throw error;
-      
-        setMessage("確認メールを送信しました✨ メール内のリンクを確認してください。");
+
+        setMessage(
+          "確認メールを送信しました✨ メール内のリンクを確認してください。"
+        );
         setMode("login");
         return;
       }
@@ -68,6 +70,10 @@ export default function LoginPage() {
     });
   }
 
+  function handleDemo() {
+    router.push("/demo");
+  }
+
   async function sendPasswordResetEmail() {
     const targetEmail = resetEmail.trim();
 
@@ -80,16 +86,21 @@ export default function LoginPage() {
     setMessage("");
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        targetEmail,
+        {
+          redirectTo: `${window.location.origin}/reset-password`,
+        }
+      );
 
       if (error) throw error;
 
       setMessage("パスワード再設定メールを送信しました✨");
       setResetEmail("");
     } catch (error) {
-      setMessage(`送信エラー: ${error.message || "原因不明のエラー"}`);
+      setMessage(
+        `送信エラー: ${error.message || "原因不明のエラー"}`
+      );
     } finally {
       setResetSending(false);
     }
@@ -134,7 +145,9 @@ export default function LoginPage() {
               setMessage("");
             }}
             className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
-              !isSignup ? "bg-white text-gray-800 shadow-sm" : "text-gray-400"
+              !isSignup
+                ? "bg-white text-gray-800 shadow-sm"
+                : "text-gray-400"
             }`}
           >
             ログイン
@@ -147,7 +160,9 @@ export default function LoginPage() {
               setMessage("");
             }}
             className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
-              isSignup ? "bg-white text-gray-800 shadow-sm" : "text-gray-400"
+              isSignup
+                ? "bg-white text-gray-800 shadow-sm"
+                : "text-gray-400"
             }`}
           >
             新規登録
@@ -179,8 +194,8 @@ export default function LoginPage() {
             {loading
               ? "読み込み中..."
               : isSignup
-                ? "アカウントを作成"
-                : "ログイン"}
+              ? "アカウントを作成"
+              : "ログイン"}
           </button>
         </form>
 
@@ -197,6 +212,24 @@ export default function LoginPage() {
         >
           Googleで続ける
         </button>
+
+        <div className="mt-4 rounded-2xl bg-gradient-to-r from-sky-50 to-violet-50 p-4 ring-1 ring-sky-100">
+          <p className="text-sm font-bold text-gray-800">
+            👀 まずは登録なしで試してみる
+          </p>
+
+          <p className="mt-1 text-xs leading-relaxed text-gray-500">
+            会員登録せずに、一部のアーサナ・ピラティス・呼吸法などを体験できます。
+          </p>
+
+          <button
+            type="button"
+            onClick={handleDemo}
+            className="mt-3 w-full rounded-2xl border border-violet-200 bg-white px-4 py-3 text-sm font-bold text-violet-600 shadow-sm transition hover:bg-violet-50"
+          >
+            登録なしで体験する
+          </button>
+        </div>
 
         {!isSignup && (
           <div className="mt-5 rounded-2xl bg-sky-50 p-4">
