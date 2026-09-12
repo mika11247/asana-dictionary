@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
   '/privacy',
   '/guide',
   '/disclaimer',
+  '/demo',
 ]
 
 export default function ProtectedRoute({ children }) {
