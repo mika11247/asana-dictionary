@@ -234,7 +234,7 @@ export default function Header() {
               </Link>
 
               <Link
-                href="/demo#sequences"
+                href="/sequences"
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-sky-50 hover:text-sky-700"
               >
@@ -242,7 +242,7 @@ export default function Header() {
               </Link>
 
               <Link
-                href="/demo#presets"
+                href="/presets"
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-700"
               >

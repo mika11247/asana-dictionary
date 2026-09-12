@@ -19,17 +19,11 @@ export default function DemoPage() {
   const router = useRouter();
 
   const [items, setItems] = useState([]);
-  const [templates, setTemplates] = useState([]);
-
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
-
-  const [openTemplateId, setOpenTemplateId] = useState(null);
-  const [templateItems, setTemplateItems] = useState({});
-  const [templateLoadingId, setTemplateLoadingId] = useState(null);
 
   useEffect(() => {
     loadDemoData();
@@ -40,46 +34,26 @@ export default function DemoPage() {
     setErrorMessage("");
 
     try {
-      const [itemsResult, templatesResult] = await Promise.all([
-        supabase
-          .from("initial_sequence_items")
-          .select(`
-            id,
-            asana_title,
-            asana_sanskrit,
-            yomi,
-            main_category,
-            types,
-            strength,
-            flexibility,
-            memo,
-            preset_key
-          `)
-          .eq("is_demo", true)
-          .order("asana_title", { ascending: true }),
+      const { data, error } = await supabase
+        .from("initial_sequence_items")
+        .select(`
+          id,
+          asana_title,
+          asana_sanskrit,
+          yomi,
+          main_category,
+          types,
+          strength,
+          flexibility,
+          memo,
+          preset_key
+        `)
+        .eq("is_demo", true)
+        .order("asana_title", { ascending: true });
 
-        supabase
-          .from("initial_sequences")
-          .select(`
-            id,
-            title,
-            memo,
-            preset_key,
-            display_group,
-            display_order,
-            main_category,
-            is_sequence_template,
-            is_demo
-          `)
-          .eq("is_demo", true)
-          .order("display_order", { ascending: true }),
-      ]);
+      if (error) throw error;
 
-      if (itemsResult.error) throw itemsResult.error;
-      if (templatesResult.error) throw templatesResult.error;
-
-      setItems(itemsResult.data || []);
-      setTemplates(templatesResult.data || []);
+      setItems(data || []);
     } catch (error) {
       console.error(error);
 
@@ -88,53 +62,6 @@ export default function DemoPage() {
       );
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function toggleTemplate(template) {
-    if (openTemplateId === template.id) {
-      setOpenTemplateId(null);
-      return;
-    }
-
-    setOpenTemplateId(template.id);
-
-    if (templateItems[template.id]) {
-      return;
-    }
-
-    setTemplateLoadingId(template.id);
-
-    try {
-      const { data, error } = await supabase
-        .from("initial_sequence_items")
-        .select(`
-          id,
-          position,
-          asana_title,
-          asana_sanskrit,
-          main_category,
-          types,
-          memo
-        `)
-        .eq("initial_sequence_id", template.id)
-        .order("position", { ascending: true });
-
-      if (error) throw error;
-
-      setTemplateItems((prev) => ({
-        ...prev,
-        [template.id]: data || [],
-      }));
-    } catch (error) {
-      console.error(error);
-
-      setTemplateItems((prev) => ({
-        ...prev,
-        [template.id]: [],
-      }));
-    } finally {
-      setTemplateLoadingId(null);
     }
   }
 
@@ -162,22 +89,6 @@ export default function DemoPage() {
       return searchTarget.includes(keyword);
     });
   }, [items, category, search]);
-
-  const sequenceTemplates = useMemo(() => {
-    return templates.filter(
-      (template) =>
-        template.display_group === "sequence" ||
-        template.is_sequence_template === true
-    );
-  }, [templates]);
-
-  const packs = useMemo(() => {
-    return templates.filter(
-      (template) =>
-        template.display_group !== "sequence" &&
-        template.is_sequence_template !== true
-    );
-  }, [templates]);
 
   function goToSignup() {
     router.push("/login?mode=signup");
@@ -211,7 +122,8 @@ export default function DemoPage() {
                 会員登録をしなくても、
                 Asana Dictionaryの一部をお試しいただけます。
                 <br />
-                辞書・シークエンス・パッケージを実際に見てみてください✨
+                辞書を検索したり、実際のシークエンス・テンプレート画面を
+                見てみてください✨
               </p>
             </div>
 
@@ -231,40 +143,115 @@ export default function DemoPage() {
 
 
         {/* =========================
-            DEMO NAVIGATION
+            DEMO MENU
         ========================= */}
 
         <div className="mt-6 grid grid-cols-3 gap-2">
 
           <a
             href="#dictionary"
-            className="rounded-2xl bg-white px-2 py-4 text-center shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5"
+            className="rounded-2xl bg-white px-2 py-4 text-center shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md"
           >
-            <div className="text-xl">📚</div>
-            <p className="mt-1 text-xs font-bold text-gray-700">
+            <div className="text-2xl">📚</div>
+
+            <p className="mt-2 text-xs font-bold text-gray-700">
               辞書
             </p>
+
+            <p className="mt-1 hidden text-[10px] text-gray-400 sm:block">
+              サンプル検索
+            </p>
           </a>
 
-          <a
-            href="#sequences"
-            className="rounded-2xl bg-white px-2 py-4 text-center shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5"
+
+          <button
+            type="button"
+            onClick={() => router.push("/sequences")}
+            className="rounded-2xl bg-white px-2 py-4 text-center shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md"
           >
-            <div className="text-xl">🧘‍♀️</div>
-            <p className="mt-1 text-xs font-bold text-gray-700">
+            <div className="text-2xl">🌙</div>
+
+            <p className="mt-2 text-xs font-bold text-gray-700">
               シークエンス
             </p>
-          </a>
 
-          <a
-            href="#presets"
-            className="rounded-2xl bg-white px-2 py-4 text-center shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5"
-          >
-            <div className="text-xl">📦</div>
-            <p className="mt-1 text-xs font-bold text-gray-700">
-              パッケージ
+            <p className="mt-1 hidden text-[10px] text-gray-400 sm:block">
+              実際の画面へ
             </p>
-          </a>
+          </button>
+
+
+          <button
+            type="button"
+            onClick={() => router.push("/presets")}
+            className="rounded-2xl bg-white px-2 py-4 text-center shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="text-2xl">📦</div>
+
+            <p className="mt-2 text-xs font-bold text-gray-700">
+              テンプレート
+            </p>
+
+            <p className="mt-1 hidden text-[10px] text-gray-400 sm:block">
+              実際の画面へ
+            </p>
+          </button>
+
+        </div>
+
+
+        {/* =========================
+            QUICK EXPERIENCE
+        ========================= */}
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+
+          <button
+            type="button"
+            onClick={() => router.push("/sequences")}
+            className="rounded-3xl bg-gradient-to-r from-sky-50 to-violet-50 p-5 text-left shadow-sm ring-1 ring-violet-100 transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <p className="text-xs font-bold text-violet-500">
+              🌙 SEQUENCE
+            </p>
+
+            <h2 className="mt-1 font-bold text-gray-800">
+              シークエンスを体験
+            </h2>
+
+            <p className="mt-2 text-xs leading-6 text-gray-500">
+              初期登録される太陽礼拝Aを、
+              実際のシークエンス画面で見ることができます。
+            </p>
+
+            <p className="mt-3 text-xs font-bold text-violet-600">
+              見てみる →
+            </p>
+          </button>
+
+
+          <button
+            type="button"
+            onClick={() => router.push("/presets")}
+            className="rounded-3xl bg-gradient-to-r from-emerald-50 to-sky-50 p-5 text-left shadow-sm ring-1 ring-emerald-100 transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <p className="text-xs font-bold text-emerald-500">
+              📦 TEMPLATE
+            </p>
+
+            <h2 className="mt-1 font-bold text-gray-800">
+              テンプレートを見る
+            </h2>
+
+            <p className="mt-2 text-xs leading-6 text-gray-500">
+              ヨガ・ピラティス・トレーニングなど、
+              実際に用意されているテンプレートを確認できます。
+            </p>
+
+            <p className="mt-3 text-xs font-bold text-emerald-600">
+              見てみる →
+            </p>
+          </button>
 
         </div>
 
@@ -295,6 +282,7 @@ export default function DemoPage() {
             id="dictionary"
             className="scroll-mt-24 pt-10"
           >
+
             <div>
               <p className="text-xs font-bold tracking-widest text-violet-400">
                 DICTIONARY
@@ -469,105 +457,48 @@ export default function DemoPage() {
               ))}
 
             </div>
-          </section>
-        )}
-
-
-        {/* =========================
-            SEQUENCES
-        ========================= */}
-
-        {!loading && !errorMessage && (
-          <section
-            id="sequences"
-            className="scroll-mt-24 pt-14"
-          >
-
-            <p className="text-xs font-bold tracking-widest text-sky-400">
-              SEQUENCE
-            </p>
-
-            <h2 className="mt-1 text-2xl font-bold text-gray-800">
-              🧘‍♀️ シークエンスを体験
-            </h2>
-
-            <p className="mt-2 text-sm leading-relaxed text-gray-500">
-              ポーズをどんな順番で組み合わせるのか、
-              実際のテンプレートを見てみましょう。
-            </p>
-
-
-            {sequenceTemplates.length === 0 ? (
-              <EmptyDemoCard text="公開中のシークエンスデモはありません。" />
-            ) : (
-              <div className="mt-5 space-y-4">
-
-                {sequenceTemplates.map((template) => (
-                  <TemplateCard
-                    key={template.id}
-                    template={template}
-                    open={openTemplateId === template.id}
-                    loading={templateLoadingId === template.id}
-                    items={templateItems[template.id] || []}
-                    onToggle={() => toggleTemplate(template)}
-                    onSignup={goToSignup}
-                    type="sequence"
-                  />
-                ))}
-
-              </div>
-            )}
 
           </section>
         )}
 
 
         {/* =========================
-            PACKAGES
+            BOTTOM EXPERIENCE LINKS
         ========================= */}
 
         {!loading && !errorMessage && (
-          <section
-            id="presets"
-            className="scroll-mt-24 pt-14"
-          >
+          <div className="mt-12 grid gap-3 sm:grid-cols-2">
 
-            <p className="text-xs font-bold tracking-widest text-emerald-400">
-              PACKAGE
-            </p>
+            <button
+              type="button"
+              onClick={() => router.push("/sequences")}
+              className="rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-gray-100"
+            >
+              <p className="font-bold text-gray-700">
+                🌙 シークエンスも見てみる
+              </p>
 
-            <h2 className="mt-1 text-2xl font-bold text-gray-800">
-              📦 パッケージを体験
-            </h2>
-
-            <p className="mt-2 text-sm leading-relaxed text-gray-500">
-              テーマごとにまとめられた項目を確認できます。
-              登録後は対応するパッケージを自分の辞書に追加できます。
-            </p>
+              <p className="mt-1 text-xs text-gray-400">
+                太陽礼拝Aの構成を体験 →
+              </p>
+            </button>
 
 
-            {packs.length === 0 ? (
-              <EmptyDemoCard text="公開中のパッケージデモはありません。" />
-            ) : (
-              <div className="mt-5 space-y-4">
+            <button
+              type="button"
+              onClick={() => router.push("/presets")}
+              className="rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-gray-100"
+            >
+              <p className="font-bold text-gray-700">
+                📦 テンプレートも見てみる
+              </p>
 
-                {packs.map((template) => (
-                  <TemplateCard
-                    key={template.id}
-                    template={template}
-                    open={openTemplateId === template.id}
-                    loading={templateLoadingId === template.id}
-                    items={templateItems[template.id] || []}
-                    onToggle={() => toggleTemplate(template)}
-                    onSignup={goToSignup}
-                    type="pack"
-                  />
-                ))}
+              <p className="mt-1 text-xs text-gray-400">
+                実際のテンプレート一覧へ →
+              </p>
+            </button>
 
-              </div>
-            )}
-
-          </section>
+          </div>
         )}
 
 
@@ -576,7 +507,7 @@ export default function DemoPage() {
         ========================= */}
 
         {!loading && !errorMessage && (
-          <div className="mt-14 rounded-3xl bg-gradient-to-r from-sky-500 to-violet-500 p-6 text-white shadow-lg">
+          <div className="mt-8 rounded-3xl bg-gradient-to-r from-sky-500 to-violet-500 p-6 text-white shadow-lg">
 
             <p className="text-sm font-bold text-white/80">
               気に入ったら無料ではじめよう
@@ -621,141 +552,6 @@ export default function DemoPage() {
 
       </div>
     </main>
-  );
-}
-
-
-/* =====================================================
-   TEMPLATE CARD
-===================================================== */
-
-function TemplateCard({
-  template,
-  open,
-  loading,
-  items,
-  onToggle,
-  onSignup,
-  type,
-}) {
-  return (
-    <article className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-100">
-
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full p-5 text-left"
-      >
-
-        <div className="flex items-start justify-between gap-4">
-
-          <div className="min-w-0">
-
-            <p className="text-xs font-bold text-gray-400">
-              {type === "sequence"
-                ? "SEQUENCE TEMPLATE"
-                : "EXPANSION PACK"}
-            </p>
-
-            <h3 className="mt-1 text-lg font-bold text-gray-800">
-              {template.title}
-            </h3>
-
-            {template.memo && (
-              <p className="mt-2 text-sm leading-relaxed text-gray-500">
-                {template.memo}
-              </p>
-            )}
-
-          </div>
-
-          <span className="shrink-0 rounded-full bg-gray-50 px-3 py-1 text-xs font-bold text-gray-500">
-            {open ? "閉じる ▲" : "見る ▼"}
-          </span>
-
-        </div>
-
-      </button>
-
-
-      {open && (
-        <div className="border-t border-gray-100 px-5 pb-5 pt-4">
-
-          {loading ? (
-            <p className="py-4 text-center text-sm text-gray-400">
-              読み込み中...
-            </p>
-          ) : items.length === 0 ? (
-            <p className="py-4 text-center text-sm text-gray-400">
-              項目がありません
-            </p>
-          ) : (
-            <div className="space-y-2">
-
-              {items.map((item, index) => (
-                <div
-                  key={item.id}
-                  className="flex items-start gap-3 rounded-2xl bg-gray-50 p-3"
-                >
-
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-gray-400 shadow-sm">
-                    {index + 1}
-                  </div>
-
-                  <div className="min-w-0">
-
-                    <p className="text-sm font-bold text-gray-700">
-                      {item.asana_title}
-                    </p>
-
-                    {item.asana_sanskrit && (
-                      <p className="mt-0.5 text-xs text-gray-400">
-                        {item.asana_sanskrit}
-                      </p>
-                    )}
-
-                  </div>
-
-                </div>
-              ))}
-
-            </div>
-          )}
-
-
-          <div className="mt-5 rounded-2xl bg-violet-50 p-4">
-
-            <p className="text-xs leading-relaxed text-gray-600">
-              🔒 保存・編集して自分用に使うには無料登録が必要です。
-            </p>
-
-            <button
-              type="button"
-              onClick={onSignup}
-              className="mt-3 w-full rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-violet-600 shadow-sm ring-1 ring-violet-100"
-            >
-              無料で使ってみる
-            </button>
-
-          </div>
-
-        </div>
-      )}
-
-    </article>
-  );
-}
-
-
-/* =====================================================
-   EMPTY
-===================================================== */
-
-function EmptyDemoCard({ text }) {
-  return (
-    <div className="mt-5 rounded-3xl bg-white p-6 text-center text-sm text-gray-400 shadow-sm ring-1 ring-gray-100">
-      {text}
-    </div>
   );
 }
 

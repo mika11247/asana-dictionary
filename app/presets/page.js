@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/components/AuthProvider'
 import { getPlanLimits } from '@/lib/planLimits'
@@ -57,6 +58,16 @@ export default function PresetsPage() {
     setLoading(false)
   }
 
+  function requireLogin() {
+    const ok = window.confirm(
+      '🔒 テンプレートの追加は無料登録後に利用できます✨\n\n無料登録して、自分の辞書やシークエンスに追加してみますか？'
+    )
+
+    if (ok) {
+      window.location.href = '/login?mode=signup'
+    }
+  }
+
   function canUsePreset(preset) {
     const userRank = PLAN_RANK[profile?.plan || 'free'] || PLAN_RANK.free
     const requiredRank =
@@ -72,7 +83,9 @@ export default function PresetsPage() {
 
   function getGroupedPresets() {
     return GROUP_ORDER.map((groupKey) => {
-      const items = presets.filter((preset) => getPresetGroup(preset) === groupKey)
+      const items = presets.filter(
+        (preset) => getPresetGroup(preset) === groupKey
+      )
 
       return {
         groupKey,
@@ -90,11 +103,15 @@ export default function PresetsPage() {
       .order('position', { ascending: true })
 
     if (error) throw error
+
     return data || []
   }
 
   async function addAsanasOnly(preset) {
-    if (!user || !profile) return
+    if (!user || !profile) {
+      requireLogin()
+      return
+    }
 
     if (!canUsePreset(preset)) {
       alert('このテンプレートは現在、一部プラン向けに調整中です🌙')
@@ -124,7 +141,10 @@ export default function PresetsPage() {
   }
 
   async function addAsanasAndSequence(preset) {
-    if (!user || !profile) return
+    if (!user || !profile) {
+      requireLogin()
+      return
+    }
 
     if (!canUsePreset(preset)) {
       alert('このテンプレートは現在、一部プラン向けに調整中です🌙')
@@ -154,7 +174,10 @@ export default function PresetsPage() {
       const limits = getPlanLimits(profile.plan)
 
       const { data: currentSequences, error: countSequenceError } =
-        await supabase.from('sequences').select('id').eq('user_id', user.id)
+        await supabase
+          .from('sequences')
+          .select('id')
+          .eq('user_id', user.id)
 
       if (countSequenceError) throw countSequenceError
 
@@ -204,6 +227,7 @@ export default function PresetsPage() {
         .map((item, index) => {
           if (item.type === 'asana') {
             const asanaId = asanaMap.get(item.preset_key)
+
             if (!asanaId) return null
 
             return {
@@ -276,6 +300,7 @@ export default function PresetsPage() {
     )
 
     const items = await getPresetItems(preset.id)
+
     const asanaItems = items.filter((item) => item.type === 'asana')
 
     const uniqueItems = Array.from(
@@ -302,7 +327,10 @@ export default function PresetsPage() {
     const currentCount = currentAsanas?.length || 0
     const nextCount = currentCount + uniqueItems.length
 
-    if (Number.isFinite(limits.asanas) && nextCount > limits.asanas) {
+    if (
+      Number.isFinite(limits.asanas) &&
+      nextCount > limits.asanas
+    ) {
       alert(
         `登録上限を超えるため追加できません💦\n\n現在: ${currentCount}件\n追加予定: ${uniqueItems.length}件\n上限: ${limits.asanas}件`
       )
@@ -355,20 +383,20 @@ export default function PresetsPage() {
   }
 
   function getPresetItemLabel(preset) {
-  if (preset.display_group === 'training') {
-    return '種目'
-  }
+    if (preset.display_group === 'training') {
+      return '種目'
+    }
 
-  if (preset.display_group === 'pilates') {
-    return 'エクササイズ'
-  }
+    if (preset.display_group === 'pilates') {
+      return 'エクササイズ'
+    }
 
-  if (preset.display_group === 'rusie_dutton') {
-    return 'ルーシーダットン'
-  }
+    if (preset.display_group === 'rusie_dutton') {
+      return 'ルーシーダットン'
+    }
 
-  return '動き'
-}
+    return '動き'
+  }
 
   function getPlanBadge(plan) {
     switch (plan) {
@@ -396,71 +424,85 @@ export default function PresetsPage() {
   }
 
   function getAddOnlyLabel(preset) {
-  if (addingKey === `${preset.id}-asanas`) return '追加中...'
+    if (addingKey === `${preset.id}-asanas`) {
+      return '追加中...'
+    }
 
-  if (preset.display_group === 'training') {
-    return '種目のみ追加'
+    if (preset.display_group === 'training') {
+      return '種目のみ追加'
+    }
+
+    if (preset.display_group === 'pilates') {
+      return 'エクササイズのみ追加'
+    }
+
+    if (preset.display_group === 'rusie_dutton') {
+      return 'ルーシーダットン追加'
+    }
+
+    return 'アーサナのみ追加'
   }
-
-  if (preset.display_group === 'pilates') {
-    return 'エクササイズのみ追加'
-  }
-
-  return 'アーサナのみ追加'
-}
 
   function getAddSequenceLabel(preset) {
-  if (addingKey === `${preset.id}-sequence`) return '追加中...'
+    if (addingKey === `${preset.id}-sequence`) {
+      return '追加中...'
+    }
 
-  if (preset.display_group === 'training') {
-    return '種目＋シークエンス追加'
+    if (preset.display_group === 'training') {
+      return '種目＋シークエンス追加'
+    }
+
+    if (preset.display_group === 'pilates') {
+      return 'エクササイズ＋シークエンス追加'
+    }
+
+    if (preset.display_group === 'rusie_dutton') {
+      return 'ルーシーダットン追加'
+    }
+
+    return 'アーサナ＋シークエンス追加'
   }
 
-  if (preset.display_group === 'pilates') {
-    return 'エクササイズ＋シークエンス追加'
+  function getAddOnlyButtonClass(preset) {
+    if (preset.display_group === 'training') {
+      return 'rounded-2xl bg-pink-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-pink-700 disabled:opacity-50'
+    }
+
+    if (preset.display_group === 'pilates') {
+      return 'rounded-2xl bg-orange-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:opacity-50'
+    }
+
+    if (preset.display_group === 'rusie_dutton') {
+      return 'rounded-2xl bg-green-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-700 disabled:opacity-50'
+    }
+
+    return 'rounded-2xl bg-sky-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-sky-600 disabled:opacity-50'
   }
 
-  if (preset.display_group === 'rusie_dutton') {
-    return 'ルーシーダットン追加'
+  function getSequenceButtonClass(preset) {
+    if (preset.display_group === 'training') {
+      return 'rounded-2xl bg-fuchsia-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-fuchsia-700 disabled:opacity-50'
+    }
+
+    if (preset.display_group === 'pilates') {
+      return 'rounded-2xl bg-amber-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-amber-600 disabled:opacity-50'
+    }
+
+    return 'rounded-2xl bg-cyan-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-cyan-600 disabled:opacity-50'
   }
-
-  return 'アーサナ＋シークエンス追加'
-}
-
-function getAddOnlyButtonClass(preset) {
-  if (preset.display_group === 'training') {
-    return 'rounded-2xl bg-pink-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-pink-700 disabled:opacity-50'
-  }
-
-  if (preset.display_group === 'pilates') {
-    return 'rounded-2xl bg-orange-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:opacity-50'
-  }
-
-  if (preset.display_group === 'rusie_dutton') {
-    return 'rounded-2xl bg-green-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-700 disabled:opacity-50'
-  }
-
-  return 'rounded-2xl bg-sky-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-sky-600 disabled:opacity-50'
-}
-
-function getSequenceButtonClass(preset) {
-  if (preset.display_group === 'training') {
-    return 'rounded-2xl bg-fuchsia-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-fuchsia-700 disabled:opacity-50'
-  }
-
-  if (preset.display_group === 'pilates') {
-    return 'rounded-2xl bg-amber-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-amber-600 disabled:opacity-50'
-  }
-
-  return 'rounded-2xl bg-cyan-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-cyan-600 disabled:opacity-50'
-}
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-4">
       <div className="mx-auto max-w-2xl space-y-5">
+
+        {/* 上部説明 */}
         <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-sky-100">
-          <Link href="/" className="text-sm text-sky-600">
-            ← ホームへ戻る
+
+          <Link
+            href={user ? '/' : '/demo'}
+            className="text-sm text-sky-600"
+          >
+            {user ? '← ホームへ戻る' : '← デモへ戻る'}
           </Link>
 
           <h1 className="mt-4 text-2xl font-bold text-gray-800">
@@ -471,6 +513,29 @@ function getSequenceButtonClass(preset) {
             よく使う動きや、シークエンス・メニューのベースになるセットをまとめて追加できます✨
           </p>
 
+          {!user && (
+            <div className="mt-4 rounded-2xl bg-gradient-to-r from-sky-50 to-violet-50 px-4 py-4 ring-1 ring-violet-100">
+
+              <p className="text-sm font-bold text-violet-700">
+                👀 デモ体験中
+              </p>
+
+              <p className="mt-1 text-xs leading-6 text-gray-600">
+                テンプレートの内容は登録なしでもご覧いただけます。
+                実際に自分の辞書やシークエンスへ追加・保存するには、
+                無料登録が必要です。
+              </p>
+
+              <Link
+                href="/login?mode=signup"
+                className="mt-3 inline-block text-xs font-bold text-violet-600"
+              >
+                無料で新規登録 →
+              </Link>
+
+            </div>
+          )}
+
           <p className="mt-3 rounded-2xl bg-violet-50 px-4 py-3 text-xs leading-6 text-violet-700">
             同じテンプレート由来の動きやシークエンスは、
             重複しないよう自動でスキップされます🌙
@@ -480,15 +545,21 @@ function getSequenceButtonClass(preset) {
             <br />
             ※ 追加後は、ご自身の使いやすい形に自由に編集・調整してご利用ください✨
           </p>
+
         </div>
 
+        {/* テンプレート一覧 */}
         {loading ? (
           <div className="rounded-3xl bg-white p-6 text-center text-sm text-gray-500 shadow-sm">
             読み込み中...
           </div>
         ) : (
           getGroupedPresets().map((group) => (
-            <div key={group.groupKey} className="space-y-3">
+            <div
+              key={group.groupKey}
+              className="space-y-3"
+            >
+
               <h2 className="px-1 text-sm font-bold text-gray-600">
                 {group.label}
               </h2>
@@ -498,7 +569,9 @@ function getSequenceButtonClass(preset) {
                   key={preset.id}
                   className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-sky-100"
                 >
+
                   <div className="flex items-start justify-between gap-3">
+
                     <div>
                       <h3 className="text-lg font-bold text-gray-800">
                         {preset.title}
@@ -512,9 +585,11 @@ function getSequenceButtonClass(preset) {
                     </div>
 
                     {getPlanBadge(preset.plan_required || 'free')}
+
                   </div>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
+
                     <button
                       type="button"
                       onClick={() => addAsanasOnly(preset)}
@@ -534,12 +609,22 @@ function getSequenceButtonClass(preset) {
                         {getAddSequenceLabel(preset)}
                       </button>
                     )}
+
                   </div>
+
+                  {!user && (
+                    <p className="mt-3 text-center text-[11px] text-gray-400">
+                      🔒 追加・保存は無料登録後に利用できます
+                    </p>
+                  )}
+
                 </section>
               ))}
+
             </div>
           ))
         )}
+
       </div>
     </main>
   )
