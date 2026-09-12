@@ -26,9 +26,13 @@ export default function Header() {
 
   return (
     <>
+      {/* =========================
+          HEADER
+      ========================= */}
       <header className="no-print sticky top-0 z-30 border-b border-white/40 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between">
 
+          {/* ロゴ */}
           <Link
             href={user ? '/' : '/demo'}
             className="group"
@@ -51,13 +55,16 @@ export default function Header() {
             </div>
           </Link>
 
+          {/* ログイン済みユーザー情報 */}
           {profile && (
             <div className="min-w-0 flex-1 px-3 text-right">
+
               <p className="truncate text-xs font-bold text-gray-700 sm:text-sm">
                 {profile.display_name} 様
               </p>
 
               <div className="flex items-center justify-end gap-2">
+
                 <p className="text-[10px] text-gray-400 sm:text-xs">
                   β版
                 </p>
@@ -72,10 +79,12 @@ export default function Header() {
                     {PLAN_UI[profile.plan]?.label || profile.plan}
                   </span>
                 )}
+
               </div>
             </div>
           )}
 
+          {/* ハンバーガーメニュー */}
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -83,9 +92,14 @@ export default function Header() {
           >
             ☰
           </button>
+
         </div>
       </header>
 
+
+      {/* =========================
+          OVERLAY
+      ========================= */}
       {open && (
         <div
           className="no-print fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
@@ -93,12 +107,19 @@ export default function Header() {
         />
       )}
 
+
+      {/* =========================
+          SIDE MENU
+      ========================= */}
       <aside
         className={`no-print fixed right-0 top-0 z-50 h-full w-72 overflow-y-auto bg-white p-6 text-gray-800 shadow-xl transition-transform duration-300 ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
+
+        {/* メニュー上部 */}
         <div className="mb-8 flex items-start justify-between">
+
           <div>
             <p className="text-2xl font-bold">
               🪷
@@ -120,12 +141,18 @@ export default function Header() {
           >
             ×
           </button>
+
         </div>
+
 
         <nav className="flex flex-col gap-4 text-lg text-gray-800">
 
+          {/* =========================
+              ログイン済み
+          ========================= */}
           {user ? (
             <>
+
               <Link
                 href="/"
                 onClick={() => setOpen(false)}
@@ -189,28 +216,70 @@ export default function Header() {
               >
                 🔒 管理者ルーム
               </Link>
+
             </>
           ) : (
             <>
+
+              {/* =========================
+                  未ログイン・デモ
+              ========================= */}
+
               <Link
                 href="/demo"
                 onClick={() => setOpen(false)}
-                className="rounded-lg bg-violet-50 px-3 py-2 font-bold text-violet-700 transition hover:bg-violet-100"
+                className="rounded-xl bg-violet-50 px-3 py-3 font-bold text-violet-700 transition hover:bg-violet-100"
               >
                 👀 登録なしで体験
               </Link>
 
               <Link
-                href="/login"
+                href="/demo#sequences"
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2 font-bold text-gray-700 transition hover:bg-gray-100"
+                className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-sky-50 hover:text-sky-700"
               >
-                🔑 ログイン・新規登録
+                🧘‍♀️ シークエンス体験
               </Link>
+
+              <Link
+                href="/demo#presets"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-700"
+              >
+                📦 パッケージ体験
+              </Link>
+
+
+              {/* 登録への導線 */}
+              <div className="mt-3 rounded-2xl bg-gradient-to-r from-sky-50 to-violet-50 p-4">
+
+                <p className="text-xs font-bold text-gray-700">
+                  🪷 無料登録でもっと便利に
+                </p>
+
+                <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
+                  自分の辞書作成・新規登録・今日のおすすめ・マイページなどが使えるようになります。
+                </p>
+
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className="mt-3 block rounded-xl bg-white px-3 py-2 text-center text-sm font-bold text-violet-700 shadow-sm ring-1 ring-violet-100 transition hover:bg-violet-50"
+                >
+                  🔑 ログイン・新規登録
+                </Link>
+
+              </div>
+
             </>
           )}
 
+
+          {/* =========================
+              SUPPORT
+          ========================= */}
           <div className="mt-6 border-t pt-6">
+
             <p className="mb-3 px-3 text-xs font-bold uppercase tracking-widest text-gray-400">
               Support
             </p>
@@ -225,6 +294,7 @@ export default function Header() {
                 📖 使い方ガイド
               </Link>
 
+              {/* お問い合わせはログイン後のみ */}
               {user && (
                 <Link
                   href="/contact"
@@ -251,6 +321,8 @@ export default function Header() {
                 🔒 プライバシーポリシー
               </Link>
 
+
+              {/* ログアウトはログイン時のみ */}
               {user && (
                 <button
                   type="button"
