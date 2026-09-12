@@ -1,585 +1,285 @@
-"use client";
+'use client'
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
-const CATEGORY_TABS = [
-  { key: "all", label: "すべて" },
-  { key: "yoga", label: "☀️ YOGA" },
-  { key: "pilates", label: "🧘 PILATES" },
-  { key: "training", label: "🏋️ TRAINING" },
-];
+export default function DemoHome() {
+  const router = useRouter()
 
-function normalizeText(value) {
-  return String(value || "").toLowerCase();
-}
+  function requireLogin(feature = 'この機能') {
+    const ok = window.confirm(
+      `🔒 ${feature}は無料登録後に利用できます✨\n\n無料登録すると、自分の辞書やシークエンスを作成・編集・保存できます。\n\n無料登録しますか？`
+    )
 
-export default function DemoPage() {
-  const router = useRouter();
-
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
-
-  const [category, setCategory] = useState("all");
-  const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    loadDemoData();
-  }, []);
-
-  async function loadDemoData() {
-    setLoading(true);
-    setErrorMessage("");
-
-    try {
-      const { data, error } = await supabase
-        .from("initial_sequence_items")
-        .select(`
-          id,
-          asana_title,
-          asana_sanskrit,
-          yomi,
-          main_category,
-          types,
-          strength,
-          flexibility,
-          memo,
-          preset_key
-        `)
-        .eq("is_demo", true)
-        .order("asana_title", { ascending: true });
-
-      if (error) throw error;
-
-      setItems(data || []);
-    } catch (error) {
-      console.error(error);
-
-      setErrorMessage(
-        "デモデータを読み込めませんでした。しばらくしてからもう一度お試しください。"
-      );
-    } finally {
-      setLoading(false);
+    if (ok) {
+      router.push('/login?mode=signup')
     }
   }
 
-  const filteredItems = useMemo(() => {
-    const keyword = normalizeText(search.trim());
-
-    return items.filter((item) => {
-      const matchesCategory =
-        category === "all" || item.main_category === category;
-
-      if (!matchesCategory) return false;
-
-      if (!keyword) return true;
-
-      const searchTarget = [
-        item.asana_title,
-        item.asana_sanskrit,
-        item.yomi,
-        item.memo,
-        ...(item.types || []),
-      ]
-        .map(normalizeText)
-        .join(" ");
-
-      return searchTarget.includes(keyword);
-    });
-  }, [items, category, search]);
-
-  function goToSignup() {
-    router.push("/login?mode=signup");
-  }
-
-  function goToLogin() {
-    router.push("/login");
-  }
-
   return (
-    <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50">
-      <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+    <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-6">
+      <div className="mx-auto flex max-w-md flex-col items-center pt-10">
 
         {/* =========================
-            INTRO
+            TITLE
         ========================= */}
+        <div className="mb-6 text-center">
+          <h1 className="mb-3 text-4xl font-bold text-gray-800">
+            🧘‍♀️ My Dictionary
+          </h1>
 
-        <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-          <div className="flex items-start justify-between gap-4">
-
-            <div>
-              <p className="text-sm font-bold text-violet-500">
-                🪷 Asana Dictionary
-              </p>
-
-              <h1 className="mt-2 text-2xl font-bold text-gray-800 sm:text-3xl">
-                登録なしで体験
-              </h1>
-
-              <p className="mt-3 text-sm leading-relaxed text-gray-500">
-                会員登録をしなくても、
-                Asana Dictionaryの一部をお試しいただけます。
-                <br />
-                辞書を検索したり、実際のシークエンス・テンプレート画面を
-                見てみてください✨
-              </p>
-            </div>
-
-            <span className="shrink-0 rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-600">
-              DEMO
-            </span>
-
-          </div>
-
-          <div className="mt-5 rounded-2xl bg-sky-50 p-4">
-            <p className="text-xs leading-relaxed text-gray-600">
-              💡 無料登録すると、自分だけの辞書への追加・保存・編集、
-              シークエンス作成、今日のおすすめなどが使えるようになります。
-            </p>
-          </div>
+          <p className="text-sm text-gray-500">
+            「身体を整える、自分だけのレッスンとメニューを育てよう」
+          </p>
         </div>
 
 
         {/* =========================
-            DEMO MENU
+            GUEST BANNER
         ========================= */}
+        <div className="mb-7 w-full rounded-3xl border border-violet-100 bg-gradient-to-r from-sky-50 to-violet-50 p-5 shadow-sm">
+          <p className="font-bold text-violet-700">
+            👀 ゲスト体験中
+          </p>
 
-        <div className="mt-6 grid grid-cols-3 gap-2">
+          <p className="mt-2 text-sm leading-6 text-gray-600">
+            Asana Dictionary の実際の画面を
+            登録なしでお試しできます✨
+          </p>
 
-          <a
-            href="#dictionary"
-            className="rounded-2xl bg-white px-2 py-4 text-center shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <div className="text-2xl">📚</div>
-
-            <p className="mt-2 text-xs font-bold text-gray-700">
-              辞書
-            </p>
-
-            <p className="mt-1 hidden text-[10px] text-gray-400 sm:block">
-              サンプル検索
-            </p>
-          </a>
-
-
-          <button
-            type="button"
-            onClick={() => router.push("/sequences")}
-            className="rounded-2xl bg-white px-2 py-4 text-center shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <div className="text-2xl">🌙</div>
-
-            <p className="mt-2 text-xs font-bold text-gray-700">
-              シークエンス
-            </p>
-
-            <p className="mt-1 hidden text-[10px] text-gray-400 sm:block">
-              実際の画面へ
-            </p>
-          </button>
-
-
-          <button
-            type="button"
-            onClick={() => router.push("/presets")}
-            className="rounded-2xl bg-white px-2 py-4 text-center shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <div className="text-2xl">📦</div>
-
-            <p className="mt-2 text-xs font-bold text-gray-700">
-              テンプレート
-            </p>
-
-            <p className="mt-1 hidden text-[10px] text-gray-400 sm:block">
-              実際の画面へ
-            </p>
-          </button>
-
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            閲覧は登録なしでOK。
+            追加・編集・保存などの機能には無料登録が必要です。
+          </p>
         </div>
 
 
         {/* =========================
-            QUICK EXPERIENCE
+            MENU
         ========================= */}
+        <div className="w-full space-y-4">
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {/* 一覧 */}
+          <Link href="/demo/dictionary">
+            <div className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
+              <div className="flex items-center gap-4">
 
-          <button
-            type="button"
-            onClick={() => router.push("/sequences")}
-            className="rounded-3xl bg-gradient-to-r from-sky-50 to-violet-50 p-5 text-left shadow-sm ring-1 ring-violet-100 transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <p className="text-xs font-bold text-violet-500">
-              🌙 SEQUENCE
-            </p>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-100 text-2xl">
+                  📚
+                </div>
 
-            <h2 className="mt-1 font-bold text-gray-800">
-              シークエンスを体験
-            </h2>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-800">
+                    一覧
+                  </h2>
 
-            <p className="mt-2 text-xs leading-6 text-gray-500">
-              初期登録される太陽礼拝Aを、
-              実際のシークエンス画面で見ることができます。
-            </p>
-
-            <p className="mt-3 text-xs font-bold text-violet-600">
-              見てみる →
-            </p>
-          </button>
-
-
-          <button
-            type="button"
-            onClick={() => router.push("/presets")}
-            className="rounded-3xl bg-gradient-to-r from-emerald-50 to-sky-50 p-5 text-left shadow-sm ring-1 ring-emerald-100 transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <p className="text-xs font-bold text-emerald-500">
-              📦 TEMPLATE
-            </p>
-
-            <h2 className="mt-1 font-bold text-gray-800">
-              テンプレートを見る
-            </h2>
-
-            <p className="mt-2 text-xs leading-6 text-gray-500">
-              ヨガ・ピラティス・トレーニングなど、
-              実際に用意されているテンプレートを確認できます。
-            </p>
-
-            <p className="mt-3 text-xs font-bold text-emerald-600">
-              見てみる →
-            </p>
-          </button>
-
-        </div>
-
-
-        {/* =========================
-            LOADING / ERROR
-        ========================= */}
-
-        {loading && (
-          <div className="mt-8 rounded-3xl bg-white p-8 text-center text-sm text-gray-400 shadow-sm">
-            読み込み中...
-          </div>
-        )}
-
-        {!loading && errorMessage && (
-          <div className="mt-8 rounded-3xl bg-red-50 p-5 text-sm leading-relaxed text-red-600 ring-1 ring-red-100">
-            {errorMessage}
-          </div>
-        )}
-
-
-        {/* =========================
-            DICTIONARY
-        ========================= */}
-
-        {!loading && !errorMessage && (
-          <section
-            id="dictionary"
-            className="scroll-mt-24 pt-10"
-          >
-
-            <div>
-              <p className="text-xs font-bold tracking-widest text-violet-400">
-                DICTIONARY
-              </p>
-
-              <h2 className="mt-1 text-2xl font-bold text-gray-800">
-                📚 辞書を体験
-              </h2>
-
-              <p className="mt-2 text-sm leading-relaxed text-gray-500">
-                ヨガ・ピラティス・トレーニングの一部を検索できます。
-              </p>
-            </div>
-
-
-            {/* カテゴリ */}
-
-            <div className="mt-5 overflow-x-auto">
-              <div className="flex min-w-max gap-2">
-
-                {CATEGORY_TABS.map((tab) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setCategory(tab.key)}
-                    className={`rounded-full px-4 py-2 text-sm font-bold transition ${
-                      category === tab.key
-                        ? "bg-gray-800 text-white shadow"
-                        : "bg-white text-gray-500 shadow-sm ring-1 ring-gray-100 hover:bg-gray-50"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+                  <p className="text-sm text-gray-500">
+                    ポーズ・エクササイズ・種目を確認
+                  </p>
+                </div>
 
               </div>
             </div>
+          </Link>
 
 
-            {/* 検索 */}
+          {/* 新規登録 */}
+          <button
+            type="button"
+            onClick={() => requireLogin('新しい動きの登録')}
+            className="block w-full text-left"
+          >
+            <div className="rounded-3xl border border-green-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
+              <div className="flex items-center gap-4">
 
-            <div className="mt-4">
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="名前・読み方・種類から検索"
-                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-800 shadow-sm outline-none placeholder:text-gray-400 focus:border-violet-300"
-              />
-            </div>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 text-2xl">
+                  ➕
+                </div>
 
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-bold text-gray-800">
+                    新規登録
+                  </h2>
 
-            <p className="mt-4 text-xs text-gray-400">
-              {filteredItems.length}件のサンプル
-            </p>
+                  <p className="text-sm text-gray-500">
+                    新しい動きを追加
+                  </p>
+                </div>
 
-
-            {filteredItems.length === 0 && (
-              <div className="mt-5 rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-100">
-
-                <p className="font-bold text-gray-700">
-                  該当する項目がありません
-                </p>
-
-                <p className="mt-2 text-sm text-gray-400">
-                  検索ワードやカテゴリを変えてみてください。
-                </p>
+                <span className="shrink-0 text-xs text-gray-400">
+                  🔒
+                </span>
 
               </div>
-            )}
-
-
-            {/* 辞書カード */}
-
-            <div className="mt-5 space-y-4">
-
-              {filteredItems.map((item) => (
-                <article
-                  key={item.id}
-                  className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-100"
-                >
-
-                  <div className="flex items-start justify-between gap-3">
-
-                    <div className="min-w-0">
-
-                      <h3 className="text-lg font-bold text-gray-800">
-                        {item.asana_title}
-                      </h3>
-
-                      {item.asana_sanskrit && (
-                        <p className="mt-1 text-sm leading-relaxed text-gray-500">
-                          {item.asana_sanskrit}
-                        </p>
-                      )}
-
-                    </div>
-
-                    <CategoryBadge category={item.main_category} />
-
-                  </div>
-
-
-                  {item.types?.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-
-                      {item.types.map((type) => (
-                        <span
-                          key={type}
-                          className="rounded-full bg-gray-50 px-3 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-100"
-                        >
-                          {type}
-                        </span>
-                      ))}
-
-                    </div>
-                  )}
-
-
-                  {item.memo && (
-                    <p className="mt-4 text-sm leading-relaxed text-gray-600">
-                      {item.memo}
-                    </p>
-                  )}
-
-
-                  {(item.strength || item.flexibility) && (
-                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
-
-                      {item.strength && (
-                        <div className="rounded-2xl bg-orange-50 p-3">
-
-                          <p className="text-xs font-bold text-orange-600">
-                            💪 筋力
-                          </p>
-
-                          <p className="mt-1 text-xs leading-relaxed text-gray-600">
-                            {item.strength}
-                          </p>
-
-                        </div>
-                      )}
-
-
-                      {item.flexibility && (
-                        <div className="rounded-2xl bg-sky-50 p-3">
-
-                          <p className="text-xs font-bold text-sky-600">
-                            🫧 柔軟性
-                          </p>
-
-                          <p className="mt-1 text-xs leading-relaxed text-gray-600">
-                            {item.flexibility}
-                          </p>
-
-                        </div>
-                      )}
-
-                    </div>
-                  )}
-
-
-                  <button
-                    type="button"
-                    onClick={goToSignup}
-                    className="mt-5 w-full rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-600 transition hover:bg-violet-100"
-                  >
-                    ＋ 自分の辞書で使う
-                  </button>
-
-                </article>
-              ))}
-
             </div>
+          </button>
 
-          </section>
-        )}
+
+          {/* 今日のおすすめ */}
+          <button
+            type="button"
+            onClick={() => requireLogin('今日のおすすめ')}
+            className="block w-full text-left"
+          >
+            <div className="rounded-3xl border border-violet-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
+              <div className="flex items-center gap-4">
+
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-2xl">
+                  🌙
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-bold text-gray-800">
+                    今日のおすすめ
+                  </h2>
+
+                  <p className="text-sm text-gray-500">
+                    今日のヒントを受け取る
+                  </p>
+                </div>
+
+                <span className="shrink-0 text-xs text-gray-400">
+                  🔒
+                </span>
+
+              </div>
+            </div>
+          </button>
+
+
+          {/* シークエンス一覧 */}
+          <Link href="/sequences">
+            <div className="rounded-3xl border border-pink-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
+              <div className="flex items-center gap-4">
+
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-100 text-2xl">
+                  📝
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-bold text-gray-800">
+                    シークエンス一覧
+                  </h2>
+
+                  <p className="text-sm text-gray-500">
+                    レッスン構成・メニューを確認
+                  </p>
+                </div>
+
+                <span className="shrink-0 text-xs font-bold text-pink-400">
+                  体験 →
+                </span>
+
+              </div>
+            </div>
+          </Link>
+
+
+          {/* シークエンス作成 */}
+          <button
+            type="button"
+            onClick={() => requireLogin('シークエンス作成')}
+            className="block w-full text-left"
+          >
+            <div className="rounded-3xl border border-orange-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
+              <div className="flex items-center gap-4">
+
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-100 text-2xl">
+                  ✨
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-bold text-gray-800">
+                    シークエンス作成
+                  </h2>
+
+                  <p className="text-sm text-gray-500">
+                    新しいレッスン・メニューを作る
+                  </p>
+                </div>
+
+                <span className="shrink-0 text-xs text-gray-400">
+                  🔒
+                </span>
+
+              </div>
+            </div>
+          </button>
+
+
+          {/* テンプレート */}
+          <Link href="/presets">
+            <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
+              <div className="flex items-center gap-4">
+
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-2xl">
+                  📦
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-bold text-gray-800">
+                    テンプレート
+                  </h2>
+
+                  <p className="text-sm text-gray-500">
+                    シークエンスや拡張パックを見る
+                  </p>
+                </div>
+
+                <span className="shrink-0 text-xs font-bold text-emerald-500">
+                  体験 →
+                </span>
+
+              </div>
+            </div>
+          </Link>
+
+        </div>
 
 
         {/* =========================
-            BOTTOM EXPERIENCE LINKS
+            SIGN UP
         ========================= */}
+        <div className="mt-10 w-full rounded-3xl border border-violet-100 bg-white/90 p-6 text-center shadow-sm">
 
-        {!loading && !errorMessage && (
-          <div className="mt-12 grid gap-3 sm:grid-cols-2">
+          <p className="text-lg font-bold text-gray-800">
+            🪷 自分のDictionaryを作ろう
+          </p>
 
-            <button
-              type="button"
-              onClick={() => router.push("/sequences")}
-              className="rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-gray-100"
-            >
-              <p className="font-bold text-gray-700">
-                🌙 シークエンスも見てみる
-              </p>
+          <p className="mt-2 text-sm leading-6 text-gray-500">
+            無料登録すると、ポーズや種目の追加、
+            シークエンス作成・編集・保存などが使えます。
+          </p>
 
-              <p className="mt-1 text-xs text-gray-400">
-                太陽礼拝Aの構成を体験 →
-              </p>
-            </button>
+          <Link
+            href="/login?mode=signup"
+            className="mt-5 block rounded-2xl bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:scale-[1.02]"
+          >
+            無料で始める ✨
+          </Link>
 
+          <Link
+            href="/login"
+            className="mt-3 block text-sm font-medium text-gray-500 hover:text-violet-600"
+          >
+            すでに登録済みの方はログイン
+          </Link>
 
-            <button
-              type="button"
-              onClick={() => router.push("/presets")}
-              className="rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-gray-100"
-            >
-              <p className="font-bold text-gray-700">
-                📦 テンプレートも見てみる
-              </p>
-
-              <p className="mt-1 text-xs text-gray-400">
-                実際のテンプレート一覧へ →
-              </p>
-            </button>
-
-          </div>
-        )}
+        </div>
 
 
         {/* =========================
-            CTA
+            BETA
         ========================= */}
-
-        {!loading && !errorMessage && (
-          <div className="mt-8 rounded-3xl bg-gradient-to-r from-sky-500 to-violet-500 p-6 text-white shadow-lg">
-
-            <p className="text-sm font-bold text-white/80">
-              気に入ったら無料ではじめよう
-            </p>
-
-            <h2 className="mt-1 text-xl font-bold">
-              自分だけのMovement Dictionaryへ
-            </h2>
-
-            <p className="mt-2 text-sm leading-relaxed text-white/80">
-              自分の辞書を作って、アーサナやエクササイズを保存・編集。
-              シークエンス作成などにも活用できます。
-            </p>
-
-            <button
-              type="button"
-              onClick={goToSignup}
-              className="mt-5 w-full rounded-2xl bg-white px-4 py-3 font-bold text-violet-600 shadow"
-            >
-              無料で新規登録
-            </button>
-
-            <button
-              type="button"
-              onClick={goToLogin}
-              className="mt-2 w-full px-4 py-2 text-sm font-bold text-white/90"
-            >
-              すでにアカウントをお持ちの方
-            </button>
-
-          </div>
-        )}
-
-
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="mx-auto mt-6 block px-4 py-2 text-sm text-gray-400"
-        >
-          ← 戻る
-        </button>
+        <div className="mt-6 w-full rounded-3xl border border-violet-100 bg-white/80 p-5 text-center shadow-sm">
+          <p className="text-sm leading-7 text-gray-600">
+            β版のため、一部機能や保存数を調整しています🌙
+            <br />
+            ご意見を参考にしながら、少しずつ整えています✨
+          </p>
+        </div>
 
       </div>
     </main>
-  );
-}
-
-
-/* =====================================================
-   CATEGORY BADGE
-===================================================== */
-
-function CategoryBadge({ category }) {
-  if (category === "pilates") {
-    return (
-      <span className="shrink-0 rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-600">
-        PILATES
-      </span>
-    );
-  }
-
-  if (category === "training") {
-    return (
-      <span className="shrink-0 rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-600">
-        TRAINING
-      </span>
-    );
-  }
-
-  return (
-    <span className="shrink-0 rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-600">
-      YOGA
-    </span>
-  );
+  )
 }
