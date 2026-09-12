@@ -9,7 +9,8 @@ import { PLAN_UI } from '@/lib/planUI'
 
 export default function Header() {
   const [open, setOpen] = useState(false)
-  const { profile } = useAuth()
+
+  const { user, profile } = useAuth()
 
   async function handleLogout() {
     const { error } = await supabase.auth.signOut()
@@ -20,7 +21,6 @@ export default function Header() {
     }
 
     setOpen(false)
-
     window.location.href = '/login'
   }
 
@@ -29,7 +29,10 @@ export default function Header() {
       <header className="no-print sticky top-0 z-30 border-b border-white/40 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between">
 
-          <Link href="/" className="group">
+          <Link
+            href={user ? '/' : '/demo'}
+            className="group"
+          >
             <div className="flex items-center gap-3">
 
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-violet-100 text-xl shadow-sm transition group-hover:scale-105">
@@ -55,31 +58,31 @@ export default function Header() {
               </p>
 
               <div className="flex items-center justify-end gap-2">
-  <p className="text-[10px] text-gray-400 sm:text-xs">
-    β版
-  </p>
+                <p className="text-[10px] text-gray-400 sm:text-xs">
+                  β版
+                </p>
 
-  {profile?.plan && (
-    <span
-      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-        PLAN_UI[profile.plan]?.badge ||
-        'bg-gray-100 text-gray-500'
-      }`}
-    >
-      {PLAN_UI[profile.plan]?.label || profile.plan}
-    </span>
-  )}
-</div>
+                {profile?.plan && (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      PLAN_UI[profile.plan]?.badge ||
+                      'bg-gray-100 text-gray-500'
+                    }`}
+                  >
+                    {PLAN_UI[profile.plan]?.label || profile.plan}
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
-<button
-  type="button"
-  onClick={() => setOpen(true)}
-  className="print-hide-menu rounded-2xl border border-gray-200 bg-white/90 px-4 py-2 text-sm text-gray-600 shadow-sm transition hover:scale-105 hover:bg-gray-50"
->
-  ☰
-</button>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="print-hide-menu rounded-2xl border border-gray-200 bg-white/90 px-4 py-2 text-sm text-gray-600 shadow-sm transition hover:scale-105 hover:bg-gray-50"
+          >
+            ☰
+          </button>
         </div>
       </header>
 
@@ -91,13 +94,15 @@ export default function Header() {
       )}
 
       <aside
-        className={`no-print fixed right-0 top-0 z-50 h-full w-72 overflow-y-auto bg-white bg-white text-gray-800 p-6 shadow-xl transition-transform duration-300 ${
+        className={`no-print fixed right-0 top-0 z-50 h-full w-72 overflow-y-auto bg-white p-6 text-gray-800 shadow-xl transition-transform duration-300 ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <p className="text-2xl font-bold">🪷</p>
+            <p className="text-2xl font-bold">
+              🪷
+            </p>
 
             <h2 className="text-xl font-bold tracking-wide">
               Asana Dictionary
@@ -118,69 +123,92 @@ export default function Header() {
         </div>
 
         <nav className="flex flex-col gap-4 text-lg text-gray-800">
-          <Link
-            href="/"
-            onClick={() => setOpen(false)}
-            className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
-          >
-            🏠 ホーム
-          </Link>
 
-          <Link
-            href="/asanas"
-            onClick={() => setOpen(false)}
-            className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
-          >
-            📚 一覧
-          </Link>
+          {user ? (
+            <>
+              <Link
+                href="/"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
+              >
+                🏠 ホーム
+              </Link>
 
-          <Link
-            href="/asana-create"
-            onClick={() => setOpen(false)}
-            className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
-          >
-            ➕ 新規登録
-          </Link>
+              <Link
+                href="/asanas"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
+              >
+                📚 一覧
+              </Link>
 
-          <Link
-            href="/sequences"
-            onClick={() => setOpen(false)}
-            className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
-          >
-            🧘‍♀️ シークエンス
-          </Link>
+              <Link
+                href="/asana-create"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
+              >
+                ➕ 新規登録
+              </Link>
 
-          <Link
-  href="/today-asana"
-  onClick={() => setOpen(false)}
-  className="rounded-lg px-3 py-2 transition hover:bg-violet-50 hover:text-violet-700"
->
-  🌙 今日のおすすめ
-</Link>
+              <Link
+                href="/sequences"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100"
+              >
+                🧘‍♀️ シークエンス
+              </Link>
 
-<Link
-  href="/presets"
-  onClick={() => setOpen(false)}
-  className="rounded-lg px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
->
-  📦 テンプレート
-</Link>
+              <Link
+                href="/today-asana"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2 transition hover:bg-violet-50 hover:text-violet-700"
+              >
+                🌙 今日のおすすめ
+              </Link>
 
-          <Link
-            href="/mypage"
-            onClick={() => setOpen(false)}
-            className="rounded-lg px-3 py-2 transition hover:bg-sky-50 hover:text-sky-700"
-          >
-            👤 マイページ
-          </Link>
+              <Link
+                href="/presets"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
+              >
+                📦 テンプレート
+              </Link>
 
-          <Link
-  href="/admin"
-  onClick={() => setOpen(false)}
-  className="rounded-lg px-3 py-2 transition hover:bg-amber-50 hover:text-amber-700"
->
-  🔒 管理者ルーム
-</Link>
+              <Link
+                href="/mypage"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2 transition hover:bg-sky-50 hover:text-sky-700"
+              >
+                👤 マイページ
+              </Link>
+
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2 transition hover:bg-amber-50 hover:text-amber-700"
+              >
+                🔒 管理者ルーム
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/demo"
+                onClick={() => setOpen(false)}
+                className="rounded-lg bg-violet-50 px-3 py-2 font-bold text-violet-700 transition hover:bg-violet-100"
+              >
+                👀 登録なしで体験
+              </Link>
+
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2 font-bold text-gray-700 transition hover:bg-gray-100"
+              >
+                🔑 ログイン・新規登録
+              </Link>
+            </>
+          )}
 
           <div className="mt-6 border-t pt-6">
             <p className="mb-3 px-3 text-xs font-bold uppercase tracking-widest text-gray-400">
@@ -188,6 +216,7 @@ export default function Header() {
             </p>
 
             <div className="flex flex-col gap-2 text-sm">
+
               <Link
                 href="/guide"
                 onClick={() => setOpen(false)}
@@ -196,13 +225,15 @@ export default function Header() {
                 📖 使い方ガイド
               </Link>
 
-              <Link
-                href="/contact"
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2 text-gray-600 transition hover:bg-sky-50 hover:text-sky-700"
-              >
-                📩 お問い合わせ
-              </Link>
+              {user && (
+                <Link
+                  href="/contact"
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-3 py-2 text-gray-600 transition hover:bg-sky-50 hover:text-sky-700"
+                >
+                  📩 お問い合わせ
+                </Link>
+              )}
 
               <Link
                 href="/disclaimer"
@@ -220,15 +251,19 @@ export default function Header() {
                 🔒 プライバシーポリシー
               </Link>
 
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100"
-              >
-                🚪 ログアウト
-              </button>
+              {user && (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100"
+                >
+                  🚪 ログアウト
+                </button>
+              )}
+
             </div>
           </div>
+
         </nav>
       </aside>
     </>
