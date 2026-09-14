@@ -234,6 +234,14 @@ export default function Header() {
               </Link>
 
               <Link
+  href="/asanas"
+  onClick={() => setOpen(false)}
+  className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-violet-50 hover:text-violet-700"
+>
+  📚 辞書体験
+</Link>
+
+              <Link
                 href="/sequences"
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-sky-50 hover:text-sky-700"

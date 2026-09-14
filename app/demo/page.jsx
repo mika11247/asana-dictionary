@@ -59,28 +59,28 @@ export default function DemoHome() {
         ========================= */}
         <div className="w-full space-y-4">
 
-          {/* 一覧 */}
-          <Link href="/demo/dictionary">
-            <div className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
-              <div className="flex items-center gap-4">
+         {/* 一覧 */}
+<Link href="/asanas">
+  <div className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm transition hover:scale-[1.02] hover:shadow-md">
+    <div className="flex items-center gap-4">
 
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-100 text-2xl">
-                  📚
-                </div>
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-100 text-2xl">
+        📚
+      </div>
 
-                <div>
-                  <h2 className="text-lg font-bold text-gray-800">
-                    一覧
-                  </h2>
+      <div>
+        <h2 className="text-lg font-bold text-gray-800">
+          一覧
+        </h2>
 
-                  <p className="text-sm text-gray-500">
-                    ポーズ・エクササイズ・種目を確認
-                  </p>
-                </div>
+        <p className="text-sm text-gray-500">
+          ポーズ・エクササイズ・種目を確認
+        </p>
+      </div>
 
-              </div>
-            </div>
-          </Link>
+    </div>
+  </div>
+</Link>
 
 
           {/* 新規登録 */}
