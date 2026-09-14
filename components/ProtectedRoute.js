@@ -16,7 +16,8 @@ const PUBLIC_PATHS = [
 
   // ゲスト体験
   '/sequences',
-  '/presets',
+  '/presets'
+  /asanas,
 ]
 
 export default function ProtectedRoute({ children }) {

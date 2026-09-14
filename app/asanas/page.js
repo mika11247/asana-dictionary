@@ -41,27 +41,38 @@ const [selectedTypes, setSelectedTypes] = useState([])
     fetchAsanas()
   }, [])
 
-  async function fetchAsanas() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    
-    if (!user) return
-    
-    const { data, error } = await supabase
+ async function fetchAsanas() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  let query
+
+  if (user) {
+    // ログイン中 → 自分の辞書
+    query = supabase
       .from('asanas')
       .select('*')
       .eq('user_id', user.id)
       .order('yomi', { ascending: true, nullsFirst: false })
-.order('created_at', { ascending: false })
-
-    if (error) {
-      console.error(error)
-      return
-    }
-
-    setAsanas(data || [])
+      .order('created_at', { ascending: false })
+  } else {
+    // ゲスト → 新規登録時の初期辞書
+    query = supabase
+      .from('initial_asanas')
+      .select('*')
+      .order('created_at', { ascending: true })
   }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('辞書取得エラー:', error)
+    return
+  }
+
+  setAsanas(data || [])
+}
 
   async function handleDelete(id) {
     const ok = window.confirm('このアーサナを削除しますか？')
