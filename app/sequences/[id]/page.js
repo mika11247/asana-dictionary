@@ -1162,7 +1162,6 @@ if (items.length >= limits.sequenceItems) {
   </div>
 </div>
 
-{!isGuest && (
 <section className="no-print mb-8 rounded-3xl 
         border border-white/70 backdrop-blur-md p-5 shadow-sm backdrop-blur">
 
@@ -1305,7 +1304,6 @@ if (items.length >= limits.sequenceItems) {
     </div>
   )}
 </section>
-)}
 
 <section className="mb-8 rounded-3xl border border-white/70 bg-white/90 p-6 shadow-sm">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
