@@ -227,8 +227,6 @@ export default function SequencesPage() {
         return
       }
 
-      setDemoSequence(sequence)
-
       const { data: items, error: itemsError } = await supabase
         .from('initial_sequence_items')
         .select('*')
@@ -237,9 +235,44 @@ export default function SequencesPage() {
 
       if (itemsError) throw itemsError
 
-      setDemoItems(items || [])
+      const { data: initialAsanas, error: asanasError } = await supabase
+        .from('initial_asanas')
+        .select('*')
+
+      if (asanasError) throw asanasError
+
+      const asanaByPresetKey = new Map(
+        (initialAsanas || [])
+          .filter((asana) => asana.preset_key)
+          .map((asana) => [asana.preset_key, asana])
+      )
+
+      const mergedItems = (items || []).map((item) => {
+        if (item.type !== 'asana') return item
+
+        const asana = item.preset_key
+          ? asanaByPresetKey.get(item.preset_key)
+          : null
+
+        return {
+          ...item,
+          asana,
+          asana_title: asana?.title || item.asana_title || '',
+          asana_sanskrit: asana?.sanskrit || item.asana_sanskrit || '',
+          image_url: asana?.image_url || null,
+        }
+      })
+
+      setDemoSequence({
+        ...sequence,
+        id: 'guest-surya-namaskar-a',
+        created_at: sequence.created_at || new Date().toISOString(),
+        position: 1,
+      })
+
+      setDemoItems(mergedItems)
     } catch (error) {
-      console.error('デモシークエンス取得エラー:', error)
+      console.error('ゲストシークエンス取得エラー:', error)
       setDemoSequence(null)
       setDemoItems([])
     } finally {
@@ -312,6 +345,11 @@ export default function SequencesPage() {
   ===================================================== */
 
   async function deleteSequence(id) {
+    if (!user) {
+      requireLogin()
+      return
+    }
+
     const ok = confirm('削除しますか？')
     if (!ok) return
 
@@ -334,6 +372,11 @@ export default function SequencesPage() {
   ===================================================== */
 
   async function editSequence(sequence) {
+    if (!user) {
+      requireLogin()
+      return
+    }
+
     const newTitle = prompt(
       'シークエンス名を編集',
       sequence.title
@@ -529,153 +572,220 @@ export default function SequencesPage() {
 
 
   /* =====================================================
-     GUEST DEMO
+     GUEST
   ===================================================== */
 
   if (!user) {
     return (
       <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-6">
-
         <div className="mx-auto max-w-3xl">
 
           <div className="mb-6 rounded-3xl border border-violet-100 bg-white/90 p-6 shadow-sm backdrop-blur">
-
-            <Link
-              href="/demo"
-              className="text-sm text-sky-600"
-            >
-              ← デモへ戻る
-            </Link>
-
-            <p className="mb-2 mt-4 text-sm font-medium text-violet-500">
+            <p className="mb-2 text-sm font-medium text-violet-500">
               Sequence
             </p>
 
-            <h1 className="text-3xl font-bold leading-tight text-gray-800">
-              🌙 シークエンス
-            </h1>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h1 className="text-3xl font-bold leading-tight text-gray-800">
+                  🌙 シークエンス
+                </h1>
 
-            <p className="mt-2 text-sm leading-relaxed text-gray-500">
-              レッスン構成を作成・保存できる機能です。
-              デモでは、初期登録されるシークエンスを実際に見ることができます✨
-            </p>
+                <p className="mt-2 text-sm leading-relaxed text-gray-500">
+                  レッスン構成を作成・複製・並び替えできます
+                </p>
 
-            <div className="mt-5 rounded-2xl bg-gradient-to-r from-sky-50 to-violet-50 p-4 ring-1 ring-violet-100">
-
-              <p className="text-sm font-bold text-violet-700">
-                👀 デモ体験中
-              </p>
-
-              <p className="mt-1 text-xs leading-6 text-gray-600">
-                無料登録すると、太陽礼拝Aが初期シークエンスとして利用でき、
-                自分だけのシークエンスも作成・編集できます。
-              </p>
-
+                <button
+                  type="button"
+                  onClick={createSequence}
+                  className="mt-4 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:scale-[1.02]"
+                >
+                  ＋ 作成 🔒
+                </button>
+              </div>
             </div>
-
-            <button
-              type="button"
-              onClick={requireLogin}
-              className="mt-5 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:scale-[1.02]"
-            >
-              ＋ シークエンスを作成
-            </button>
-
           </div>
 
+          <div className="mb-6 rounded-3xl border border-violet-100 bg-gradient-to-r from-sky-50 to-violet-50 p-4 shadow-sm">
+            <p className="font-bold text-violet-700">
+              👀 ゲスト体験中
+            </p>
 
-          {/* 太陽礼拝A */}
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              新規登録後に入る初期シークエンスを体験しています。
+              閲覧はできますが、作成・編集・複製・削除・並び替えには無料登録が必要です。
+            </p>
+          </div>
+
+          <div className="mb-6 rounded-3xl border border-white/70 bg-white/80 p-4 text-sm text-gray-500 shadow-sm backdrop-blur">
+            <p>
+              現在のシークエンス：{' '}
+              <span className="font-bold text-gray-700">
+                {demoSequence ? 1 : 0}
+              </span>
+              件
+            </p>
+
+            <p className="mt-1 text-xs text-gray-400">
+              🔒 無料登録後は、☰ を長押し・ドラッグして並び替えできます
+            </p>
+          </div>
 
           {demoSequence ? (
-            <div className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm backdrop-blur">
+            <div className="space-y-4">
+              <div className="block rounded-3xl border border-white/70 bg-white/90 p-4 shadow-sm backdrop-blur">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
 
-              <div className="flex items-start justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={requireLogin}
+                      className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-400"
+                    >
+                      ☰
+                    </button>
 
-                <div>
-                  <p className="mb-1 text-xs font-medium text-violet-400">
-                    INITIAL SEQUENCE
-                  </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="mb-1 text-xs font-medium text-violet-400">
+                        Sequence
+                      </p>
 
-                  <h2 className="text-xl font-bold text-gray-800">
-                    {demoSequence.title}
-                  </h2>
+                      <button
+                        type="button"
+                        onClick={() => setDemoOpen(!demoOpen)}
+                        className="block w-full text-left"
+                      >
+                        <h2 className="line-clamp-2 break-words text-lg font-bold leading-snug text-gray-800">
+                          {demoSequence.title}
+                        </h2>
 
-                  {demoSequence.memo && (
-                    <p className="mt-2 text-sm leading-relaxed text-gray-500">
-                      {demoSequence.memo}
-                    </p>
-                  )}
+                        {demoSequence.memo && (
+                          <p className="mt-2 line-clamp-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-500">
+                            {demoSequence.memo}
+                          </p>
+                        )}
+                      </button>
+
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <p className="text-xs text-gray-400">
+                          初期シークエンス / {demoItems.filter((item) => item.type === 'asana').length}ポーズ
+                        </p>
+
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={requireLogin}
+                            className="rounded-full bg-white px-2 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-200 transition hover:bg-gray-50"
+                          >
+                            ✏️
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={requireLogin}
+                            className="rounded-full bg-white px-2 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-200 transition hover:bg-gray-50"
+                          >
+                            📄
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={requireLogin}
+                            className="rounded-full bg-white px-2 py-1 text-xs font-medium text-red-500 ring-1 ring-gray-200 transition hover:bg-red-50"
+                          >
+                            🗑
+                          </button>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setDemoOpen(!demoOpen)}
+                        className="mt-4 w-full rounded-2xl border border-violet-100 bg-violet-50 px-4 py-2.5 text-sm font-bold text-violet-600 transition hover:bg-violet-100"
+                      >
+                        {demoOpen ? '閉じる ▲' : '詳細を見る ▼'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-
-                <span className="shrink-0 rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-600">
-                  初期登録
-                </span>
-
               </div>
 
-
-              <button
-                type="button"
-                onClick={() => setDemoOpen(!demoOpen)}
-                className="mt-5 w-full rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-600 transition hover:bg-violet-100"
-              >
-                {demoOpen
-                  ? 'シークエンスを閉じる ▲'
-                  : 'シークエンスを見る ▼'}
-              </button>
-
-
               {demoOpen && (
-                <div className="mt-4 space-y-2">
-
-                  {demoItems.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className="flex items-start gap-3 rounded-2xl bg-gray-50 p-3"
-                    >
-
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-gray-400 shadow-sm">
-                        {index + 1}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-
-                        {item.type === 'asana' && (
-                          <>
-                            <p className="text-sm font-bold text-gray-700">
-                              {item.asana_title}
-                            </p>
-
-                            {item.asana_sanskrit && (
-                              <p className="mt-0.5 text-xs text-gray-400">
-                                {item.asana_sanskrit}
-                              </p>
-                            )}
-                          </>
-                        )}
-
-                        {item.type === 'section' && (
-                          <p className="text-sm font-bold text-violet-600">
-                            {item.section_title}
-                          </p>
-                        )}
-
-                        {item.type === 'memo' && (
-                          <p className="text-sm leading-relaxed text-gray-600">
-                            {item.memo}
-                          </p>
-                        )}
-
-                      </div>
+                <div className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm backdrop-blur">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-medium text-violet-400">
+                        Sequence Detail
+                      </p>
+                      <h2 className="mt-1 text-xl font-bold text-gray-800">
+                        ☀️ {demoSequence.title}
+                      </h2>
                     </div>
-                  ))}
 
+                    <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-600">
+                      初期登録
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {demoItems.map((item, index) => (
+                      <div
+                        key={item.id || `${item.type}-${index}`}
+                        className="flex items-start gap-3 rounded-2xl bg-gray-50 p-3"
+                      >
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-gray-400 shadow-sm">
+                          {index + 1}
+                        </div>
+
+                        {item.type === 'asana' && item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.asana_title}
+                            className="h-12 w-12 shrink-0 rounded-xl bg-white object-contain p-1 shadow-sm"
+                          />
+                        ) : null}
+
+                        <div className="min-w-0 flex-1">
+                          {item.type === 'asana' && (
+                            <>
+                              <p className="text-sm font-bold text-gray-700">
+                                {item.asana_title}
+                              </p>
+
+                              {item.asana_sanskrit && (
+                                <p className="mt-0.5 text-xs text-gray-400">
+                                  {item.asana_sanskrit}
+                                </p>
+                              )}
+
+                              {item.memo && (
+                                <p className="mt-1 text-xs leading-5 text-gray-500">
+                                  {item.memo}
+                                </p>
+                              )}
+                            </>
+                          )}
+
+                          {item.type === 'section' && (
+                            <p className="text-sm font-bold text-violet-600">
+                              {item.section_title}
+                            </p>
+                          )}
+
+                          {item.type === 'memo' && (
+                            <p className="text-sm leading-relaxed text-gray-600">
+                              {item.memo}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
                   <div className="mt-5 rounded-2xl bg-violet-50 p-4">
-
                     <p className="text-xs leading-6 text-gray-600">
-                      🔒 無料登録すると、このシークエンスを実際に編集したり、
-                      自分のレッスン用にアレンジできます。
+                      🔒 無料登録すると、このシークエンスを編集・複製したり、
+                      登録済みのアーサナを使って自分のシークエンスを作れます。
                     </p>
 
                     <button
@@ -685,16 +795,15 @@ export default function SequencesPage() {
                     >
                       無料で使ってみる
                     </button>
-
                   </div>
-
                 </div>
               )}
-
             </div>
           ) : (
-            <div className="rounded-3xl bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
-              デモ用シークエンスを読み込めませんでした。
+            <div className="rounded-3xl border border-white/70 bg-white/90 p-8 text-center shadow-sm backdrop-blur">
+              <p className="font-bold text-gray-700">
+                初期シークエンスを読み込めませんでした
+              </p>
             </div>
           )}
 
