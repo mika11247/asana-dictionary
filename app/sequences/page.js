@@ -59,13 +59,11 @@ function SortableSequenceCard({
 
   return (
     <Link
-      href={isGuest ? '#' : `/sequences/${sequence.id}`}
-      onClick={(e) => {
-        if (isGuest) {
-          e.preventDefault()
-          requireLogin?.()
-        }
-      }}
+      href={
+        isGuest
+          ? '/sequences/guest-surya-namaskar-a'
+          : `/sequences/${sequence.id}`
+      }
       ref={setNodeRef}
       style={style}
       className="block rounded-3xl border border-white/70 bg-white/90 p-4 shadow-sm backdrop-blur transition hover:shadow-md"

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -523,7 +523,20 @@ export default function SequenceDetailPage() {
   const [viewMode, setViewMode] = useState('card')
   const [addPanelOpen, setAddPanelOpen] = useState(true)
 
-  const { profile } = useAuth()
+  const { user, profile } = useAuth()
+  const router = useRouter()
+  const isGuest = !user
+  const isGuestSequence = sequenceId === 'guest-surya-namaskar-a'
+
+  function requireLogin() {
+    const ok = window.confirm(
+      '🔒 この機能は無料登録後に利用できます✨\n\n無料登録すると、自分のシークエンスを作成・編集・保存できます。\n\n無料登録しますか？'
+    )
+
+    if (ok) {
+      router.push('/login?mode=signup')
+    }
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -535,71 +548,149 @@ export default function SequenceDetailPage() {
 
   useEffect(() => {
     fetchData()
-  }, [sequenceId])
+  }, [sequenceId, user])
 
   async function fetchData() {
     setLoading(true)
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    
-    if (!user) {
-      setLoading(false)
-      return
-    }
-    
-    const { data: sequenceData } = await supabase
-      .from('sequences')
-      .select('*')
-      .eq('id', sequenceId)
-      .eq('user_id', user.id)
-      .single()
+    try {
+      // ゲスト用：太陽礼拝Aを初期データから読み込む
+      if (!user && isGuestSequence) {
+        const { data: sequenceData, error: sequenceError } = await supabase
+          .from('initial_sequences')
+          .select('*')
+          .eq('preset_key', 'surya_namaskar_a')
+          .maybeSingle()
 
-    const { data: itemData } = await supabase
-      .from('sequence_items')
-      .select(`
-        id,
-        type,
-        memo,
-        section_title,
-        position,
-        asana_id,
-        asanas (
-  id,
-  title,
-  alias,
-  sanskrit,
-  image_url,
-  types,
-  chakras,
-  howto,
-  effect,
-  caution,
-  variation,
-  note,
-  strength,
-  flexibility,
-  modification
-)
-      `)
-      .eq('sequence_id', sequenceId)
-      .eq('user_id', user.id)
-      .order('position', { ascending: true })
-      
+        if (sequenceError) throw sequenceError
+
+        if (!sequenceData) {
+          setSequence(null)
+          setItems([])
+          setAsanas([])
+          return
+        }
+
+        const { data: itemData, error: itemError } = await supabase
+          .from('initial_sequence_items')
+          .select('*')
+          .eq('initial_sequence_id', sequenceData.id)
+          .order('position', { ascending: true })
+
+        if (itemError) throw itemError
+
+        const { data: asanaData, error: asanaError } = await supabase
+          .from('initial_asanas')
+          .select('*')
+          .order('created_at', { ascending: true })
+
+        if (asanaError) throw asanaError
+
+        const asanaByPresetKey = new Map(
+          (asanaData || [])
+            .filter((asana) => asana.preset_key)
+            .map((asana) => [asana.preset_key, asana])
+        )
+
+        const mergedItems = (itemData || []).map((item) => {
+          if (item.type !== 'asana') return item
+
+          const matchedAsana = item.preset_key
+            ? asanaByPresetKey.get(item.preset_key)
+            : null
+
+          return {
+            ...item,
+            asanas: matchedAsana || {
+              id: item.preset_key || item.id,
+              title: item.asana_title || 'アーサナ',
+              sanskrit: item.asana_sanskrit || '',
+              alias: '',
+              image_url: null,
+              types: item.types || [],
+              chakras: [],
+              howto: '',
+              effect: '',
+            },
+          }
+        })
+
+        setSequence(sequenceData)
+        setItems(mergedItems)
+        setAsanas(asanaData || [])
+        return
+      }
+
+      // 未ログインでゲスト用URL以外に来た場合
+      if (!user) {
+        router.replace('/sequences')
+        return
+      }
+
+      // ログイン後：従来どおりユーザーのデータを読む
+      const { data: sequenceData } = await supabase
+        .from('sequences')
+        .select('*')
+        .eq('id', sequenceId)
+        .eq('user_id', user.id)
+        .single()
+
+      const { data: itemData } = await supabase
+        .from('sequence_items')
+        .select(`
+          id,
+          type,
+          memo,
+          section_title,
+          position,
+          asana_id,
+          asanas (
+            id,
+            title,
+            alias,
+            sanskrit,
+            image_url,
+            types,
+            chakras,
+            howto,
+            effect,
+            caution,
+            variation,
+            note,
+            strength,
+            flexibility,
+            modification
+          )
+        `)
+        .eq('sequence_id', sequenceId)
+        .eq('user_id', user.id)
+        .order('position', { ascending: true })
+
       const { data: asanaData } = await supabase
         .from('asanas')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
-    setSequence(sequenceData)
-    setItems(itemData || [])
-    setAsanas(asanaData || [])
-    setLoading(false)
+      setSequence(sequenceData)
+      setItems(itemData || [])
+      setAsanas(asanaData || [])
+    } catch (error) {
+      console.error('シークエンス取得エラー:', error)
+      setSequence(null)
+      setItems([])
+      setAsanas([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function addAsana(asanaId) {
+    if (isGuest) {
+      requireLogin()
+      return
+    }
+
 
     const limits = getPlanLimits(profile?.plan)
 
@@ -634,6 +725,11 @@ if (items.length >= limits.sequenceItems) {
   }
 
   async function toggleFavorite(asana) {
+    if (isGuest) {
+      requireLogin()
+      return
+    }
+
     const { error } = await supabase
       .from('asanas')
       .update({
@@ -650,12 +746,22 @@ if (items.length >= limits.sequenceItems) {
   }
 
   function addMemo() {
+    if (isGuest) {
+      requireLogin()
+      return
+    }
+
     setEditingMemo(null)
     setMemoText('')
     setMemoModalOpen(true)
   }
 
   async function addSection() {
+    if (isGuest) {
+      requireLogin()
+      return
+    }
+
 
     const limits = getPlanLimits(profile?.plan)
 
@@ -694,12 +800,22 @@ if (items.length >= limits.sequenceItems) {
   }
 
   function editMemo(item) {
+    if (isGuest) {
+      requireLogin()
+      return
+    }
+
     setEditingMemo(item)
     setMemoText(item.memo || '')
     setMemoModalOpen(true)
   }
 
   async function editSection(item) {
+    if (isGuest) {
+      requireLogin()
+      return
+    }
+
     const sectionTitle = prompt('セクション名を編集', item.section_title || '')
     if (sectionTitle === null) return
     if (!sectionTitle.trim()) return
@@ -726,6 +842,11 @@ if (items.length >= limits.sequenceItems) {
   }
 
   async function saveMemo() {
+    if (isGuest) {
+      requireLogin()
+      return
+    }
+
 
     const {
       data: { user },
@@ -781,6 +902,11 @@ if (items.length >= limits.sequenceItems) {
   }
 
   async function editSequence() {
+    if (isGuest) {
+      requireLogin()
+      return
+    }
+
     const newTitle = prompt('シークエンス名を編集', sequence?.title || '')
     if (newTitle === null) return
     if (!newTitle.trim()) return
@@ -805,6 +931,11 @@ if (items.length >= limits.sequenceItems) {
   }
   
   async function deleteSequence() {
+    if (isGuest) {
+      requireLogin()
+      return
+    }
+
     const ok = confirm('このシークエンスを削除しますか？')
     if (!ok) return
   
@@ -822,6 +953,11 @@ if (items.length >= limits.sequenceItems) {
   }
 
   async function removeItem(itemId) {
+    if (isGuest) {
+      requireLogin()
+      return
+    }
+
     const ok = confirm('このアイテムを削除しますか？')
     if (!ok) return
 
@@ -839,6 +975,11 @@ if (items.length >= limits.sequenceItems) {
   }
 
   async function handleDragEnd(event) {
+    if (isGuest) {
+      requireLogin()
+      return
+    }
+
     const { active, over } = event
 
     if (!over || active.id === over.id) return
@@ -926,6 +1067,16 @@ if (items.length >= limits.sequenceItems) {
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-6">
       <div className="mx-auto max-w-4xl">
+        {isGuest && (
+          <div className="no-print mb-6 rounded-3xl border border-violet-100 bg-gradient-to-r from-sky-50 to-violet-50 p-4 shadow-sm">
+            <p className="font-bold text-violet-700">👀 ゲスト体験中</p>
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              太陽礼拝Aのシークエンス内容を実際の画面で体験しています。
+              閲覧はできますが、追加・編集・削除・並び替えには無料登録が必要です。
+            </p>
+          </div>
+        )}
+
       <div className="print-title-card mb-6 rounded-3xl border border-violet-100 bg-white/90 p-6 shadow-sm backdrop-blur">
       <div className="no-print flex items-center justify-between">
   <Link
@@ -1011,6 +1162,7 @@ if (items.length >= limits.sequenceItems) {
   </div>
 </div>
 
+{!isGuest && (
 <section className="no-print mb-8 rounded-3xl 
         border border-white/70 backdrop-blur-md p-5 shadow-sm backdrop-blur">
 
@@ -1153,6 +1305,7 @@ if (items.length >= limits.sequenceItems) {
     </div>
   )}
 </section>
+)}
 
 <section className="mb-8 rounded-3xl border border-white/70 bg-white/90 p-6 shadow-sm">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
