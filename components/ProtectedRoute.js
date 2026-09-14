@@ -13,11 +13,9 @@ const PUBLIC_PATHS = [
   '/guide',
   '/disclaimer',
   '/demo',
-
-  // ゲスト体験
   '/sequences',
-  '/presets'
-  /asanas,
+  '/presets',
+  '/asanas',
 ]
 
 export default function ProtectedRoute({ children }) {
