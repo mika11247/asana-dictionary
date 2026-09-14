@@ -14,6 +14,7 @@ const PUBLIC_PATHS = [
   '/disclaimer',
   '/demo',
   '/sequences',
+  '/sequences/guest-surya-namaskar-a',
   '/presets',
   '/asanas',
 ]
