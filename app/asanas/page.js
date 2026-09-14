@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/components/AuthProvider'
 import { supabase } from '@/lib/supabaseClient'
 
 import {
@@ -15,6 +17,9 @@ import {
 } from '@/lib/categories'
 
 export default function AsanaListPage() {
+  const { user } = useAuth()
+  const router = useRouter()
+
   const [asanas, setAsanas] = useState([])
   const [openId, setOpenId] = useState(null)
   const [searchText, setSearchText] = useState('')
@@ -37,15 +42,21 @@ const [selectedTypes, setSelectedTypes] = useState([])
 
   const [selectedMainCategories, setSelectedMainCategories] = useState([])
 
+  function requireLogin(feature = 'この機能') {
+    const ok = window.confirm(
+      `🔒 ${feature}は無料登録後に利用できます✨\n\n無料登録すると、自分の辞書を作成・編集・保存できます。\n\n無料登録しますか？`
+    )
+
+    if (ok) {
+      router.push('/login?mode=signup')
+    }
+  }
+
   useEffect(() => {
     fetchAsanas()
-  }, [])
+  }, [user])
 
  async function fetchAsanas() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
   let query
 
   if (user) {
@@ -75,6 +86,11 @@ const [selectedTypes, setSelectedTypes] = useState([])
 }
 
   async function handleDelete(id) {
+    if (!user) {
+      requireLogin('削除')
+      return
+    }
+
     const ok = window.confirm('このアーサナを削除しますか？')
     if (!ok) return
 
@@ -90,18 +106,23 @@ const [selectedTypes, setSelectedTypes] = useState([])
   }
 
   async function toggleFavorite(asana) {
+    if (!user) {
+      requireLogin('お気に入り')
+      return
+    }
+
     const { error } = await supabase
       .from('asanas')
       .update({
         favorite: !asana.favorite,
       })
       .eq('id', asana.id)
-  
+
     if (error) {
       alert('お気に入り更新エラー')
       return
     }
-  
+
     fetchAsanas()
   }
 
@@ -285,14 +306,34 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
 
     </div>
 
-    <Link
-      href="/asana-create"
-      className="no-print shrink-0 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm"
-    >
-      ＋ 登録
-    </Link>
+    {user ? (
+      <Link
+        href="/asana-create"
+        className="no-print shrink-0 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm"
+      >
+        ＋ 登録
+      </Link>
+    ) : (
+      <button
+        type="button"
+        onClick={() => requireLogin('新しい動きの登録')}
+        className="no-print shrink-0 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm"
+      >
+        ＋ 登録 🔒
+      </button>
+    )}
   </div>
 </div>
+
+        {!user && (
+          <div className="no-print mb-6 rounded-3xl border border-violet-100 bg-gradient-to-r from-sky-50 to-violet-50 p-4 shadow-sm">
+            <p className="text-sm font-bold text-violet-700">👀 ゲスト体験中</p>
+            <p className="mt-1 text-xs leading-6 text-gray-600">
+              新規登録後に入る初期辞書を体験しています。検索・絞り込み・詳細表示はそのまま使えます。
+              追加・編集・お気に入り・削除・PDF出力には無料登録が必要です。
+            </p>
+          </div>
+        )}
 
         <section className="no-print mb-6 rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm backdrop-blur">
           <input
@@ -391,7 +432,13 @@ selectedMainCategories.length === 0 &&
 
       <button
         type="button"
-        onClick={() => setFavoritesOnly(!favoritesOnly)}
+        onClick={() => {
+          if (!user) {
+            requireLogin('お気に入り絞り込み')
+            return
+          }
+          setFavoritesOnly(!favoritesOnly)
+        }}
         className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
           favoritesOnly
             ? 'border-yellow-400 bg-yellow-400 text-white'
@@ -644,12 +691,26 @@ selectedMainCategories.length === 0 &&
                             {isOpen && (
                               <div className="mt-3 border-t border-gray-100 pt-3">
                                 <div className="flex justify-end gap-2">
-  <Link
-    href={`/asanas/${asana.id}/edit`}
-    className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
-  >
-    ✏️
-  </Link>
+  {user ? (
+    <Link
+      href={`/asanas/${asana.id}/edit`}
+      onClick={(e) => e.stopPropagation()}
+      className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
+    >
+      ✏️
+    </Link>
+  ) : (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        requireLogin('編集')
+      }}
+      className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
+    >
+      ✏️
+    </button>
+  )}
 
   <button
     type="button"
@@ -725,13 +786,26 @@ selectedMainCategories.length === 0 &&
                               </div>
                       
                               <div className="flex shrink-0 items-center gap-1">
-  <Link
-    href={`/asanas/${asana.id}/edit`}
-    onClick={(e) => e.stopPropagation()}
-    className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
-  >
-    ✏️
-  </Link>
+  {user ? (
+    <Link
+      href={`/asanas/${asana.id}/edit`}
+      onClick={(e) => e.stopPropagation()}
+      className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
+    >
+      ✏️
+    </Link>
+  ) : (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        requireLogin('編集')
+      }}
+      className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
+    >
+      ✏️
+    </button>
+  )}
 
   <button
     type="button"
@@ -751,12 +825,26 @@ selectedMainCategories.length === 0 &&
                             {isOpen && (
                               <div className="mt-3 border-t border-gray-100 pt-3">
                                 <div className="flex justify-end gap-2">
-  <Link
-    href={`/asanas/${asana.id}/edit`}
-    className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
-  >
-    ✏️
-  </Link>
+  {user ? (
+    <Link
+      href={`/asanas/${asana.id}/edit`}
+      onClick={(e) => e.stopPropagation()}
+      className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
+    >
+      ✏️
+    </Link>
+  ) : (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        requireLogin('編集')
+      }}
+      className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
+    >
+      ✏️
+    </button>
+  )}
 
   <button
     type="button"
@@ -869,12 +957,26 @@ selectedMainCategories.length === 0 &&
 
 <div className="flex justify-end gap-2">
 
-  <Link
-    href={`/asanas/${asana.id}/edit`}
-    className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
-  >
-    ✏️
-  </Link>
+  {user ? (
+    <Link
+      href={`/asanas/${asana.id}/edit`}
+      onClick={(e) => e.stopPropagation()}
+      className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
+    >
+      ✏️
+    </Link>
+  ) : (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        requireLogin('編集')
+      }}
+      className="rounded-full border border-yellow-200 bg-white px-2.5 py-1 text-sm text-yellow-600 transition hover:bg-yellow-50"
+    >
+      ✏️
+    </button>
+  )}
 
   <button
     type="button"
@@ -888,6 +990,10 @@ selectedMainCategories.length === 0 &&
     type="button"
     onClick={(e) => {
       e.stopPropagation()
+      if (!user) {
+        requireLogin('PDF出力')
+        return
+      }
       setPrintingAsanaId(asana.id)
 
       setTimeout(() => {
