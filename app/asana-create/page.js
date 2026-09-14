@@ -20,7 +20,7 @@ import { PLAN_UI } from '@/lib/planUI'
 
 export default function AsanaCreatePage() {
 
-  const { profile } = useAuth()
+  const { user, profile } = useAuth()
 
   const router = useRouter()
 
@@ -136,6 +136,19 @@ export default function AsanaCreatePage() {
 
   const handleSubmit = async (e) => {
   e.preventDefault()
+
+  if (!user) {
+    const ok = window.confirm(
+      '🔒 アーサナの登録には無料登録が必要です✨\n\n無料登録すると、オリジナルのポーズ・エクササイズ・種目を自分の辞書に追加して、シークエンス作成にも使用できます。\n\n無料登録しますか？'
+    )
+
+    if (ok) {
+      router.push('/login?mode=signup')
+    }
+
+    return
+  }
+
   setLoading(true)
 
   try {
@@ -229,6 +242,18 @@ user_id: user.id,
             ポーズ・エクササイズ・種目のメモを記録して、自分だけの辞書を育てよう
           </p>
         </div>
+
+        {!user && (
+          <div className="mb-6 rounded-3xl border border-violet-100 bg-gradient-to-r from-sky-50 to-violet-50 p-4 shadow-sm">
+            <p className="text-sm font-bold text-violet-700">
+              👀 ゲスト体験中
+            </p>
+            <p className="mt-1 text-xs leading-6 text-gray-600">
+              新規登録画面を実際に体験できます。各項目への入力やカテゴリ・タグの選択もお試しいただけます。
+              実際に辞書へ登録するには無料登録が必要です。
+            </p>
+          </div>
+        )}
 
         <form
           onSubmit={handleSubmit}
@@ -543,7 +568,7 @@ user_id: user.id,
             disabled={loading}
             className="w-full rounded-2xl bg-gradient-to-r from-sky-500 to-violet-500 px-6 py-4 text-base font-bold text-white shadow-md transition hover:scale-[1.01] hover:shadow-lg disabled:opacity-50"
           >
-            {loading ? '登録中...' : '登録する'}
+            {loading ? '登録中...' : user ? '登録する' : '登録する 🔒'}
           </button>
         </form>
       </div>

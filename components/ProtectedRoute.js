@@ -17,6 +17,7 @@ const PUBLIC_PATHS = [
   '/sequences/guest-surya-namaskar-a',
   '/presets',
   '/asanas',
+  '/asana-create',
 ]
 
 export default function ProtectedRoute({ children }) {

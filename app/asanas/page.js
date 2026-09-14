@@ -314,13 +314,12 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
         ＋ 登録
       </Link>
     ) : (
-      <button
-        type="button"
-        onClick={() => requireLogin('新しい動きの登録')}
-        className="no-print shrink-0 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm"
-      >
-        ＋ 登録 🔒
-      </button>
+      <Link
+  href="/asana-create"
+  className="no-print shrink-0 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm"
+>
+  ＋ 登録
+</Link>
     )}
   </div>
 </div>
