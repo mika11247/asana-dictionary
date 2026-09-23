@@ -16,6 +16,24 @@ import {
   CHAKRA_LABELS,
 } from '@/lib/categories'
 
+const PILATES_APPARATUS_LABELS = {
+  reformer: 'リフォーマー',
+  chair: 'チェア',
+  ladder_barrel: 'ラダーバレル',
+  tower_reformer: 'タワーリフォーマー',
+  spine_corrector: 'スパインコレクター',
+  cadillac: 'キャデラック',
+  caformer: 'キャフォーマー',
+}
+
+function formatApparatus(apparatus) {
+  if (!apparatus?.length) return ''
+
+  return apparatus
+    .map((item) => PILATES_APPARATUS_LABELS[item] || item)
+    .join('・')
+}
+
 export default function AsanaListPage() {
   const { user } = useAuth()
   const router = useRouter()
@@ -163,26 +181,39 @@ const isFilteringByType = selectedTypes.length > 0
   const keyword = searchText.trim().toLowerCase()
 
   const matchesSearch =
-    keyword === '' ||
-    asana.title?.toLowerCase().includes(keyword) ||
-    asana.yomi?.toLowerCase().includes(keyword) ||
-    asana.alias?.toLowerCase().includes(keyword) ||
-    asana.sanskrit?.toLowerCase().includes(keyword) ||
-    asana.howto?.toLowerCase().includes(keyword) ||
-    asana.effect?.toLowerCase().includes(keyword) ||
-    asana.caution?.toLowerCase().includes(keyword) ||
-    asana.variation?.toLowerCase().includes(keyword) ||
-    asana.adjustment?.toLowerCase().includes(keyword) ||
-    asana.note?.toLowerCase().includes(keyword) ||
-    asana.strength?.toLowerCase().includes(keyword) ||
-    asana.flexibility?.toLowerCase().includes(keyword) ||
-    asana.modification?.toLowerCase().includes(keyword) ||
-    asana.types?.some((type) =>
-      type.toLowerCase().includes(keyword)
-    ) ||
-    asana.chakras?.some((chakra) =>
-      chakra.toLowerCase().includes(keyword)
-    )
+  keyword === '' ||
+  asana.title?.toLowerCase().includes(keyword) ||
+  asana.yomi?.toLowerCase().includes(keyword) ||
+  asana.alias?.toLowerCase().includes(keyword) ||
+  asana.sanskrit?.toLowerCase().includes(keyword) ||
+  asana.howto?.toLowerCase().includes(keyword) ||
+  asana.effect?.toLowerCase().includes(keyword) ||
+  asana.caution?.toLowerCase().includes(keyword) ||
+  asana.variation?.toLowerCase().includes(keyword) ||
+  asana.adjustment?.toLowerCase().includes(keyword) ||
+  asana.note?.toLowerCase().includes(keyword) ||
+  asana.strength?.toLowerCase().includes(keyword) ||
+  asana.flexibility?.toLowerCase().includes(keyword) ||
+  asana.modification?.toLowerCase().includes(keyword) ||
+
+  // Pilates / Machine Pilates
+  asana.target?.toLowerCase().includes(keyword) ||
+  asana.equipment?.toLowerCase().includes(keyword) ||
+  asana.spring_setting?.toLowerCase().includes(keyword) ||
+  asana.apparatus?.some((item) => {
+    const value = item?.toLowerCase() || ''
+    const label =
+      PILATES_APPARATUS_LABELS[item]?.toLowerCase() || ''
+
+    return value.includes(keyword) || label.includes(keyword)
+  }) ||
+
+  asana.types?.some((type) =>
+    type.toLowerCase().includes(keyword)
+  ) ||
+  asana.chakras?.some((chakra) =>
+    chakra.toLowerCase().includes(keyword)
+  )
 
   const matchesType =
     selectedTypes.length === 0 ||
@@ -584,16 +615,42 @@ selectedMainCategories.length === 0 &&
       </div>
 
       <div className="print-grid grid gap-4 md:grid-cols-2">
-        <Info label="誘導" value={printingAsana.howto} />
-        <Info label="アジャスト" value={printingAsana.adjustment} />
-        <Info label="効果効能" value={printingAsana.effect} />
-        <Info label="メモ" value={printingAsana.note} />
-        <Info label="筋力" value={printingAsana.strength} />
-        <Info label="柔軟性" value={printingAsana.flexibility} />
-        <Info label="軽減法" value={printingAsana.modification} />
-        <Info label="注意" value={printingAsana.caution} />
-        <Info label="バリエーション" value={printingAsana.variation} />
-      </div>
+
+  {printingAsana.main_category === 'pilates' && (
+    <>
+      <Info
+        label="🎯 ターゲット部位"
+        value={printingAsana.target}
+      />
+
+      <Info
+        label="⚙️ マシン"
+        value={formatApparatus(printingAsana.apparatus)}
+      />
+
+      <Info
+        label="🧰 使用器具・パーツ"
+        value={printingAsana.equipment}
+      />
+
+      <Info
+        label="🟡 スプリング設定"
+        value={printingAsana.spring_setting}
+      />
+    </>
+  )}
+
+  <Info label="誘導" value={printingAsana.howto} />
+  <Info label="アジャスト" value={printingAsana.adjustment} />
+  <Info label="効果効能" value={printingAsana.effect} />
+  <Info label="注意" value={printingAsana.caution} />
+  <Info label="バリエーション" value={printingAsana.variation} />
+  <Info label="筋力" value={printingAsana.strength} />
+  <Info label="柔軟性" value={printingAsana.flexibility} />
+  <Info label="軽減法" value={printingAsana.modification} />
+  <Info label="メモ" value={printingAsana.note} />
+
+</div>
     </div>
   </div>
 )}
@@ -1061,6 +1118,31 @@ selectedMainCategories.length === 0 &&
 )}
 
 <div className="space-y-3">
+
+  {asana.main_category === 'pilates' && (
+    <>
+      <Info
+        label="🎯 ターゲット部位"
+        value={asana.target}
+      />
+
+      <Info
+        label="⚙️ マシン"
+        value={formatApparatus(asana.apparatus)}
+      />
+
+      <Info
+        label="🧰 使用器具・パーツ"
+        value={asana.equipment}
+      />
+
+      <Info
+        label="🟡 スプリング設定"
+        value={asana.spring_setting}
+      />
+    </>
+  )}
+
   <Info label="誘導" value={asana.howto} />
   <Info label="アジャスト" value={asana.adjustment} />
   <Info label="効果効能" value={asana.effect} />
@@ -1070,6 +1152,7 @@ selectedMainCategories.length === 0 &&
   <Info label="柔軟性" value={asana.flexibility} />
   <Info label="軽減法" value={asana.modification} />
   <Info label="メモ" value={asana.note} />
+
 </div>
 
 </div>
@@ -1091,11 +1174,20 @@ selectedMainCategories.length === 0 &&
 }
 
 function Info({ label, value }) {
+  const hasValue = Array.isArray(value)
+    ? value.length > 0
+    : String(value ?? '').trim() !== ''
+
+  if (!hasValue) return null
+
   return (
     <div className="print-card rounded-2xl bg-white p-3">
-      <p className="mb-1 text-xs font-bold text-gray-400">{label}</p>
+      <p className="mb-1 text-xs font-bold text-gray-400">
+        {label}
+      </p>
+
       <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-        {value || '-'}
+        {value}
       </p>
     </div>
   )
