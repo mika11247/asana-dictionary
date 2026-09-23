@@ -12,6 +12,16 @@ import {
   CHAKRA_STYLES,
 } from '@/lib/categories'
 
+const PILATES_APPARATUS = [
+  { value: 'reformer', label: 'リフォーマー' },
+  { value: 'chair', label: 'チェア' },
+  { value: 'ladder_barrel', label: 'ラダーバレル' },
+  { value: 'tower_reformer', label: 'タワーリフォーマー' },
+  { value: 'spine_corrector', label: 'スパインコレクター' },
+  { value: 'cadillac', label: 'キャデラック' },
+  { value: 'caformer', label: 'キャフォーマー' },
+]
+
 export default function AsanaEditPage() {
   const router = useRouter()
   const params = useParams()
@@ -34,6 +44,13 @@ export default function AsanaEditPage() {
   const [types, setTypes] = useState([])
   const [chakras, setChakras] = useState([])
   const [mainCategory, setMainCategory] = useState('yoga')
+
+  // Pilates専用
+  const [target, setTarget] = useState('')
+  const [apparatus, setApparatus] = useState([])
+  const [equipment, setEquipment] = useState('')
+  const [springSetting, setSpringSetting] = useState('')
+
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
   const [loading, setLoading] = useState(true)
@@ -82,6 +99,13 @@ export default function AsanaEditPage() {
     setTypes(data.types || [])
     setChakras(data.chakras || [])
     setMainCategory(data.main_category || 'yoga')
+
+    // Pilates / Machine Pilates
+    setTarget(data.target || '')
+    setApparatus(data.apparatus || [])
+    setEquipment(data.equipment || '')
+    setSpringSetting(data.spring_setting || '')
+
     setLoading(false)
   }
 
@@ -98,6 +122,14 @@ export default function AsanaEditPage() {
       prev.includes(chakra)
         ? prev.filter((item) => item !== chakra)
         : [...prev, chakra]
+    )
+  }
+
+  function toggleApparatus(value) {
+    setApparatus((prev) =>
+      prev.includes(value)
+        ? prev.filter((item) => item !== value)
+        : [...prev, value]
     )
   }
 
@@ -201,6 +233,12 @@ export default function AsanaEditPage() {
           types,
           chakras,
           main_category: mainCategory,
+
+          // Pilates / Machine Pilates
+          target: target || null,
+          apparatus,
+          equipment: equipment || null,
+          spring_setting: springSetting || null,
         })
         .eq('id', id)
 
@@ -213,7 +251,7 @@ export default function AsanaEditPage() {
       router.push('/asanas')
       router.refresh()
     } catch (error) {
-      alert(`画像アップロードエラー: ${error.message}`)
+      alert(`更新エラー: ${error.message}`)
     } finally {
       setSaving(false)
     }
@@ -250,11 +288,17 @@ export default function AsanaEditPage() {
           onSubmit={handleSubmit}
           className="space-y-6 rounded-3xl border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur"
         >
+          {/* 基本情報 */}
           <section className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800">基本情報</h2>
+            <h2 className="text-lg font-bold text-gray-800">
+              基本情報
+            </h2>
 
             <div>
-              <label className={labelClass}>ポーズ / エクササイズ / 種目名</label>
+              <label className={labelClass}>
+                ポーズ / エクササイズ / 種目名
+              </label>
+
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -264,7 +308,10 @@ export default function AsanaEditPage() {
             </div>
 
             <div>
-              <label className={labelClass}>サンスクリット名 / 英語名</label>
+              <label className={labelClass}>
+                サンスクリット名 / 英語名
+              </label>
+
               <input
                 value={sanskrit}
                 onChange={(e) => setSanskrit(e.target.value)}
@@ -273,7 +320,10 @@ export default function AsanaEditPage() {
             </div>
 
             <div>
-              <label className={labelClass}>検索用キーワード</label>
+              <label className={labelClass}>
+                検索用キーワード
+              </label>
+
               <input
                 type="text"
                 value={alias}
@@ -289,6 +339,7 @@ export default function AsanaEditPage() {
 
             <div>
               <label className={labelClass}>よみ</label>
+
               <input
                 type="text"
                 value={yomi}
@@ -303,8 +354,11 @@ export default function AsanaEditPage() {
             </div>
           </section>
 
+          {/* カテゴリ */}
           <section className="space-y-4 rounded-3xl border border-gray-100 bg-white p-4">
-            <h2 className="text-lg font-bold text-gray-800">カテゴリ</h2>
+            <h2 className="text-lg font-bold text-gray-800">
+              カテゴリ
+            </h2>
 
             <div className="flex flex-wrap gap-2">
               <button
@@ -345,8 +399,11 @@ export default function AsanaEditPage() {
             </div>
           </section>
 
+          {/* 分類 / タグ */}
           <section className="space-y-4 rounded-3xl bg-sky-50/60 p-4">
-            <h2 className="text-lg font-bold text-gray-800">分類/タグ</h2>
+            <h2 className="text-lg font-bold text-gray-800">
+              分類/タグ
+            </h2>
 
             <div className="flex flex-wrap gap-2">
               {ASANA_TYPES.map((type) => {
@@ -370,36 +427,145 @@ export default function AsanaEditPage() {
             </div>
           </section>
 
-          <section className="space-y-4 rounded-3xl bg-violet-50/60 p-4">
-            <h2 className="text-lg font-bold text-gray-800">チャクラ</h2>
+          {/* Yoga専用 */}
+          {mainCategory === 'yoga' && (
+            <section className="space-y-4 rounded-3xl bg-violet-50/60 p-4">
+              <h2 className="text-lg font-bold text-gray-800">
+                チャクラ
+              </h2>
 
-            <div className="flex flex-wrap gap-2">
-              {CHAKRAS.map((chakra) => {
-                const checked = chakras.includes(chakra)
+              <div className="flex flex-wrap gap-2">
+                {CHAKRAS.map((chakra) => {
+                  const checked = chakras.includes(chakra)
 
-                return (
-                  <button
-                    key={chakra}
-                    type="button"
-                    onClick={() => toggleChakra(chakra)}
-                    className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                      checked
-                        ? CHAKRA_STYLES[chakra]
-                        : 'border-gray-200 bg-white text-gray-600'
-                    }`}
-                  >
-                    {CHAKRA_LABELS[chakra] || chakra}
-                  </button>
-                )
-              })}
-            </div>
-          </section>
+                  return (
+                    <button
+                      key={chakra}
+                      type="button"
+                      onClick={() => toggleChakra(chakra)}
+                      className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                        checked
+                          ? CHAKRA_STYLES[chakra]
+                          : 'border-gray-200 bg-white text-gray-600'
+                      }`}
+                    >
+                      {CHAKRA_LABELS[chakra] || chakra}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          )}
 
+          {/* Pilates専用 */}
+          {mainCategory === 'pilates' && (
+            <section className="space-y-5 rounded-3xl border border-amber-100 bg-amber-50/60 p-4">
+              <h2 className="text-lg font-bold text-gray-800">
+                🧘 ピラティス情報
+              </h2>
+
+              <div>
+                <label className={labelClass}>
+                  🎯 ターゲット部位
+                </label>
+
+                <input
+                  type="text"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  placeholder="例：腹直筋・股関節・内転筋"
+                  className={inputClass}
+                />
+
+                <p className="mt-2 text-xs text-gray-400">
+                  主に使う筋肉や身体の部位を入力できます
+                </p>
+              </div>
+
+              <div>
+                <label className={labelClass}>
+                  ⚙️ マシン種類
+                </label>
+
+                <p className="mb-3 text-xs leading-5 text-gray-400">
+                  マットピラティスの場合は選択しなくてOKです。複数選択できます。
+                </p>
+
+                <div className="flex flex-wrap gap-2">
+                  {PILATES_APPARATUS.map((machine) => {
+                    const checked = apparatus.includes(machine.value)
+
+                    return (
+                      <button
+                        key={machine.value}
+                        type="button"
+                        onClick={() =>
+                          toggleApparatus(machine.value)
+                        }
+                        className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                          checked
+                            ? 'border-amber-400 bg-amber-400 text-white'
+                            : 'border-gray-200 bg-white text-gray-600'
+                        }`}
+                      >
+                        {machine.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {apparatus.length > 0 && (
+                <>
+                  <div>
+                    <label className={labelClass}>
+                      🧰 使用器具・パーツ
+                    </label>
+
+                    <input
+                      type="text"
+                      value={equipment}
+                      onChange={(e) =>
+                        setEquipment(e.target.value)
+                      }
+                      placeholder="例：FB、SB、BOX、ジャンピングボード"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>
+                      🟡 スプリング設定
+                    </label>
+
+                    <input
+                      type="text"
+                      value={springSetting}
+                      onChange={(e) =>
+                        setSpringSetting(e.target.value)
+                      }
+                      placeholder="例：赤1・青1・黄1"
+                      className={inputClass}
+                    />
+
+                    <p className="mt-2 text-xs text-gray-400">
+                      マシンやメーカーに合わせて自由に入力できます
+                    </p>
+                  </div>
+                </>
+              )}
+            </section>
+          )}
+
+          {/* メモ・ポイント */}
           <section className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800">メモ・ポイント</h2>
+            <h2 className="text-lg font-bold text-gray-800">
+              メモ・ポイント
+            </h2>
 
             <div>
               <label className={labelClass}>誘導</label>
+
               <textarea
                 value={howto}
                 onChange={(e) => setHowto(e.target.value)}
@@ -411,6 +577,7 @@ export default function AsanaEditPage() {
 
             <div>
               <label className={labelClass}>アジャスト</label>
+
               <textarea
                 value={adjustment}
                 onChange={(e) => setAdjustment(e.target.value)}
@@ -422,6 +589,7 @@ export default function AsanaEditPage() {
 
             <div>
               <label className={labelClass}>効果効能</label>
+
               <textarea
                 value={effect}
                 onChange={(e) => setEffect(e.target.value)}
@@ -432,6 +600,7 @@ export default function AsanaEditPage() {
 
             <div>
               <label className={labelClass}>注意</label>
+
               <textarea
                 value={caution}
                 onChange={(e) => setCaution(e.target.value)}
@@ -441,7 +610,10 @@ export default function AsanaEditPage() {
             </div>
 
             <div>
-              <label className={labelClass}>バリエーション</label>
+              <label className={labelClass}>
+                バリエーション
+              </label>
+
               <textarea
                 value={variation}
                 onChange={(e) => setVariation(e.target.value)}
@@ -451,11 +623,15 @@ export default function AsanaEditPage() {
             </div>
           </section>
 
+          {/* 身体のポイント */}
           <section className="space-y-4 rounded-3xl bg-gray-50 p-4">
-            <h2 className="text-lg font-bold text-gray-800">身体のポイント</h2>
+            <h2 className="text-lg font-bold text-gray-800">
+              身体のポイント
+            </h2>
 
             <div>
               <label className={labelClass}>筋力</label>
+
               <input
                 value={strength}
                 onChange={(e) => setStrength(e.target.value)}
@@ -465,18 +641,24 @@ export default function AsanaEditPage() {
 
             <div>
               <label className={labelClass}>柔軟性</label>
+
               <input
                 value={flexibility}
-                onChange={(e) => setFlexibility(e.target.value)}
+                onChange={(e) =>
+                  setFlexibility(e.target.value)
+                }
                 className={inputClass}
               />
             </div>
 
             <div>
               <label className={labelClass}>軽減法</label>
+
               <textarea
                 value={modification}
-                onChange={(e) => setModification(e.target.value)}
+                onChange={(e) =>
+                  setModification(e.target.value)
+                }
                 className={textareaClass}
                 rows={5}
                 placeholder="ブロック・ベルト・膝をつく・壁を使う等"
@@ -484,6 +666,7 @@ export default function AsanaEditPage() {
             </div>
           </section>
 
+          {/* 画像・メモ */}
           <section className="space-y-4">
             <div>
               <label className={labelClass}>画像</label>
@@ -495,31 +678,32 @@ export default function AsanaEditPage() {
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
               />
 
-{imagePreview && (
-  <div className="mt-4 rounded-3xl bg-gray-50 p-4">
-    <img
-      src={imagePreview}
-      alt="プレビュー"
-      className="h-56 w-full rounded-2xl object-contain"
-    />
+              {imagePreview && (
+                <div className="mt-4 rounded-3xl bg-gray-50 p-4">
+                  <img
+                    src={imagePreview}
+                    alt="プレビュー"
+                    className="h-56 w-full rounded-2xl object-contain"
+                  />
 
-    <button
-      type="button"
-      onClick={() => {
-        setImageFile(null)
-        setImagePreview('')
-        setImageUrl('')
-      }}
-      className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-100"
-    >
-      🗑️ 画像を削除
-    </button>
-  </div>
-)}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageFile(null)
+                      setImagePreview('')
+                      setImageUrl('')
+                    }}
+                    className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-100"
+                  >
+                    🗑️ 画像を削除
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>
               <label className={labelClass}>メモ</label>
+
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
