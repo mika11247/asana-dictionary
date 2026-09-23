@@ -39,6 +39,7 @@ function SortableSequenceCard({
   deleteSequence,
   duplicateSequence,
   editSequence,
+  moveSequence,
   isGuest = false,
   requireLogin,
 }) {
@@ -125,6 +126,25 @@ function SortableSequenceCard({
                 >
                   ✏️
                 </button>
+
+                <button
+  type="button"
+  onClick={(e) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (isGuest) {
+      requireLogin?.()
+      return
+    }
+
+    moveSequence(sequence)
+  }}
+  className="rounded-full bg-white px-2 py-1 text-xs font-medium text-violet-500 ring-1 ring-violet-100 transition hover:bg-violet-50"
+  title="フォルダへ移動"
+>
+  📁
+</button>
 
                 <button
                   type="button"
@@ -376,64 +396,116 @@ export default function SequencesPage() {
   ===================================================== */
 
   async function editSequence(sequence) {
-    if (!user) {
-      requireLogin()
-      return
-    }
-
-    const newTitle = prompt(
-      'シークエンス名を編集',
-      sequence.title
-    )
-
-    if (!newTitle) return
-
-    const newMemo =
-      prompt(
-        'メモを編集',
-        sequence.memo || ''
-      ) ?? sequence.memo
-
-    const folderChoices = [
-      '0: フォルダなし',
-      ...folders.map((folder, index) => `${index + 1}: ${folder.name}`),
-    ].join('\n')
-
-    const currentFolderIndex = sequence.folder_id
-      ? folders.findIndex((folder) => folder.id === sequence.folder_id) + 1
-      : 0
-
-    const folderAnswer = prompt(
-      `保存先フォルダを選択してください\n\n${folderChoices}`,
-      String(currentFolderIndex)
-    )
-
-    if (folderAnswer === null) return
-
-    const selectedIndex = Number(folderAnswer)
-    if (!Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex > folders.length) {
-      alert('フォルダ番号が正しくありません')
-      return
-    }
-
-    const selectedFolderId = selectedIndex === 0 ? null : folders[selectedIndex - 1].id
-
-    const { error } = await supabase
-      .from('sequences')
-      .update({
-        title: newTitle,
-        memo: newMemo,
-        folder_id: selectedFolderId,
-      })
-      .eq('id', sequence.id)
-
-    if (error) {
-      alert(`更新エラー: ${error.message}`)
-      return
-    }
-
-    fetchSequences()
+  if (!user) {
+    requireLogin()
+    return
   }
+
+  const newTitle = prompt(
+    'シークエンス名を編集',
+    sequence.title
+  )
+
+  if (!newTitle) return
+
+  const newMemo =
+    prompt(
+      'メモを編集',
+      sequence.memo || ''
+    ) ?? sequence.memo
+
+  const { error } = await supabase
+    .from('sequences')
+    .update({
+      title: newTitle,
+      memo: newMemo,
+    })
+    .eq('id', sequence.id)
+    .eq('user_id', user.id)
+
+  if (error) {
+    alert(`更新エラー: ${error.message}`)
+    return
+  }
+
+  fetchSequences()
+}
+
+async function moveSequence(sequence) {
+  if (!user) {
+    requireLogin()
+    return
+  }
+
+  if (folders.length === 0) {
+    alert('まだフォルダがありません📁')
+    return
+  }
+
+  const folderChoices = [
+    '0: フォルダなし（トップ）',
+    ...folders.map(
+      (folder, index) => `${index + 1}: ${folder.name}`
+    ),
+  ].join('\n')
+
+  const currentFolderIndex = sequence.folder_id
+    ? folders.findIndex(
+        (folder) => folder.id === sequence.folder_id
+      ) + 1
+    : 0
+
+  const folderAnswer = prompt(
+    `移動先フォルダを選択してください\n\n${folderChoices}`,
+    String(currentFolderIndex)
+  )
+
+  if (folderAnswer === null) return
+
+  const selectedIndex = Number(folderAnswer)
+
+  if (
+    !Number.isInteger(selectedIndex) ||
+    selectedIndex < 0 ||
+    selectedIndex > folders.length
+  ) {
+    alert('フォルダ番号が正しくありません')
+    return
+  }
+
+  const selectedFolderId =
+    selectedIndex === 0
+      ? null
+      : folders[selectedIndex - 1].id
+
+  // 今いる場所と同じなら何もしない
+  if ((sequence.folder_id || null) === selectedFolderId) {
+    return
+  }
+
+  // 移動先の最後に追加
+  const targetCount = sequences.filter((item) =>
+    selectedFolderId
+      ? item.folder_id === selectedFolderId
+      : !item.folder_id
+  ).length
+
+  const { error } = await supabase
+    .from('sequences')
+    .update({
+      folder_id: selectedFolderId,
+      position: targetCount + 1,
+    })
+    .eq('id', sequence.id)
+    .eq('user_id', user.id)
+
+  if (error) {
+    alert(`移動エラー: ${error.message}`)
+    return
+  }
+
+  fetchSequences()
+}
 
 
   /* =====================================================
@@ -777,12 +849,13 @@ export default function SequencesPage() {
           <div className="space-y-4">
             {list.map((sequence) => (
               <SortableSequenceCard
-                key={sequence.id}
-                sequence={sequence}
-                deleteSequence={deleteSequence}
-                duplicateSequence={duplicateSequence}
-                editSequence={editSequence}
-              />
+  key={sequence.id}
+  sequence={sequence}
+  deleteSequence={deleteSequence}
+  duplicateSequence={duplicateSequence}
+  editSequence={editSequence}
+  moveSequence={moveSequence}
+/>
             ))}
           </div>
         </SortableContext>
