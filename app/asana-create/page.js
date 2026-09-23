@@ -16,10 +16,17 @@ import { getPlanLimits } from '@/lib/planLimits'
 import { useAuth } from '@/components/AuthProvider'
 import { PLAN_UI } from '@/lib/planUI'
 
-
+const PILATES_APPARATUS = [
+  { value: 'reformer', label: 'リフォーマー' },
+  { value: 'chair', label: 'チェア' },
+  { value: 'ladder_barrel', label: 'ラダーバレル' },
+  { value: 'tower_reformer', label: 'タワーリフォーマー' },
+  { value: 'spine_corrector', label: 'スパインコレクター' },
+  { value: 'cadillac', label: 'キャデラック' },
+  { value: 'caformer', label: 'キャフォーマー' },
+]
 
 export default function AsanaCreatePage() {
-
   const { user, profile } = useAuth()
 
   const router = useRouter()
@@ -40,6 +47,13 @@ export default function AsanaCreatePage() {
   const [chakras, setChakras] = useState([])
   const [types, setTypes] = useState([])
   const [mainCategory, setMainCategory] = useState('yoga')
+
+  // Pilates専用
+  const [target, setTarget] = useState('')
+  const [apparatus, setApparatus] = useState([])
+  const [equipment, setEquipment] = useState('')
+  const [springSetting, setSpringSetting] = useState('')
+
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
   const [loading, setLoading] = useState(false)
@@ -67,31 +81,31 @@ export default function AsanaCreatePage() {
     return new Promise((resolve) => {
       const img = new Image()
       const reader = new FileReader()
-  
+
       reader.readAsDataURL(file)
-  
+
       reader.onload = (event) => {
         img.src = event.target?.result
       }
-  
+
       img.onload = () => {
         const canvas = document.createElement('canvas')
-  
+
         const maxWidth = 1200
-  
+
         const scale = Math.min(1, maxWidth / img.width)
-  
+
         canvas.width = img.width * scale
         canvas.height = img.height * scale
-  
+
         const ctx = canvas.getContext('2d')
-  
+
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-  
+
         canvas.toBlob(
           (blob) => {
             if (!blob) return
-  
+
             const compressedFile = new File(
               [blob],
               file.name.replace(/\.\w+$/, '.webp'),
@@ -99,7 +113,7 @@ export default function AsanaCreatePage() {
                 type: 'image/webp',
               }
             )
-  
+
             resolve(compressedFile)
           },
           'image/webp',
@@ -135,96 +149,103 @@ export default function AsanaCreatePage() {
   }
 
   const handleSubmit = async (e) => {
-  e.preventDefault()
-
-  if (!user) {
-    const ok = window.confirm(
-      '🔒 アーサナの登録には無料登録が必要です✨\n\n無料登録すると、オリジナルのポーズ・エクササイズ・種目を自分の辞書に追加して、シークエンス作成にも使用できます。\n\n無料登録しますか？'
-    )
-
-    if (ok) {
-      router.push('/login?mode=signup')
-    }
-
-    return
-  }
-
-  setLoading(true)
-
-  try {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError) throw userError
+    e.preventDefault()
 
     if (!user) {
-      alert('ログインしてください')
-      return
-    }
-
-    const currentPlan = profile?.plan || 'free'
-    const limits = getPlanLimits(currentPlan)
-
-    const { count, error: countError } = await supabase
-      .from('asanas')
-      .select('id', {
-        count: 'exact',
-        head: true,
-      })
-      .eq('user_id', user.id)
-
-    if (countError) throw countError
-
-    if (limits.asanas !== null && count >= limits.asanas) {
-      alert(
-        `${PLAN_UI[currentPlan]?.label || 'Free'}では登録数は ${limits.asanas}件までです✨`
+      const ok = window.confirm(
+        '🔒 アーサナの登録には無料登録が必要です✨\n\n無料登録すると、オリジナルのポーズ・エクササイズ・種目を自分の辞書に追加して、シークエンス作成にも使用できます。\n\n無料登録しますか？'
       )
+
+      if (ok) {
+        router.push('/login?mode=signup')
+      }
+
       return
     }
 
-    let uploadedImageUrl = null
+    setLoading(true)
 
-    if (imageFile) {
-      uploadedImageUrl = await uploadImage()
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+
+      if (userError) throw userError
+
+      if (!user) {
+        alert('ログインしてください')
+        return
+      }
+
+      const currentPlan = profile?.plan || 'free'
+      const limits = getPlanLimits(currentPlan)
+
+      const { count, error: countError } = await supabase
+        .from('asanas')
+        .select('id', {
+          count: 'exact',
+          head: true,
+        })
+        .eq('user_id', user.id)
+
+      if (countError) throw countError
+
+      if (limits.asanas !== null && count >= limits.asanas) {
+        alert(
+          `${PLAN_UI[currentPlan]?.label || 'Free'}では登録数は ${limits.asanas}件までです✨`
+        )
+        return
+      }
+
+      let uploadedImageUrl = null
+
+      if (imageFile) {
+        uploadedImageUrl = await uploadImage()
+      }
+
+      const { error } = await supabase.from('asanas').insert([
+        {
+          title,
+          sanskrit,
+          alias,
+          yomi,
+          howto,
+          effect,
+          caution,
+          variation,
+          note,
+          image_url: uploadedImageUrl,
+          strength,
+          flexibility,
+          adjustment,
+          modification,
+          chakras,
+          types,
+          main_category: mainCategory,
+
+          // Pilates / Machine Pilates
+          target: target || null,
+          apparatus,
+          equipment: equipment || null,
+          spring_setting: springSetting || null,
+
+          user_id: user.id,
+        },
+      ])
+
+      if (error) throw error
+
+      alert('登録できたよ！')
+      router.push('/asanas')
+      router.refresh()
+    } catch (error) {
+      console.error('登録エラー:', error)
+      alert(`登録エラー: ${error.message || '原因不明のエラー'}`)
+    } finally {
+      setLoading(false)
     }
-
-    const { error } = await supabase.from('asanas').insert([
-      {
-        title,
-        sanskrit,
-        alias,
-        yomi,
-        howto,
-        effect,
-        caution,
-        variation,
-        note,
-        image_url: uploadedImageUrl,
-        strength,
-        flexibility,
-        adjustment,
-        modification,
-        chakras,
-        types,
-main_category: mainCategory,
-user_id: user.id,
-      },
-    ])
-
-    if (error) throw error
-
-    alert('登録できたよ！')
-    router.push('/asanas')
-    router.refresh()
-  } catch (error) {
-    console.error('登録エラー:', error)
-    alert(`登録エラー: ${error.message || '原因不明のエラー'}`)
-  } finally {
-    setLoading(false)
   }
-}
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-6">
@@ -248,6 +269,7 @@ user_id: user.id,
             <p className="text-sm font-bold text-violet-700">
               👀 ゲスト体験中
             </p>
+
             <p className="mt-1 text-xs leading-6 text-gray-600">
               新規登録画面を実際に体験できます。各項目への入力やカテゴリ・タグの選択もお試しいただけます。
               実際に辞書へ登録するには無料登録が必要です。
@@ -259,11 +281,15 @@ user_id: user.id,
           onSubmit={handleSubmit}
           className="space-y-6 rounded-3xl border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur"
         >
+          {/* 基本情報 */}
           <section className="space-y-4">
             <h2 className="text-lg font-bold text-gray-800">基本情報</h2>
 
             <div>
-              <label className={labelClass}>ポーズ / エクササイズ / 種目名</label>
+              <label className={labelClass}>
+                ポーズ / エクササイズ / 種目名
+              </label>
+
               <input
                 type="text"
                 value={title}
@@ -275,7 +301,10 @@ user_id: user.id,
             </div>
 
             <div>
-              <label className={labelClass}>サンスクリット名 / 英語名</label>
+              <label className={labelClass}>
+                サンスクリット名 / 英語名
+              </label>
+
               <input
                 type="text"
                 value={sanskrit}
@@ -287,6 +316,7 @@ user_id: user.id,
 
             <div>
               <label className={labelClass}>検索用キーワード</label>
+
               <input
                 type="text"
                 value={alias}
@@ -301,20 +331,20 @@ user_id: user.id,
             </div>
 
             <div>
-  <label className={labelClass}>よみ</label>
+              <label className={labelClass}>よみ</label>
 
-  <input
-    type="text"
-    value={yomi}
-    onChange={(e) => setYomi(e.target.value)}
-    placeholder="例：やまのぽーず"
-    className={inputClass}
-  />
+              <input
+                type="text"
+                value={yomi}
+                onChange={(e) => setYomi(e.target.value)}
+                placeholder="例：やまのぽーず"
+                className={inputClass}
+              />
 
-  <p className="mt-2 text-xs text-gray-400">
-    一覧の並び順や検索に使用されます
-  </p>
-</div>
+              <p className="mt-2 text-xs text-gray-400">
+                一覧の並び順や検索に使用されます
+              </p>
+            </div>
 
             <div>
               <label className={labelClass}>画像</label>
@@ -326,77 +356,79 @@ user_id: user.id,
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
               />
 
-{imagePreview && (
-  <div className="mt-4 rounded-3xl bg-gray-50 p-4">
-    <img
-      src={imagePreview}
-      alt="プレビュー"
-      className="h-56 w-full rounded-2xl object-contain"
-    />
+              {imagePreview && (
+                <div className="mt-4 rounded-3xl bg-gray-50 p-4">
+                  <img
+                    src={imagePreview}
+                    alt="プレビュー"
+                    className="h-56 w-full rounded-2xl object-contain"
+                  />
 
-    <button
-      type="button"
-      onClick={() => {
-        setImageFile(null)
-        setImagePreview('')
-      }}
-      className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-600"
-    >
-      🗑️ 画像を取り消す
-    </button>
-  </div>
-)}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageFile(null)
+                      setImagePreview('')
+                    }}
+                    className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-600"
+                  >
+                    🗑️ 画像を取り消す
+                  </button>
+                </div>
+              )}
             </div>
           </section>
 
-          <section className="space-y-4 rounded-3xl bg-white p-4 border border-gray-100">
-  <h2 className="text-lg font-bold text-gray-800">
-    カテゴリ
-  </h2>
+          {/* カテゴリ */}
+          <section className="space-y-4 rounded-3xl border border-gray-100 bg-white p-4">
+            <h2 className="text-lg font-bold text-gray-800">
+              カテゴリ
+            </h2>
 
-  <div className="flex flex-wrap gap-2">
-    
-    <button
-      type="button"
-      onClick={() => setMainCategory('yoga')}
-      className={`rounded-full px-4 py-2 text-sm font-bold transition ${
-        mainCategory === 'yoga'
-          ? 'bg-sky-500 text-white'
-          : 'border border-gray-200 bg-white text-gray-600'
-      }`}
-    >
-      ☀️ ヨガ
-    </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setMainCategory('yoga')}
+                className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+                  mainCategory === 'yoga'
+                    ? 'bg-sky-500 text-white'
+                    : 'border border-gray-200 bg-white text-gray-600'
+                }`}
+              >
+                ☀️ ヨガ
+              </button>
 
-    <button
-      type="button"
-      onClick={() => setMainCategory('pilates')}
-      className={`rounded-full px-4 py-2 text-sm font-bold transition ${
-        mainCategory === 'pilates'
-          ? 'bg-amber-500 text-white'
-          : 'border border-gray-200 bg-white text-gray-600'
-      }`}
-    >
-      🧘 ピラティス
-    </button>
+              <button
+                type="button"
+                onClick={() => setMainCategory('pilates')}
+                className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+                  mainCategory === 'pilates'
+                    ? 'bg-amber-500 text-white'
+                    : 'border border-gray-200 bg-white text-gray-600'
+                }`}
+              >
+                🧘 ピラティス
+              </button>
 
-    <button
-      type="button"
-      onClick={() => setMainCategory('training')}
-      className={`rounded-full px-4 py-2 text-sm font-bold transition ${
-        mainCategory === 'training'
-          ? 'bg-pink-500 text-white'
-          : 'border border-gray-200 bg-white text-gray-600'
-      }`}
-    >
-      🏋️ トレーニング
-    </button>
+              <button
+                type="button"
+                onClick={() => setMainCategory('training')}
+                className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+                  mainCategory === 'training'
+                    ? 'bg-pink-500 text-white'
+                    : 'border border-gray-200 bg-white text-gray-600'
+                }`}
+              >
+                🏋️ トレーニング
+              </button>
+            </div>
+          </section>
 
-  </div>
-</section>
-
+          {/* 分類 / タグ */}
           <section className="space-y-4 rounded-3xl bg-sky-50/60 p-4">
-            <h2 className="text-lg font-bold text-gray-800">分類/タグ</h2>
+            <h2 className="text-lg font-bold text-gray-800">
+              分類/タグ
+            </h2>
 
             <div className="flex flex-wrap gap-2">
               {ASANA_TYPES.map((type) => {
@@ -424,40 +456,158 @@ user_id: user.id,
             </div>
           </section>
 
-          <section className="space-y-4 rounded-3xl bg-violet-50/60 p-4">
-            <h2 className="text-lg font-bold text-gray-800">チャクラ</h2>
+          {/* Yoga専用 */}
+          {mainCategory === 'yoga' && (
+            <section className="space-y-4 rounded-3xl bg-violet-50/60 p-4">
+              <h2 className="text-lg font-bold text-gray-800">
+                チャクラ
+              </h2>
 
-            <div className="flex flex-wrap gap-2">
-              {CHAKRAS.map((chakra) => {
-                const checked = chakras.includes(chakra)
+              <div className="flex flex-wrap gap-2">
+                {CHAKRAS.map((chakra) => {
+                  const checked = chakras.includes(chakra)
 
-                return (
-                  <button
-                    key={chakra}
-                    type="button"
-                    onClick={() =>
-                      checked
-                        ? setChakras(chakras.filter((c) => c !== chakra))
-                        : setChakras([...chakras, chakra])
-                    }
-                    className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                      checked
-                        ? CHAKRA_STYLES[chakra]
-                        : 'border-gray-200 bg-white text-gray-600'
-                    }`}
-                  >
-                    {CHAKRA_LABELS[chakra] || chakra}
-                  </button>
-                )
-              })}
-            </div>
-          </section>
+                  return (
+                    <button
+                      key={chakra}
+                      type="button"
+                      onClick={() =>
+                        checked
+                          ? setChakras(
+                              chakras.filter((c) => c !== chakra)
+                            )
+                          : setChakras([...chakras, chakra])
+                      }
+                      className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                        checked
+                          ? CHAKRA_STYLES[chakra]
+                          : 'border-gray-200 bg-white text-gray-600'
+                      }`}
+                    >
+                      {CHAKRA_LABELS[chakra] || chakra}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          )}
 
+          {/* Pilates専用 */}
+          {mainCategory === 'pilates' && (
+            <section className="space-y-5 rounded-3xl border border-amber-100 bg-amber-50/60 p-4">
+              <h2 className="text-lg font-bold text-gray-800">
+                🧘 ピラティス情報
+              </h2>
+
+              <div>
+                <label className={labelClass}>
+                  🎯 ターゲット部位
+                </label>
+
+                <input
+                  type="text"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  placeholder="例：腹直筋・股関節・内転筋"
+                  className={inputClass}
+                />
+
+                <p className="mt-2 text-xs text-gray-400">
+                  主に使う筋肉や身体の部位を入力できます
+                </p>
+              </div>
+
+              <div>
+                <label className={labelClass}>
+                  ⚙️ マシン種類
+                </label>
+
+                <p className="mb-3 text-xs leading-5 text-gray-400">
+                  マットピラティスの場合は選択しなくてOKです。複数選択できます。
+                </p>
+
+                <div className="flex flex-wrap gap-2">
+                  {PILATES_APPARATUS.map((machine) => {
+                    const checked = apparatus.includes(machine.value)
+
+                    return (
+                      <button
+                        key={machine.value}
+                        type="button"
+                        onClick={() =>
+                          checked
+                            ? setApparatus(
+                                apparatus.filter(
+                                  (item) => item !== machine.value
+                                )
+                              )
+                            : setApparatus([
+                                ...apparatus,
+                                machine.value,
+                              ])
+                        }
+                        className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                          checked
+                            ? 'border-amber-400 bg-amber-400 text-white'
+                            : 'border-gray-200 bg-white text-gray-600'
+                        }`}
+                      >
+                        {machine.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {apparatus.length > 0 && (
+                <>
+                  <div>
+                    <label className={labelClass}>
+                      🧰 使用器具・パーツ
+                    </label>
+
+                    <input
+                      type="text"
+                      value={equipment}
+                      onChange={(e) => setEquipment(e.target.value)}
+                      placeholder="例：FB、SB、BOX、ジャンピングボード"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>
+                      🟡 スプリング設定
+                    </label>
+
+                    <input
+                      type="text"
+                      value={springSetting}
+                      onChange={(e) =>
+                        setSpringSetting(e.target.value)
+                      }
+                      placeholder="例：赤1・青1・黄1"
+                      className={inputClass}
+                    />
+
+                    <p className="mt-2 text-xs text-gray-400">
+                      マシンやメーカーに合わせて自由に入力できます
+                    </p>
+                  </div>
+                </>
+              )}
+            </section>
+          )}
+
+          {/* メモ・ポイント */}
           <section className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800">メモ・ポイント</h2>
+            <h2 className="text-lg font-bold text-gray-800">
+              メモ・ポイント
+            </h2>
 
             <div>
               <label className={labelClass}>誘導</label>
+
               <textarea
                 value={howto}
                 onChange={(e) => setHowto(e.target.value)}
@@ -469,6 +619,7 @@ user_id: user.id,
 
             <div>
               <label className={labelClass}>効果効能</label>
+
               <textarea
                 value={effect}
                 onChange={(e) => setEffect(e.target.value)}
@@ -480,6 +631,7 @@ user_id: user.id,
 
             <div>
               <label className={labelClass}>注意</label>
+
               <textarea
                 value={caution}
                 onChange={(e) => setCaution(e.target.value)}
@@ -490,7 +642,10 @@ user_id: user.id,
             </div>
 
             <div>
-              <label className={labelClass}>バリエーション</label>
+              <label className={labelClass}>
+                バリエーション
+              </label>
+
               <textarea
                 value={variation}
                 onChange={(e) => setVariation(e.target.value)}
@@ -498,26 +653,33 @@ user_id: user.id,
                 rows={3}
               />
             </div>
-            <div>
-  <label className={labelClass}>アジャスト</label>
 
-  <textarea
-    value={adjustment}
-    onChange={(e) =>
-      setAdjustment(e.target.value)
-    }
-    className={textareaClass}
-    rows={4}
-    placeholder="触れる場所・誘導方向・補助方法など"
-  />
-</div>
+            <div>
+              <label className={labelClass}>
+                アジャスト
+              </label>
+
+              <textarea
+                value={adjustment}
+                onChange={(e) =>
+                  setAdjustment(e.target.value)
+                }
+                className={textareaClass}
+                rows={4}
+                placeholder="触れる場所・誘導方向・補助方法など"
+              />
+            </div>
           </section>
 
+          {/* 身体のポイント */}
           <section className="space-y-4 rounded-3xl bg-gray-50 p-4">
-            <h2 className="text-lg font-bold text-gray-800">身体のポイント</h2>
+            <h2 className="text-lg font-bold text-gray-800">
+              身体のポイント
+            </h2>
 
             <div>
               <label className={labelClass}>筋力</label>
+
               <input
                 type="text"
                 value={strength}
@@ -528,32 +690,37 @@ user_id: user.id,
 
             <div>
               <label className={labelClass}>柔軟性</label>
+
               <input
                 type="text"
                 value={flexibility}
-                onChange={(e) => setFlexibility(e.target.value)}
+                onChange={(e) =>
+                  setFlexibility(e.target.value)
+                }
                 className={inputClass}
               />
             </div>
 
             <div>
-  <label className={labelClass}>軽減法</label>
+              <label className={labelClass}>軽減法</label>
 
-  <textarea
-    value={modification}
-    onChange={(e) =>
-      setModification(e.target.value)
-    }
-    className={textareaClass}
-    rows={5}
-    placeholder="ブロック・ベルト・膝をつく・壁を使う等"
-  />
-</div>
+              <textarea
+                value={modification}
+                onChange={(e) =>
+                  setModification(e.target.value)
+                }
+                className={textareaClass}
+                rows={5}
+                placeholder="ブロック・ベルト・膝をつく・壁を使う等"
+              />
+            </div>
           </section>
 
+          {/* メモ */}
           <section className="space-y-4">
             <div>
               <label className={labelClass}>メモ</label>
+
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
@@ -568,7 +735,11 @@ user_id: user.id,
             disabled={loading}
             className="w-full rounded-2xl bg-gradient-to-r from-sky-500 to-violet-500 px-6 py-4 text-base font-bold text-white shadow-md transition hover:scale-[1.01] hover:shadow-lg disabled:opacity-50"
           >
-            {loading ? '登録中...' : user ? '登録する' : '登録する 🔒'}
+            {loading
+              ? '登録中...'
+              : user
+                ? '登録する'
+                : '登録する 🔒'}
           </button>
         </form>
       </div>
