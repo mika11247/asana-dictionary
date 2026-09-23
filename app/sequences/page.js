@@ -176,6 +176,8 @@ function SortableSequenceCard({
 export default function SequencesPage() {
   const [sequences, setSequences] = useState([])
   const [loading, setLoading] = useState(true)
+  const [folders, setFolders] = useState([])
+  const [activeFolderId, setActiveFolderId] = useState(null)
 
   const [demoSequence, setDemoSequence] = useState(null)
   const [demoItems, setDemoItems] = useState([])
@@ -212,20 +214,29 @@ export default function SequencesPage() {
   async function fetchSequences() {
     setLoading(true)
 
-    const { data, error } = await supabase
-      .from('sequences')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('position', { ascending: true })
-      .order('created_at', { ascending: false })
+    const [{ data, error }, { data: folderData, error: folderError }] = await Promise.all([
+      supabase
+        .from('sequences')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('position', { ascending: true })
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('sequence_folders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('position', { ascending: true })
+        .order('created_at', { ascending: true }),
+    ])
 
-    if (error) {
-      console.error(error)
+    if (error || folderError) {
+      console.error(error || folderError)
       setLoading(false)
       return
     }
 
     setSequences(data || [])
+    setFolders(folderData || [])
     setLoading(false)
   }
 
@@ -312,7 +323,7 @@ export default function SequencesPage() {
 
     const memo = prompt('メモを入力（空でもOK）') || ''
 
-    const nextPosition = sequences.length + 1
+    const nextPosition = sequences.filter((item) => !item.folder_id).length + 1
 
     const { error } = await supabase
       .from('sequences')
@@ -321,6 +332,7 @@ export default function SequencesPage() {
         memo,
         position: nextPosition,
         user_id: user.id,
+        folder_id: null,
       })
 
     if (error) {
@@ -382,11 +394,36 @@ export default function SequencesPage() {
         sequence.memo || ''
       ) ?? sequence.memo
 
+    const folderChoices = [
+      '0: フォルダなし',
+      ...folders.map((folder, index) => `${index + 1}: ${folder.name}`),
+    ].join('\n')
+
+    const currentFolderIndex = sequence.folder_id
+      ? folders.findIndex((folder) => folder.id === sequence.folder_id) + 1
+      : 0
+
+    const folderAnswer = prompt(
+      `保存先フォルダを選択してください\n\n${folderChoices}`,
+      String(currentFolderIndex)
+    )
+
+    if (folderAnswer === null) return
+
+    const selectedIndex = Number(folderAnswer)
+    if (!Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex > folders.length) {
+      alert('フォルダ番号が正しくありません')
+      return
+    }
+
+    const selectedFolderId = selectedIndex === 0 ? null : folders[selectedIndex - 1].id
+
     const { error } = await supabase
       .from('sequences')
       .update({
         title: newTitle,
         memo: newMemo,
+        folder_id: selectedFolderId,
       })
       .eq('id', sequence.id)
 
@@ -435,7 +472,7 @@ export default function SequencesPage() {
     }
 
     const newTitle = `${sequence.title} コピー`
-    const nextPosition = sequences.length + 1
+    const nextPosition = sequences.filter((item) => item.folder_id === sequence.folder_id).length + 1
 
     const {
       data: originalItems,
@@ -461,6 +498,7 @@ export default function SequencesPage() {
         memo: sequence.memo,
         position: nextPosition,
         user_id: user.id,
+        folder_id: sequence.folder_id || null,
       })
       .select()
       .single()
@@ -505,47 +543,97 @@ export default function SequencesPage() {
 
     if (!over || active.id === over.id) return
 
-    const oldIndex = sequences.findIndex(
-      (item) => item.id === active.id
+    const visibleSequences = sequences.filter((item) =>
+      activeFolderId ? item.folder_id === activeFolderId : !item.folder_id
     )
 
-    const newIndex = sequences.findIndex(
-      (item) => item.id === over.id
-    )
+    const oldIndex = visibleSequences.findIndex((item) => item.id === active.id)
+    const newIndex = visibleSequences.findIndex((item) => item.id === over.id)
 
     if (oldIndex === -1 || newIndex === -1) return
 
-    const newSequences = arrayMove(
-      sequences,
-      oldIndex,
-      newIndex
-    ).map((item, index) => ({
+    const reordered = arrayMove(visibleSequences, oldIndex, newIndex).map((item, index) => ({
       ...item,
       position: index + 1,
     }))
 
-    setSequences(newSequences)
-
-    const updates = newSequences.map((item) =>
-      supabase
-        .from('sequences')
-        .update({
-          position: item.position,
-        })
-        .eq('id', item.id)
+    const positionMap = new Map(reordered.map((item) => [item.id, item.position]))
+    setSequences((prev) =>
+      prev.map((item) =>
+        positionMap.has(item.id) ? { ...item, position: positionMap.get(item.id) } : item
+      )
     )
 
-    const results = await Promise.all(updates)
-
-    const hasError = results.some(
-      (result) => result.error
+    const results = await Promise.all(
+      reordered.map((item) =>
+        supabase.from('sequences').update({ position: item.position }).eq('id', item.id)
+      )
     )
 
-    if (hasError) {
+    if (results.some((result) => result.error)) {
       alert('並び替えエラー')
       fetchSequences()
     }
   }
+
+  async function createFolder() {
+    const name = prompt('フォルダ名を入力')
+    if (!name?.trim()) return
+
+    const { error } = await supabase.from('sequence_folders').insert({
+      user_id: user.id,
+      name: name.trim(),
+      position: folders.length + 1,
+    })
+
+    if (error) {
+      alert(`フォルダ作成エラー: ${error.message}`)
+      return
+    }
+
+    fetchSequences()
+  }
+
+  async function renameFolder(folder) {
+    const name = prompt('フォルダ名を編集', folder.name)
+    if (name === null || !name.trim()) return
+
+    const { error } = await supabase
+      .from('sequence_folders')
+      .update({ name: name.trim() })
+      .eq('id', folder.id)
+      .eq('user_id', user.id)
+
+    if (error) {
+      alert(`フォルダ更新エラー: ${error.message}`)
+      return
+    }
+
+    fetchSequences()
+  }
+
+  async function deleteFolder(folder) {
+    const count = sequences.filter((item) => item.folder_id === folder.id).length
+    const ok = confirm(
+      `「${folder.name}」を削除しますか？\n\nフォルダ内のシークエンス${count ? `（${count}件）` : ''}は削除されず、トップへ戻ります。`
+    )
+    if (!ok) return
+
+    const { error } = await supabase
+      .from('sequence_folders')
+      .delete()
+      .eq('id', folder.id)
+      .eq('user_id', user.id)
+
+    if (error) {
+      alert(`フォルダ削除エラー: ${error.message}`)
+      return
+    }
+
+    setActiveFolderId(null)
+    fetchSequences()
+  }
+
 
 
   /* =====================================================
@@ -661,116 +749,166 @@ export default function SequencesPage() {
      LOGGED IN
   ===================================================== */
 
+  const activeFolder = folders.find((folder) => folder.id === activeFolderId) || null
+  const visibleSequences = sequences.filter((item) =>
+    activeFolder ? item.folder_id === activeFolder.id : !item.folder_id
+  )
+
+  function renderSequenceList(list) {
+    if (list.length === 0) {
+      return (
+        <div className="rounded-3xl border border-white/70 bg-white/90 p-8 text-center shadow-sm backdrop-blur">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-violet-50 text-3xl">
+            🌙
+          </div>
+          <p className="font-bold text-gray-700">
+            {activeFolder ? 'このフォルダにはまだシークエンスがありません' : 'トップに置かれたシークエンスはありません'}
+          </p>
+          <p className="mt-2 text-sm text-gray-500">
+            {activeFolder ? '✏️編集からこのフォルダへ移動できます' : 'よく使うシークエンスはフォルダなしにしておくとすぐ開けます'}
+          </p>
+        </div>
+      )
+    }
+
+    return (
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={list.map((sequence) => sequence.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-4">
+            {list.map((sequence) => (
+              <SortableSequenceCard
+                key={sequence.id}
+                sequence={sequence}
+                deleteSequence={deleteSequence}
+                duplicateSequence={duplicateSequence}
+                editSequence={editSequence}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 p-6">
-
       <div className="mx-auto max-w-3xl">
-
         <div className="mb-6 rounded-3xl border border-violet-100 bg-white/90 p-6 shadow-sm backdrop-blur">
-
-          <p className="mb-2 text-sm font-medium text-violet-500">
-            Sequence
-          </p>
-
-          <div className="flex items-start justify-between gap-3">
-
-            <div>
-
-              <h1 className="text-3xl font-bold leading-tight text-gray-800">
-                🌙 シークエンス
-              </h1>
-
-              <p className="mt-2 text-sm leading-relaxed text-gray-500">
-                レッスン構成を作成・複製・並び替えできます
-              </p>
-
+          {activeFolder ? (
+            <>
               <button
                 type="button"
-                onClick={createSequence}
-                className="mt-4 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:scale-[1.02]"
+                onClick={() => setActiveFolderId(null)}
+                className="mb-4 text-sm font-medium text-gray-400 transition hover:text-violet-500"
               >
-                ＋ 作成
+                ← シークエンス一覧へ
               </button>
 
-            </div>
-          </div>
+              <p className="mb-2 text-sm font-medium text-violet-500">Folder</p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h1 className="break-words text-3xl font-bold leading-tight text-gray-800">
+                    📁 {activeFolder.name}
+                  </h1>
+                  <p className="mt-2 text-sm text-gray-500">フォルダ内のシークエンス</p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => renameFolder(activeFolder)}
+                    className="rounded-full bg-white px-3 py-2 text-sm text-gray-500 ring-1 ring-gray-200"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteFolder(activeFolder)}
+                    className="rounded-full bg-white px-3 py-2 text-sm text-red-500 ring-1 ring-red-100"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="mb-2 text-sm font-medium text-violet-500">Sequence</p>
+              <h1 className="text-3xl font-bold leading-tight text-gray-800">🌙 シークエンス</h1>
+              <p className="mt-2 text-sm leading-relaxed text-gray-500">レッスン構成を作成・整理・複製・並び替えできます</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={createSequence}
+                  className="rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:scale-[1.02]"
+                >
+                  ＋ 作成
+                </button>
+                <button
+                  type="button"
+                  onClick={createFolder}
+                  className="rounded-full border border-violet-200 bg-white px-5 py-2.5 text-sm font-bold text-violet-600 shadow-sm transition hover:bg-violet-50"
+                >
+                  📁＋ フォルダ
+                </button>
+              </div>
+            </>
+          )}
         </div>
-
 
         <div className="mb-6 rounded-3xl border border-white/70 bg-white/80 p-4 text-sm text-gray-500 shadow-sm backdrop-blur">
-
           <p>
-            現在のシークエンス：{' '}
-            <span className="font-bold text-gray-700">
-              {sequences.length}
-            </span>
-            件
+            {activeFolder ? 'フォルダ内' : 'トップ'}のシークエンス：{' '}
+            <span className="font-bold text-gray-700">{visibleSequences.length}</span>件
           </p>
-
-          <p className="mt-1 text-xs text-gray-400">
-            ☰ を長押し・ドラッグして並び替えできます
-          </p>
-
+          <p className="mt-1 text-xs text-gray-400">☰ を長押し・ドラッグして並び替えできます</p>
         </div>
 
+        {renderSequenceList(visibleSequences)}
 
-        {sequences.length === 0 ? (
-          <div className="rounded-3xl border border-white/70 bg-white/90 p-8 text-center shadow-sm backdrop-blur">
-
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-violet-50 text-3xl">
-              🌙
+        {!activeFolder && (
+          <section className="mt-8">
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+              <div>
+                <p className="text-sm font-medium text-violet-500">Folders</p>
+                <h2 className="text-xl font-bold text-gray-800">📁 フォルダ</h2>
+              </div>
+              <span className="text-sm text-gray-400">{folders.length}件</span>
             </div>
 
-            <p className="font-bold text-gray-700">
-              まだシークエンスがありません
-            </p>
-
-            <p className="mt-2 text-sm text-gray-500">
-              最初のレッスン構成を作ってみよう
-            </p>
-
-            <button
-              type="button"
-              onClick={createSequence}
-              className="mt-5 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm"
-            >
-              ＋ シークエンスを作成
-            </button>
-
-          </div>
-        ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-
-            <SortableContext
-              items={sequences.map(
-                (sequence) => sequence.id
-              )}
-              strategy={verticalListSortingStrategy}
-            >
-
-              <div className="space-y-4">
-
-                {sequences.map((sequence) => (
-                  <SortableSequenceCard
-                    key={sequence.id}
-                    sequence={sequence}
-                    deleteSequence={deleteSequence}
-                    duplicateSequence={duplicateSequence}
-                    editSequence={editSequence}
-                  />
-                ))}
-
+            {folders.length === 0 ? (
+              <button
+                type="button"
+                onClick={createFolder}
+                className="w-full rounded-3xl border border-dashed border-violet-200 bg-white/70 p-6 text-center text-sm text-violet-500 shadow-sm"
+              >
+                📁 最初のフォルダを作る
+              </button>
+            ) : (
+              <div className="space-y-3">
+                {folders.map((folder) => {
+                  const count = sequences.filter((item) => item.folder_id === folder.id).length
+                  return (
+                    <button
+                      key={folder.id}
+                      type="button"
+                      onClick={() => setActiveFolderId(folder.id)}
+                      className="flex w-full items-center justify-between gap-4 rounded-3xl border border-white/70 bg-white/90 p-4 text-left shadow-sm backdrop-blur transition hover:shadow-md"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-2xl">📁</div>
+                        <div className="min-w-0">
+                          <h3 className="truncate font-bold text-gray-800">{folder.name}</h3>
+                          <p className="mt-1 text-xs text-gray-400">{count}件のシークエンス</p>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-xl text-gray-300">›</span>
+                    </button>
+                  )
+                })}
               </div>
-
-            </SortableContext>
-
-          </DndContext>
+            )}
+          </section>
         )}
-
       </div>
     </main>
   )
