@@ -342,33 +342,38 @@ export default function PresetsPage() {
     }
 
     const insertRows = uniqueItems.map((item) => ({
-      user_id: user.id,
+  user_id: user.id,
 
-      title: item.asana_title || '',
-      sanskrit: item.asana_sanskrit || '',
-      yomi: item.yomi || '',
-      alias: item.alias || '',
+  title: item.asana_title || '',
+  sanskrit: item.asana_sanskrit || '',
+  yomi: item.yomi || '',
+  alias: item.alias || '',
 
-      types: item.types || [],
-      chakras: item.chakras || [],
+  types: item.types || [],
+  chakras: item.chakras || [],
 
-      main_category: preset.main_category || 'yoga',
+  main_category: preset.main_category || 'yoga',
 
-      strength: item.strength || '',
-      flexibility: item.flexibility || '',
+  strength: item.strength || '',
+  flexibility: item.flexibility || '',
 
-      howto: item.howto || '',
-      effect: item.effect || '',
-      caution: item.caution || '',
+  target: item.target || null,
+  apparatus: item.apparatus || [],
+  equipment: item.equipment || null,
+  spring_setting: item.spring_setting || null,
 
-      variation: item.variation || '',
-      modification: item.modification || '',
-      note: item.note || '',
-      image_url: item.image_url || null,
+  howto: item.howto || '',
+  effect: item.effect || '',
+  caution: item.caution || '',
 
-      favorite: false,
-      preset_key: item.preset_key,
-    }))
+  variation: item.variation || '',
+  modification: item.modification || '',
+  note: item.note || '',
+  image_url: item.image_url || null,
+
+  favorite: false,
+  preset_key: item.preset_key,
+}))
 
     const { error: insertError } = await supabase
       .from('asanas')
