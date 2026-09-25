@@ -208,12 +208,24 @@ const isFilteringByType = selectedTypes.length > 0
     return value.includes(keyword) || label.includes(keyword)
   }) ||
 
-  asana.types?.some((type) =>
-    type.toLowerCase().includes(keyword)
-  ) ||
-  asana.chakras?.some((chakra) =>
-    chakra.toLowerCase().includes(keyword)
+  asana.types?.some((type) => {
+  const value = type?.toLowerCase() || ''
+  const ja = TYPE_LABELS[type]?.ja?.toLowerCase() || ''
+  const en = TYPE_LABELS[type]?.en?.toLowerCase() || ''
+
+  return (
+    value.includes(keyword) ||
+    ja.includes(keyword) ||
+    en.includes(keyword)
   )
+}) ||
+
+  asana.chakras?.some((chakra) => {
+  const value = chakra?.toLowerCase() || ''
+  const label = CHAKRA_LABELS[chakra]?.toLowerCase() || ''
+
+  return value.includes(keyword) || label.includes(keyword)
+})
 
   const matchesType =
     selectedTypes.length === 0 ||
@@ -331,7 +343,7 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
         </h1>
 
         <p className="mt-1 text-sm leading-relaxed text-gray-500">
-          名前・チャクラ・分類から探せます
+          名前・別名・分類・部位などから探せます
         </p>
       </div>
 
@@ -370,7 +382,7 @@ const printingAsana = asanas.find((asana) => asana.id === printingAsanaId)
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="名前・チャクラ・分類で検索"
+            placeholder="名前・別名・分類・部位などで検索"
             className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-800 shadow-sm outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
           />
 
