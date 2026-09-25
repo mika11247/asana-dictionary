@@ -30,9 +30,24 @@ import { PLAN_UI } from '@/lib/planUI'
 import { useAuth } from '@/components/AuthProvider'
 
 import {
+  ASANA_TYPES,
   TYPE_LABELS,
+  TYPE_STYLES,
+  CHAKRAS,
+  CHAKRA_STYLES,
   CHAKRA_DOT_COLORS,
+  CHAKRA_LABELS,
 } from '@/lib/categories'
+
+const PILATES_APPARATUS_LABELS = {
+  reformer: 'リフォーマー',
+  chair: 'チェア',
+  ladder_barrel: 'ラダーバレル',
+  tower_reformer: 'タワーリフォーマー',
+  spine_corrector: 'スパインコレクター',
+  cadillac: 'キャデラック',
+  caformer: 'キャフォーマー',
+}
 
 function SortableSequenceItem({
   item,
@@ -510,8 +525,15 @@ export default function SequenceDetailPage() {
   const [sequence, setSequence] = useState(null)
   const [items, setItems] = useState([])
   const [asanas, setAsanas] = useState([])
-  const [asanaSearchText, setAsanaSearchText] = useState('')
-  const [loading, setLoading] = useState(true)
+const [asanaSearchText, setAsanaSearchText] = useState('')
+
+// 動きを追加：絞り込み
+const [filterMainCategory, setFilterMainCategory] = useState('all')
+const [filterTypes, setFilterTypes] = useState([])
+const [filterChakras, setFilterChakras] = useState([])
+const [filterOpen, setFilterOpen] = useState(false)
+
+const [loading, setLoading] = useState(true)
 
   const [memoModalOpen, setMemoModalOpen] = useState(false)
   const [memoText, setMemoText] = useState('')
@@ -521,7 +543,7 @@ export default function SequenceDetailPage() {
   const [openAsanaId, setOpenAsanaId] = useState(null)
 
   const [viewMode, setViewMode] = useState('card')
-  const [addPanelOpen, setAddPanelOpen] = useState(true)
+  const [addPanelOpen, setAddPanelOpen] = useState(false)
 
   const { user, profile } = useAuth()
   const router = useRouter()
@@ -1014,42 +1036,71 @@ if (items.length >= limits.sequenceItems) {
 
   const filteredAsanas = asanas
   .filter((asana) => {
-    const keyword = asanaSearchText
-      .trim()
-      .toLowerCase()
+    const keyword = asanaSearchText.trim().toLowerCase()
+
+    const matchesSearch =
+      keyword === '' ||
+      asana.title?.toLowerCase().includes(keyword) ||
+      asana.yomi?.toLowerCase().includes(keyword) ||
+      asana.alias?.toLowerCase().includes(keyword) ||
+      asana.sanskrit?.toLowerCase().includes(keyword) ||
+      asana.howto?.toLowerCase().includes(keyword) ||
+      asana.effect?.toLowerCase().includes(keyword) ||
+      asana.caution?.toLowerCase().includes(keyword) ||
+      asana.variation?.toLowerCase().includes(keyword) ||
+      asana.adjustment?.toLowerCase().includes(keyword) ||
+      asana.note?.toLowerCase().includes(keyword) ||
+      asana.strength?.toLowerCase().includes(keyword) ||
+      asana.flexibility?.toLowerCase().includes(keyword) ||
+      asana.modification?.toLowerCase().includes(keyword) ||
+      asana.target?.toLowerCase().includes(keyword) ||
+      asana.equipment?.toLowerCase().includes(keyword) ||
+      asana.spring_setting?.toLowerCase().includes(keyword) ||
+
+      asana.apparatus?.some((item) => {
+        const value = item?.toLowerCase() || ''
+        const label =
+          PILATES_APPARATUS_LABELS[item]?.toLowerCase() || ''
+
+        return value.includes(keyword) || label.includes(keyword)
+      }) ||
+
+      asana.types?.some((type) => {
+        const value = type?.toLowerCase() || ''
+        const ja = TYPE_LABELS[type]?.ja?.toLowerCase() || ''
+        const en = TYPE_LABELS[type]?.en?.toLowerCase() || ''
+
+        return (
+          value.includes(keyword) ||
+          ja.includes(keyword) ||
+          en.includes(keyword)
+        )
+      }) ||
+
+      asana.chakras?.some((chakra) => {
+        const value = chakra?.toLowerCase() || ''
+        const label = CHAKRA_LABELS[chakra]?.toLowerCase() || ''
+
+        return value.includes(keyword) || label.includes(keyword)
+      })
+
+    const matchesCategory =
+      filterMainCategory === 'all' ||
+      asana.main_category === filterMainCategory
+
+    const matchesTypes =
+      filterTypes.length === 0 ||
+      filterTypes.every((type) => asana.types?.includes(type))
+
+    const matchesChakras =
+      filterChakras.length === 0 ||
+      filterChakras.every((chakra) => asana.chakras?.includes(chakra))
 
     return (
-      keyword === '' ||
-
-      asana.title?.toLowerCase().includes(keyword) ||
-
-      asana.alias?.toLowerCase().includes(keyword) ||
-
-      asana.sanskrit?.toLowerCase().includes(keyword) ||
-
-      asana.howto?.toLowerCase().includes(keyword) ||
-
-      asana.effect?.toLowerCase().includes(keyword) ||
-
-      asana.caution?.toLowerCase().includes(keyword) ||
-
-      asana.variation?.toLowerCase().includes(keyword) ||
-
-      asana.note?.toLowerCase().includes(keyword) ||
-
-      asana.strength?.toLowerCase().includes(keyword) ||
-
-      asana.flexibility?.toLowerCase().includes(keyword) ||
-
-      asana.modification?.toLowerCase().includes(keyword) ||
-
-      asana.types?.some((type) =>
-        type.toLowerCase().includes(keyword)
-      ) ||
-
-      asana.chakras?.some((chakra) =>
-        chakra.toLowerCase().includes(keyword)
-      )
+      matchesSearch &&
+      matchesCategory &&
+      matchesTypes &&
+      matchesChakras
     )
   })
   .sort((a, b) => Number(b.favorite) - Number(a.favorite))
@@ -1200,9 +1251,155 @@ if (items.length >= limits.sequenceItems) {
         className="mb-4 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-800 shadow-sm outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
       />
 
-      <p className="text-sm text-gray-500">
-        {filteredAsanas.length}件
+      <div className="flex items-center justify-between gap-3">
+  <p className="text-sm text-gray-500">
+    {filteredAsanas.length}件
+  </p>
+
+  <button
+    type="button"
+    onClick={() => setFilterOpen(!filterOpen)}
+    className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
+      filterOpen ||
+      filterMainCategory !== 'all' ||
+      filterTypes.length > 0 ||
+      filterChakras.length > 0
+        ? 'bg-violet-100 text-violet-700'
+        : 'border border-gray-200 bg-white text-gray-500'
+    }`}
+  >
+    🎛️ 絞り込み
+    {(filterMainCategory !== 'all' ||
+      filterTypes.length > 0 ||
+      filterChakras.length > 0) &&
+      ' ●'}
+  </button>
+</div>
+
+{filterOpen && (
+  <div className="mt-3 rounded-2xl border border-violet-100 bg-violet-50/40 p-4">
+
+    {/* カテゴリ */}
+    <div>
+      <p className="mb-2 text-xs font-bold text-gray-500">
+        カテゴリ
       </p>
+
+      <div className="flex flex-wrap gap-2">
+        {[
+          ['all', 'すべて'],
+          ['yoga', '☀️ ヨガ'],
+          ['pilates', '🧘 ピラティス'],
+          ['training', '🏋️ トレーニング'],
+        ].map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setFilterMainCategory(value)}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+              filterMainCategory === value
+                ? 'bg-gray-800 text-white'
+                : 'border border-gray-200 bg-white text-gray-600'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    {/* 分類・タグ */}
+    <div className="mt-4">
+      <p className="mb-2 text-xs font-bold text-gray-500">
+        分類・タグ
+      </p>
+
+      <div className="flex flex-wrap gap-2">
+        {ASANA_TYPES.map((type) => {
+          const active = filterTypes.includes(type)
+
+          return (
+            <button
+              key={type}
+              type="button"
+              onClick={() =>
+                setFilterTypes((prev) =>
+                  prev.includes(type)
+                    ? prev.filter((item) => item !== type)
+                    : [...prev, type]
+                )
+              }
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                active
+                  ? TYPE_STYLES[type]?.active ||
+                    'border-sky-300 bg-sky-100 text-sky-700'
+                  : TYPE_STYLES[type]?.inactive ||
+                    'border-gray-200 bg-white text-gray-600'
+              }`}
+            >
+              {TYPE_LABELS[type]?.ja || type}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+
+    {/* チャクラ */}
+    <div className="mt-4">
+      <p className="mb-2 text-xs font-bold text-gray-500">
+        チャクラ
+      </p>
+
+      <div className="flex flex-wrap gap-2">
+        {CHAKRAS.map((chakra) => {
+          const active = filterChakras.includes(chakra)
+
+          return (
+            <button
+              key={chakra}
+              type="button"
+              onClick={() =>
+                setFilterChakras((prev) =>
+                  prev.includes(chakra)
+                    ? prev.filter((item) => item !== chakra)
+                    : [...prev, chakra]
+                )
+              }
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                active
+                  ? CHAKRA_STYLES[chakra]?.active ||
+                    'border-violet-300 bg-violet-100 text-violet-700'
+                  : CHAKRA_STYLES[chakra]?.inactive ||
+                    'border-gray-200 bg-white text-gray-600'
+              }`}
+            >
+              {CHAKRA_LABELS[chakra] || chakra}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+
+    {/* リセット */}
+    {(filterMainCategory !== 'all' ||
+      filterTypes.length > 0 ||
+      filterChakras.length > 0) && (
+      <div className="mt-4 border-t border-violet-100 pt-3">
+        <button
+          type="button"
+          onClick={() => {
+            setFilterMainCategory('all')
+            setFilterTypes([])
+            setFilterChakras([])
+          }}
+          className="text-xs font-bold text-violet-500"
+        >
+          ↺ 絞り込みをリセット
+        </button>
+      </div>
+    )}
+  </div>
+)}
 
     </div>
 
