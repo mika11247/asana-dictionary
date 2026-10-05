@@ -21,11 +21,12 @@ export default function CustomerDetailPage() {
   const [mode, setMode] = useState(null)
   const [editingRecord, setEditingRecord] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [flagLoading, setFlagLoading] = useState(null)
 
   async function load() {
     setLoading(true); setError("")
     const [customerResult, recordResult, locationResult, serviceResult] = await Promise.all([
-      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, crm_locations(id, name, is_active), crm_services(id, name, is_active))").eq("id", id).maybeSingle(),
+      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, membership_type, crm_locations(id, name, is_active), crm_services(id, name, is_active))").eq("id", id).maybeSingle(),
       supabase.from("crm_records").select("*, crm_locations(id, name, is_active), crm_services(id, name, is_active)").eq("customer_id", id).order("record_date", { ascending: false }).order("created_at", { ascending: false }),
       supabase.from("crm_locations").select("*").order("sort_order").order("name"),
       supabase.from("crm_services").select("*").order("sort_order").order("name"),
@@ -51,8 +52,9 @@ export default function CustomerDetailPage() {
     }
     const oldRelations = customer.crm_customer_services || []
     const oldKeys = new Set(oldRelations.map(relationKey)); const nextKeys = new Set(nextRelations.map(relationKey))
-    const additions = nextRelations.filter((item) => !oldKeys.has(relationKey(item))).map((item) => ({ customer_id: Number(id), ...item }))
+    const additions = nextRelations.filter((item) => !oldKeys.has(relationKey(item))).map((item) => ({ customer_id: Number(id), location_id: item.location_id, service_id: item.service_id, membership_type: item.membership_type || null }))
     const removals = oldRelations.filter((item) => !nextKeys.has(relationKey(item)))
+    const membershipChanges = nextRelations.filter((item) => oldKeys.has(relationKey(item))).map((item) => ({ next: item, previous: oldRelations.find((oldItem) => relationKey(oldItem) === relationKey(item)) })).filter(({ next, previous }) => (next.membership_type || null) !== (previous.membership_type || null))
     if (additions.length) {
       const { error: addError } = await supabase.from("crm_customer_services").insert(additions)
       if (addError) { console.error("顧客関連の追加に失敗しました", addError); throw new Error("基本情報は保存されましたが、担当先・サービスの追加に失敗しました。再度お試しください。") }
@@ -60,6 +62,10 @@ export default function CustomerDetailPage() {
     if (removals.length) {
       const { error: removeError } = await supabase.from("crm_customer_services").delete().in("id", removals.map((item) => item.id))
       if (removeError) { console.error("顧客関連の削除に失敗しました", removeError); throw new Error("基本情報は保存されましたが、担当先・サービスの削除に失敗しました。再度お試しください。") }
+    }
+    for (const { next, previous } of membershipChanges) {
+      const { error: membershipError } = await supabase.from("crm_customer_services").update({ membership_type: next.membership_type || null }).eq("id", previous.id)
+      if (membershipError) { console.error("会員種別の更新に失敗しました", membershipError); throw new Error("基本情報は保存されましたが、会員種別を更新できませんでした。再度お試しください。") }
     }
     setMode(null); await load()
   }
@@ -89,6 +95,21 @@ export default function CustomerDetailPage() {
     setActionLoading(false)
   }
 
+  async function toggleCustomerFlag(field) {
+    if (flagLoading) return
+    const previousValue = Boolean(customer[field])
+    const nextValue = !previousValue
+    setFlagLoading(field); setError("")
+    setCustomer((current) => ({ ...current, [field]: nextValue }))
+    const { error: updateError } = await supabase.from("crm_customers").update({ [field]: nextValue }).eq("id", id)
+    if (updateError) {
+      console.error("顧客フラグの更新に失敗しました", { code: updateError.code, message: updateError.message, details: updateError.details, hint: updateError.hint })
+      setCustomer((current) => ({ ...current, [field]: previousValue }))
+      setError(field === "is_favorite" ? "お気に入りを変更できませんでした。" : "ピックアップを変更できませんでした。")
+    }
+    setFlagLoading(null)
+  }
+
   if (loading) return <main className="min-h-screen bg-sky-50 p-8 text-center text-gray-500">読み込み中...</main>
   if (!customer) return <main className="min-h-screen bg-sky-50 p-6"><div className="mx-auto max-w-3xl"><Link href="/admin/customers" className="text-sky-700">← 顧客一覧</Link><p className="mt-5 rounded-3xl bg-red-50 p-5 text-red-700">{error || "顧客が見つかりません。"}</p></div></main>
   const latest = records[0]
@@ -97,12 +118,14 @@ export default function CustomerDetailPage() {
     {error && <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
     <section className="mt-4 rounded-3xl bg-white p-5 shadow-sm sm:p-7">
       <div className="flex items-start justify-between gap-3"><div><h1 className="text-2xl font-bold text-gray-900">{customer.name}<span className="ml-1 text-xl font-semibold">様</span></h1>{customer.name_yomi && <p className="mt-1 text-base font-medium text-gray-600">{customer.name_yomi}</p>}{customer.nickname && <p className="mt-0.5 text-sm text-gray-500">{customer.nickname}</p>}</div><button onClick={() => setMode("customer")} className="rounded-xl bg-gray-100 px-3 py-2 text-sm font-bold text-gray-600">編集</button></div>
+      <div className="mt-4 flex flex-wrap gap-2"><button type="button" disabled={Boolean(flagLoading)} onClick={() => toggleCustomerFlag("is_favorite")} className={`min-h-11 rounded-2xl border px-4 text-sm font-bold disabled:opacity-50 ${customer.is_favorite ? "border-amber-300 bg-amber-50 text-amber-800" : "border-gray-200 text-gray-500"}`}>{customer.is_favorite ? "⭐️ お気に入り" : "☆ お気に入り"}</button><button type="button" disabled={Boolean(flagLoading)} onClick={() => toggleCustomerFlag("is_pinned")} className={`min-h-11 rounded-2xl border px-4 text-sm font-bold disabled:opacity-50 ${customer.is_pinned ? "border-sky-300 bg-sky-50 text-sky-800" : "border-gray-200 text-gray-500"}`}>📌 {customer.is_pinned ? "ピックアップ中" : "ピックアップ"}</button></div>
       <div className="mt-5"><p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">写真掲載可否</p><PhotoPermissionBadge value={customer.photo_permission} prominent /></div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <div className="rounded-2xl bg-sky-50 p-4"><h2 className="text-sm font-bold text-sky-900">💬 本人から聞いている悩み・希望</h2><p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{customer.customer_request || "記載なし"}</p></div>
         <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-4"><h2 className="text-sm font-bold text-amber-900">⚠️ 継続的な配慮事項</h2><p className="mt-2 whitespace-pre-wrap font-medium text-gray-900">{customer.care_notes || "記載なし"}</p></div>
       </div>
-      <div className="mt-5 flex flex-wrap gap-2">{customer.crm_customer_services?.length ? customer.crm_customer_services.map((item) => <span key={item.id} className="rounded-full bg-violet-50 px-3 py-2 text-sm text-violet-800">{item.crm_locations?.name} × {item.crm_services?.name}</span>) : <span className="text-sm text-gray-500">担当先・サービス未登録</span>}</div>
+      {customer.private_note?.trim() && <div className="mt-3 rounded-2xl bg-violet-50 p-4"><h2 className="text-sm font-bold text-violet-900">📝 自分用メモ</h2><p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{customer.private_note}</p></div>}
+      <div className="mt-5 flex flex-wrap gap-2">{customer.crm_customer_services?.length ? customer.crm_customer_services.map((item) => <span key={item.id} className="rounded-2xl bg-violet-50 px-3 py-2 text-sm text-violet-800"><span>{item.crm_locations?.name} × {item.crm_services?.name}</span>{item.membership_type && <span className="ml-2 font-bold">🎫 {item.membership_type}</span>}</span>) : <span className="text-sm text-gray-500">担当先・サービス未登録</span>}</div>
       <p className="mt-5 text-sm text-gray-500">最終参加日：<strong className="text-gray-900">{formatDate(latest?.record_date)}</strong></p>
     </section>
 

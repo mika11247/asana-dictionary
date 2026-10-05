@@ -4,8 +4,10 @@ import { useMemo, useState } from "react"
 import { PHOTO_PERMISSION_OPTIONS, relationKey } from "@/lib/crm"
 
 const emptyCustomer = {
-  name: "", nickname: "", name_yomi: "", photo_permission: "unknown", customer_request: "", care_notes: "",
+  name: "", nickname: "", name_yomi: "", photo_permission: "unknown", customer_request: "", care_notes: "", private_note: "",
 }
+
+const membershipOptions = ["通い放題", "回数券", "月謝", "体験"]
 
 function editableCustomerValues(customer = {}) {
   return {
@@ -15,14 +17,16 @@ function editableCustomerValues(customer = {}) {
     photo_permission: customer.photo_permission ?? "unknown",
     customer_request: customer.customer_request ?? "",
     care_notes: customer.care_notes ?? "",
+    private_note: customer.private_note ?? "",
   }
 }
 
 export default function CustomerForm({ initialCustomer, initialRelations = [], locations, services, onSave, onCancel, submitLabel = "保存" }) {
   const [form, setForm] = useState({ ...emptyCustomer, ...editableCustomerValues(initialCustomer) })
-  const [relations, setRelations] = useState(initialRelations.map((item) => ({ location_id: item.location_id, service_id: item.service_id })))
+  const [relations, setRelations] = useState(initialRelations.map((item) => ({ id: item.id, location_id: item.location_id, service_id: item.service_id, membership_type: item.membership_type || null })))
   const [locationId, setLocationId] = useState("")
   const [serviceId, setServiceId] = useState("")
+  const [membershipType, setMembershipType] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const activeLocations = useMemo(() => locations.filter((item) => item.is_active), [locations])
@@ -34,10 +38,11 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
 
   function addRelation() {
     if (!locationId || !serviceId) return
-    const next = { location_id: Number(locationId), service_id: Number(serviceId) }
+    const next = { location_id: Number(locationId), service_id: Number(serviceId), membership_type: membershipType || null }
     if (!relations.some((item) => relationKey(item) === relationKey(next))) setRelations((current) => [...current, next])
     setLocationId("")
     setServiceId("")
+    setMembershipType("")
   }
 
   async function submit(event) {
@@ -53,6 +58,7 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
         photo_permission: form.photo_permission,
         customer_request: form.customer_request,
         care_notes: form.care_notes,
+        private_note: form.private_note,
       }, relations)
     } catch (err) {
       setError(err.message || "保存できませんでした。")
@@ -73,18 +79,20 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
       <label className="block text-sm font-semibold text-gray-700">写真掲載可否<select name="photo_permission" value={form.photo_permission} onChange={change} className={inputClass}>{PHOTO_PERMISSION_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
       <label className="block text-sm font-semibold text-gray-700">本人から聞いている悩み・希望<textarea name="customer_request" value={form.customer_request || ""} onChange={change} rows={3} className={inputClass} /></label>
       <label className="block text-sm font-semibold text-gray-700">継続的な配慮事項<textarea name="care_notes" value={form.care_notes || ""} onChange={change} rows={3} className={inputClass} /></label>
+      <label className="block text-sm font-semibold text-gray-700">📝 自分用メモ<textarea name="private_note" value={form.private_note || ""} onChange={change} rows={3} placeholder="外見・持ち物・仕事・以前話した内容など" className={inputClass} /></label>
       <fieldset className="rounded-2xl bg-slate-50 p-4">
         <legend className="px-1 text-sm font-bold text-gray-800">担当先 × サービス</legend>
-        <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+        <div className="grid gap-2 sm:grid-cols-2">
           <select value={locationId} onChange={(e) => setLocationId(e.target.value)} className={inputClass}><option value="">担当先を選択</option>{activeLocations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
           <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className={inputClass}><option value="">サービスを選択</option>{activeServices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
-          <button type="button" onClick={addRelation} className="mt-1 rounded-2xl bg-slate-700 px-4 py-3 text-sm font-bold text-white">追加</button>
+          <select value={membershipType} onChange={(e) => setMembershipType(e.target.value)} className={inputClass}><option value="">会員種別：未設定</option>{membershipOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+          <button type="button" onClick={addRelation} className="mt-1 rounded-2xl bg-slate-700 px-4 py-3 text-sm font-bold text-white">組み合わせを追加</button>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 space-y-2">
           {relations.length === 0 && <span className="text-sm text-gray-500">未登録</span>}
           {relations.map((relation) => {
             const label = `${locations.find((x) => x.id === relation.location_id)?.name || "不明"} × ${services.find((x) => x.id === relation.service_id)?.name || "不明"}`
-            return <button type="button" key={relationKey(relation)} onClick={() => setRelations((items) => items.filter((x) => relationKey(x) !== relationKey(relation)))} className="rounded-full bg-white px-3 py-2 text-sm text-gray-700 shadow-sm">{label} <span className="text-gray-400">×</span></button>
+            return <div key={relationKey(relation)} className="rounded-2xl bg-white p-3 shadow-sm"><div className="flex items-center justify-between gap-2"><span className="text-sm font-medium text-gray-700">{label}</span><button type="button" aria-label={`${label}を削除`} onClick={() => setRelations((items) => items.filter((x) => relationKey(x) !== relationKey(relation)))} className="shrink-0 px-2 text-gray-400">×</button></div><select value={relation.membership_type || ""} onChange={(e) => setRelations((items) => items.map((item) => relationKey(item) === relationKey(relation) ? { ...item, membership_type: e.target.value || null } : item))} className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"><option value="">会員種別：未設定</option>{membershipOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
           })}
         </div>
       </fieldset>
