@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { supabase } from '@/lib/supabaseClient'
@@ -26,9 +26,28 @@ export default function ProtectedRoute({ children }) {
   const pathname = usePathname()
   const router = useRouter()
 
+  // ========================================
+  // アクセス確認状態
+  // ========================================
+  //
+  // ログイン済みユーザーについて、
+  // profile / 管理者権限の確認が終わるまで
+  // 保護ページの中身を表示しない
+  // ========================================
+
+  const [accessChecking, setAccessChecking] = useState(true)
+  const [accessAllowed, setAccessAllowed] = useState(false)
+
   useEffect(() => {
+    let cancelled = false
+
     async function checkAccess() {
-      if (loading) return
+      if (loading) {
+        return
+      }
+
+      setAccessChecking(true)
+      setAccessAllowed(false)
 
       // ========================================
       // 未ログイン
@@ -45,8 +64,22 @@ export default function ProtectedRoute({ children }) {
       // 引き続きログイン必須。
       // ========================================
 
-      if (!user && !PUBLIC_PATHS.includes(pathname)) {
-        router.replace('/login')
+      if (!user) {
+        if (!PUBLIC_PATHS.includes(pathname)) {
+          router.replace('/login')
+
+          if (!cancelled) {
+            setAccessChecking(false)
+          }
+
+          return
+        }
+
+        if (!cancelled) {
+          setAccessAllowed(true)
+          setAccessChecking(false)
+        }
+
         return
       }
 
@@ -54,36 +87,72 @@ export default function ProtectedRoute({ children }) {
       // ログイン済み
       // ========================================
 
-      if (user) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('status')
-          .eq('id', user.id)
-          .maybeSingle()
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('status, is_admin')
+        .eq('id', user.id)
+        .maybeSingle()
 
-        if (error) {
-          console.error('profile取得エラー', error)
+      if (cancelled) {
+        return
+      }
+
+      if (error) {
+        console.error('profile取得エラー', error)
+
+        // profileを確認できない場合は
+        // 保護ページを表示しない
+        setAccessAllowed(false)
+        setAccessChecking(false)
+        return
+      }
+
+      // ========================================
+      // 退会申請中
+      // ========================================
+      //
+      // 退会申請中のユーザーは
+      // マイページのみアクセス可能
+      // ========================================
+
+      if (profile?.status === 'scheduled_deletion') {
+        if (pathname !== '/mypage') {
+          router.replace('/mypage')
+          setAccessAllowed(false)
+          setAccessChecking(false)
           return
         }
-
-        // ========================================
-        // 退会申請中
-        // ========================================
-        //
-        // 退会申請中のユーザーは
-        // マイページのみアクセス可能
-        // ========================================
-
-        if (profile?.status === 'scheduled_deletion') {
-          if (pathname !== '/mypage') {
-            router.replace('/mypage')
-            return
-          }
-        }
       }
+
+      // ========================================
+      // 管理者ページ
+      // ========================================
+      //
+      // /admin 配下は
+      // profiles.is_admin = true の
+      // 管理者のみアクセス可能
+      // ========================================
+
+      if (pathname.startsWith('/admin') && !profile?.is_admin) {
+        router.replace('/')
+        setAccessAllowed(false)
+        setAccessChecking(false)
+        return
+      }
+
+      // ========================================
+      // 表示OK
+      // ========================================
+
+      setAccessAllowed(true)
+      setAccessChecking(false)
     }
 
     checkAccess()
+
+    return () => {
+      cancelled = true
+    }
   }, [loading, user, pathname, router])
 
   // ========================================
@@ -103,14 +172,34 @@ export default function ProtectedRoute({ children }) {
   }
 
   // ========================================
-  // 未ログイン ＆ 非公開ページ
+  // アクセス確認中
   // ========================================
   //
-  // useEffect の router.replace が完了するまで
-  // 一瞬ページが表示されるのを防ぐ
+  // profile / is_admin の確認が終わるまで
+  // children を表示しない
   // ========================================
 
-  if (!user && !PUBLIC_PATHS.includes(pathname)) {
+  if (accessChecking) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-sky-50 via-white to-violet-50">
+        <div className="rounded-3xl bg-white px-6 py-4 shadow-sm">
+          <p className="text-sm text-gray-500">
+            読み込み中...
+          </p>
+        </div>
+      </main>
+    )
+  }
+
+  // ========================================
+  // アクセス不可
+  // ========================================
+  //
+  // router.replace が完了するまで
+  // 元ページを一瞬表示しない
+  // ========================================
+
+  if (!accessAllowed) {
     return null
   }
 
