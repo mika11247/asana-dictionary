@@ -96,7 +96,7 @@ export default function CustomerDetailPage() {
     <Link href="/admin/customers" className="text-sm text-sky-700">← 顧客一覧</Link>
     {error && <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
     <section className="mt-4 rounded-3xl bg-white p-5 shadow-sm sm:p-7">
-      <div className="flex items-start justify-between gap-3"><div><h1 className="text-2xl font-bold text-gray-900">{customer.name}</h1>{customer.nickname && <p className="mt-1 text-gray-500">{customer.nickname}</p>}</div><button onClick={() => setMode("customer")} className="rounded-xl bg-gray-100 px-3 py-2 text-sm font-bold text-gray-600">編集</button></div>
+      <div className="flex items-start justify-between gap-3"><div><h1 className="text-2xl font-bold text-gray-900">{customer.name}<span className="ml-1 text-xl font-semibold">様</span></h1>{customer.name_yomi && <p className="mt-1 text-base font-medium text-gray-600">{customer.name_yomi}</p>}{customer.nickname && <p className="mt-0.5 text-sm text-gray-500">{customer.nickname}</p>}</div><button onClick={() => setMode("customer")} className="rounded-xl bg-gray-100 px-3 py-2 text-sm font-bold text-gray-600">編集</button></div>
       <div className="mt-5"><p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">写真掲載可否</p><PhotoPermissionBadge value={customer.photo_permission} prominent /></div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <div className="rounded-2xl bg-sky-50 p-4"><h2 className="text-sm font-bold text-sky-900">💬 本人から聞いている悩み・希望</h2><p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{customer.customer_request || "記載なし"}</p></div>

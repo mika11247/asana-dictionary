@@ -96,7 +96,7 @@ export default function CustomersPage() {
             {filtered.map((customer) => {
               const lastDate = (customer.crm_records || []).reduce((max, item) => !max || item.record_date > max ? item.record_date : max, null)
               return <Link key={customer.id} href={`/admin/customers/${customer.id}`} className="block rounded-3xl border border-transparent bg-white p-5 shadow-sm transition hover:border-sky-200">
-                <div className="flex items-start justify-between gap-3"><div><h2 className="text-lg font-bold text-gray-900">{customer.name}</h2>{customer.nickname && <p className="text-sm text-gray-500">{customer.nickname}</p>}</div><PhotoPermissionBadge value={customer.photo_permission} /></div>
+                <div className="flex items-start justify-between gap-3"><div><h2 className="text-lg font-bold text-gray-900">{customer.name}<span className="ml-1 text-base font-semibold">様</span></h2>{customer.name_yomi && <p className="mt-1 text-sm font-medium text-gray-600">{customer.name_yomi}</p>}{customer.nickname && <p className="mt-0.5 text-sm text-gray-500">{customer.nickname}</p>}</div><PhotoPermissionBadge value={customer.photo_permission} /></div>
                 <div className="mt-3 flex flex-wrap gap-2">{customer.crm_customer_services?.map((item) => <span key={item.id} className="rounded-full bg-sky-50 px-3 py-1 text-xs text-sky-800">{item.crm_locations?.name} × {item.crm_services?.name}</span>)}</div>
                 <p className="mt-3 text-sm text-gray-500">最終参加日：<span className="font-semibold text-gray-700">{formatDate(lastDate)}</span></p>
               </Link>
