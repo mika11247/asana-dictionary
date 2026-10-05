@@ -40,7 +40,15 @@ export default function CustomerDetailPage() {
 
   async function saveCustomer(values, nextRelations) {
     const { error: updateError } = await supabase.from("crm_customers").update(values).eq("id", id)
-    if (updateError) throw new Error("基本情報を保存できませんでした。")
+    if (updateError) {
+      console.error("顧客基本情報の更新に失敗しました", {
+        code: updateError.code,
+        message: updateError.message,
+        details: updateError.details,
+        hint: updateError.hint,
+      })
+      throw new Error("基本情報を保存できませんでした。")
+    }
     const oldRelations = customer.crm_customer_services || []
     const oldKeys = new Set(oldRelations.map(relationKey)); const nextKeys = new Set(nextRelations.map(relationKey))
     const additions = nextRelations.filter((item) => !oldKeys.has(relationKey(item))).map((item) => ({ customer_id: Number(id), ...item }))

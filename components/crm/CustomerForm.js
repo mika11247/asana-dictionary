@@ -7,8 +7,19 @@ const emptyCustomer = {
   name: "", nickname: "", name_yomi: "", photo_permission: "unknown", customer_request: "", care_notes: "",
 }
 
+function editableCustomerValues(customer = {}) {
+  return {
+    name: customer.name ?? "",
+    nickname: customer.nickname ?? "",
+    name_yomi: customer.name_yomi ?? "",
+    photo_permission: customer.photo_permission ?? "unknown",
+    customer_request: customer.customer_request ?? "",
+    care_notes: customer.care_notes ?? "",
+  }
+}
+
 export default function CustomerForm({ initialCustomer, initialRelations = [], locations, services, onSave, onCancel, submitLabel = "保存" }) {
-  const [form, setForm] = useState({ ...emptyCustomer, ...initialCustomer })
+  const [form, setForm] = useState({ ...emptyCustomer, ...editableCustomerValues(initialCustomer) })
   const [relations, setRelations] = useState(initialRelations.map((item) => ({ location_id: item.location_id, service_id: item.service_id })))
   const [locationId, setLocationId] = useState("")
   const [serviceId, setServiceId] = useState("")
@@ -35,7 +46,14 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
     setSaving(true)
     setError("")
     try {
-      await onSave({ ...form, name: form.name.trim(), nickname: form.nickname.trim(), name_yomi: form.name_yomi.trim() }, relations)
+      await onSave({
+        name: form.name.trim(),
+        nickname: form.nickname.trim(),
+        name_yomi: form.name_yomi.trim(),
+        photo_permission: form.photo_permission,
+        customer_request: form.customer_request,
+        care_notes: form.care_notes,
+      }, relations)
     } catch (err) {
       setError(err.message || "保存できませんでした。")
     } finally {
