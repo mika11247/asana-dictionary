@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabaseClient"
 import CustomerForm from "@/components/crm/CustomerForm"
 import PhotoPermissionBadge from "@/components/crm/PhotoPermissionBadge"
 import RecordForm from "@/components/crm/RecordForm"
-import { formatDate, relationKey } from "@/lib/crm"
+import { formatDate, relationKey, saveCrmRecord } from "@/lib/crm"
 
 export default function CustomerDetailPage() {
   const { id } = useParams()
@@ -71,9 +71,7 @@ export default function CustomerDetailPage() {
   }
 
   async function saveRecord(values) {
-    const payload = { ...values, customer_id: Number(id) }
-    const result = editingRecord ? await supabase.from("crm_records").update(payload).eq("id", editingRecord.id) : await supabase.from("crm_records").insert(payload)
-    if (result.error) { console.error("記録の保存に失敗しました", result.error); throw new Error("記録を保存できませんでした。") }
+    await saveCrmRecord(supabase, id, values, editingRecord?.id)
     setMode(null); setEditingRecord(null); await load()
   }
 
