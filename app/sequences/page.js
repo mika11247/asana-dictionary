@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 import { supabase } from '@/lib/supabaseClient'
@@ -40,6 +40,7 @@ function SortableSequenceCard({
   duplicateSequence,
   editSequence,
   moveSequence,
+  isSequenceOrderSaving = false,
   isGuest = false,
   requireLogin,
 }) {
@@ -50,7 +51,7 @@ function SortableSequenceCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: sequence.id })
+  } = useSortable({ id: sequence.id, disabled: isSequenceOrderSaving })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -67,6 +68,9 @@ function SortableSequenceCard({
       }
       ref={setNodeRef}
       style={style}
+      onClick={(event) => {
+        if (isSequenceOrderSaving) event.preventDefault()
+      }}
       className="block rounded-3xl border border-white/70 bg-white/90 p-4 shadow-sm backdrop-blur transition hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-3">
@@ -81,6 +85,7 @@ function SortableSequenceCard({
               e.stopPropagation()
               if (isGuest) requireLogin?.()
             }}
+            disabled={isSequenceOrderSaving}
             className="cursor-grab rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-400 active:cursor-grabbing"
           >
             ☰
@@ -122,6 +127,7 @@ function SortableSequenceCard({
                     }
                     editSequence(sequence)
                   }}
+                  disabled={isSequenceOrderSaving}
                   className="rounded-full bg-white px-2 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-200 transition hover:bg-gray-50"
                 >
                   ✏️
@@ -140,6 +146,7 @@ function SortableSequenceCard({
 
     moveSequence(sequence)
   }}
+  disabled={isSequenceOrderSaving}
   className="rounded-full bg-white px-2 py-1 text-xs font-medium text-violet-500 ring-1 ring-violet-100 transition hover:bg-violet-50"
   title="フォルダへ移動"
 >
@@ -157,6 +164,7 @@ function SortableSequenceCard({
                     }
                     duplicateSequence(sequence)
                   }}
+                  disabled={isSequenceOrderSaving}
                   className="rounded-full bg-white px-2 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-200 transition hover:bg-gray-50"
                 >
                   📄
@@ -173,6 +181,7 @@ function SortableSequenceCard({
                     }
                     deleteSequence(sequence.id)
                   }}
+                  disabled={isSequenceOrderSaving}
                   className="rounded-full bg-white px-2 py-1 text-xs font-medium text-red-500 ring-1 ring-gray-200 transition hover:bg-red-50"
                 >
                   🗑
@@ -198,6 +207,8 @@ export default function SequencesPage() {
   const [loading, setLoading] = useState(true)
   const [folders, setFolders] = useState([])
   const [activeFolderId, setActiveFolderId] = useState(null)
+  const [isSequenceOrderSaving, setIsSequenceOrderSaving] = useState(false)
+  const isSavingSequenceOrderRef = useRef(false)
 
   const [demoSequence, setDemoSequence] = useState(null)
   const [demoItems, setDemoItems] = useState([])
@@ -613,10 +624,16 @@ async function moveSequence(sequence) {
   async function handleDragEnd(event) {
     const { active, over } = event
 
-    if (!over || active.id === over.id) return
+    if (
+      !user ||
+      !over ||
+      active.id === over.id ||
+      isSavingSequenceOrderRef.current
+    ) return
 
+    const targetFolderId = activeFolderId
     const visibleSequences = sequences.filter((item) =>
-      activeFolderId ? item.folder_id === activeFolderId : !item.folder_id
+      targetFolderId ? item.folder_id === targetFolderId : !item.folder_id
     )
 
     const oldIndex = visibleSequences.findIndex((item) => item.id === active.id)
@@ -629,22 +646,79 @@ async function moveSequence(sequence) {
       position: index + 1,
     }))
 
-    const positionMap = new Map(reordered.map((item) => [item.id, item.position]))
-    setSequences((prev) =>
-      prev.map((item) =>
-        positionMap.has(item.id) ? { ...item, position: positionMap.get(item.id) } : item
-      )
-    )
+    const previousSequences = sequences
+    let reorderedIndex = 0
+    const optimisticSequences = previousSequences.map((item) => {
+      const isInTargetFolder = targetFolderId
+        ? item.folder_id === targetFolderId
+        : !item.folder_id
 
-    const results = await Promise.all(
-      reordered.map((item) =>
-        supabase.from('sequences').update({ position: item.position }).eq('id', item.id)
-      )
-    )
+      if (!isInTargetFolder) return item
 
-    if (results.some((result) => result.error)) {
-      alert('並び替えエラー')
-      fetchSequences()
+      const nextItem = reordered[reorderedIndex]
+      reorderedIndex += 1
+      return nextItem
+    })
+
+    isSavingSequenceOrderRef.current = true
+    setIsSequenceOrderSaving(true)
+    setSequences(optimisticSequences)
+
+    try {
+      const results = await Promise.all(
+        reordered.map((item) =>
+          supabase
+            .from('sequences')
+            .update({ position: item.position })
+            .eq('id', item.id)
+            .eq('user_id', user.id)
+            .select('id')
+        )
+      )
+      const failedResult = results.find(
+        (result) => result.error || result.data?.length !== 1
+      )
+
+      if (failedResult) {
+        throw failedResult.error || new Error('並び替えの更新対象を確認できませんでした。')
+      }
+    } catch (error) {
+      console.error('シークエンス並び替え保存エラー:', error)
+      setSequences(previousSequences)
+
+      const previousPositionMap = new Map(
+        visibleSequences.map((item) => [item.id, item.position])
+      )
+      let rollbackFailed = false
+
+      try {
+        const rollbackResults = await Promise.all(
+          visibleSequences.map((item) =>
+            supabase
+              .from('sequences')
+              .update({ position: previousPositionMap.get(item.id) })
+              .eq('id', item.id)
+              .eq('user_id', user.id)
+              .select('id')
+          )
+        )
+        rollbackFailed = rollbackResults.some(
+          (result) => result.error || result.data?.length !== 1
+        )
+      } catch (rollbackError) {
+        console.error('シークエンス並び替え復元エラー:', rollbackError)
+        rollbackFailed = true
+      }
+
+      if (rollbackFailed) {
+        alert('並び替えの保存に失敗しました。最新の並び順を再取得します。')
+        await fetchSequences()
+      } else {
+        alert('並び替えを保存できなかったため、元の順序に戻しました。')
+      }
+    } finally {
+      isSavingSequenceOrderRef.current = false
+      setIsSequenceOrderSaving(false)
     }
   }
 
@@ -855,6 +929,7 @@ async function moveSequence(sequence) {
   duplicateSequence={duplicateSequence}
   editSequence={editSequence}
   moveSequence={moveSequence}
+  isSequenceOrderSaving={isSequenceOrderSaving}
 />
             ))}
           </div>
@@ -871,7 +946,10 @@ async function moveSequence(sequence) {
             <>
               <button
                 type="button"
-                onClick={() => setActiveFolderId(null)}
+                onClick={() => {
+                  if (!isSavingSequenceOrderRef.current) setActiveFolderId(null)
+                }}
+                disabled={isSequenceOrderSaving}
                 className="mb-4 text-sm font-medium text-gray-400 transition hover:text-violet-500"
               >
                 ← シークエンス一覧へ
@@ -889,6 +967,7 @@ async function moveSequence(sequence) {
                   <button
                     type="button"
                     onClick={() => renameFolder(activeFolder)}
+                    disabled={isSequenceOrderSaving}
                     className="rounded-full bg-white px-3 py-2 text-sm text-gray-500 ring-1 ring-gray-200"
                   >
                     ✏️
@@ -896,6 +975,7 @@ async function moveSequence(sequence) {
                   <button
                     type="button"
                     onClick={() => deleteFolder(activeFolder)}
+                    disabled={isSequenceOrderSaving}
                     className="rounded-full bg-white px-3 py-2 text-sm text-red-500 ring-1 ring-red-100"
                   >
                     🗑️
@@ -912,6 +992,7 @@ async function moveSequence(sequence) {
                 <button
                   type="button"
                   onClick={createSequence}
+                  disabled={isSequenceOrderSaving}
                   className="rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:scale-[1.02]"
                 >
                   ＋ 作成
@@ -919,6 +1000,7 @@ async function moveSequence(sequence) {
                 <button
                   type="button"
                   onClick={createFolder}
+                  disabled={isSequenceOrderSaving}
                   className="rounded-full border border-violet-200 bg-white px-5 py-2.5 text-sm font-bold text-violet-600 shadow-sm transition hover:bg-violet-50"
                 >
                   📁＋ フォルダ
@@ -952,6 +1034,7 @@ async function moveSequence(sequence) {
               <button
                 type="button"
                 onClick={createFolder}
+                disabled={isSequenceOrderSaving}
                 className="w-full rounded-3xl border border-dashed border-violet-200 bg-white/70 p-6 text-center text-sm text-violet-500 shadow-sm"
               >
                 📁 最初のフォルダを作る
@@ -964,7 +1047,10 @@ async function moveSequence(sequence) {
                     <button
                       key={folder.id}
                       type="button"
-                      onClick={() => setActiveFolderId(folder.id)}
+                      onClick={() => {
+                        if (!isSavingSequenceOrderRef.current) setActiveFolderId(folder.id)
+                      }}
+                      disabled={isSequenceOrderSaving}
                       className="flex w-full items-center justify-between gap-4 rounded-3xl border border-white/70 bg-white/90 p-4 text-left shadow-sm backdrop-blur transition hover:shadow-md"
                     >
                       <div className="flex min-w-0 items-center gap-3">
