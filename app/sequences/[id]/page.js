@@ -28,6 +28,9 @@ import { CSS } from '@dnd-kit/utilities'
 import { getPlanLimits } from '@/lib/planLimits'
 import { PLAN_UI } from '@/lib/planUI'
 import { useAuth } from '@/components/AuthProvider'
+import NativePrintHelpDialog, {
+  isIosStandalone,
+} from '@/components/NativePrintHelpDialog'
 
 import {
   ASANA_TYPES,
@@ -544,6 +547,7 @@ const [loading, setLoading] = useState(true)
 
   const [viewMode, setViewMode] = useState('card')
   const [addPanelOpen, setAddPanelOpen] = useState(false)
+  const [printHelpOpen, setPrintHelpOpen] = useState(false)
 
   const { user, profile } = useAuth()
   const router = useRouter()
@@ -558,6 +562,15 @@ const [loading, setLoading] = useState(true)
     if (ok) {
       router.push('/login?mode=signup')
     }
+  }
+
+  function handleSequencePrint() {
+    if (isIosStandalone()) {
+      setPrintHelpOpen(true)
+      return
+    }
+
+    window.print()
   }
 
   const sensors = useSensors(
@@ -1529,7 +1542,7 @@ if (items.length >= limits.sequenceItems) {
 
           <button
   type="button"
-  onClick={() => window.print()}
+  onClick={handleSequencePrint}
   className="rounded-full bg-violet-500 px-4 py-2 text-sm font-bold text-white shadow-sm"
 >
   📄 PDF出力
@@ -1625,6 +1638,10 @@ if (items.length >= limits.sequenceItems) {
             </div>
           </div>
           )}
+          <NativePrintHelpDialog
+            open={printHelpOpen}
+            onClose={() => setPrintHelpOpen(false)}
+          />
       </div>
     </main>
   )

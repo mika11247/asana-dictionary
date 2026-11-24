@@ -1,10 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { supabase } from '@/lib/supabaseClient'
+import NativePrintHelpDialog, {
+  isIosStandalone,
+} from '@/components/NativePrintHelpDialog'
 
 import {
   ASANA_TYPES,
@@ -57,6 +61,8 @@ const [selectedTypes, setSelectedTypes] = useState([])
   const [favoritesOnly, setFavoritesOnly] = useState(false)
 
   const [printingAsanaId, setPrintingAsanaId] = useState(null)
+  const [printHelpOpen, setPrintHelpOpen] = useState(false)
+  const afterPrintHandlerRef = useRef(null)
 
   const [selectedMainCategories, setSelectedMainCategories] = useState([])
 
@@ -73,6 +79,85 @@ const [selectedTypes, setSelectedTypes] = useState([])
   useEffect(() => {
     fetchAsanas()
   }, [user])
+
+  useEffect(() => {
+    return () => {
+      if (afterPrintHandlerRef.current) {
+        window.removeEventListener('afterprint', afterPrintHandlerRef.current)
+      }
+    }
+  }, [])
+
+  function removeAfterPrintHandler() {
+    if (!afterPrintHandlerRef.current) return
+
+    window.removeEventListener('afterprint', afterPrintHandlerRef.current)
+    afterPrintHandlerRef.current = null
+  }
+
+  function waitForPrintImages(printRoot, timeoutMs = 2000) {
+    const pendingImages = Array.from(printRoot?.querySelectorAll('img') || []).filter(
+      (image) => !image.complete
+    )
+
+    if (pendingImages.length === 0) return null
+
+    return new Promise((resolve) => {
+      let remaining = pendingImages.length
+      let timeoutId
+
+      const finish = () => {
+        window.clearTimeout(timeoutId)
+        pendingImages.forEach((image) => {
+          image.removeEventListener('load', handleImageSettled)
+          image.removeEventListener('error', handleImageSettled)
+        })
+        resolve()
+      }
+
+      const handleImageSettled = () => {
+        remaining -= 1
+        if (remaining === 0) finish()
+      }
+
+      timeoutId = window.setTimeout(finish, timeoutMs)
+      pendingImages.forEach((image) => {
+        image.addEventListener('load', handleImageSettled)
+        image.addEventListener('error', handleImageSettled)
+      })
+    })
+  }
+
+  async function handleAsanaPrint(asanaId) {
+    if (isIosStandalone()) {
+      setPrintHelpOpen(true)
+      return
+    }
+
+    removeAfterPrintHandler()
+    flushSync(() => setPrintingAsanaId(asanaId))
+
+    const handleAfterPrint = () => {
+      removeAfterPrintHandler()
+      setPrintingAsanaId(null)
+    }
+
+    afterPrintHandlerRef.current = handleAfterPrint
+    window.addEventListener('afterprint', handleAfterPrint, { once: true })
+
+    const printRoot = document.querySelector('[data-asana-print-content]')
+
+    try {
+      const imageLoadPromise = waitForPrintImages(printRoot)
+      if (imageLoadPromise) await imageLoadPromise
+      window.print()
+    } catch (error) {
+      console.error('印刷画面を開けませんでした。', error)
+      removeAfterPrintHandler()
+      setPrintingAsanaId(null)
+      window.alert('印刷画面を開けませんでした。ブラウザで開き直してお試しください。')
+    }
+  }
 
  async function fetchAsanas() {
   let query
@@ -580,8 +665,8 @@ selectedMainCategories.length === 0 &&
 </div>
         </section>
 
-        {printingAsana && (
-  <div className="print-only">
+{printingAsana && (
+  <div className="print-only" data-asana-print-content>
     <div className="print-card rounded-3xl border border-gray-200 bg-white p-6">
       <div className="mb-6 rounded-2xl border border-gray-200 p-5">
         <p className="mb-2 text-sm font-medium text-gray-400">
@@ -1062,12 +1147,7 @@ selectedMainCategories.length === 0 &&
         requireLogin('PDF出力')
         return
       }
-      setPrintingAsanaId(asana.id)
-
-      setTimeout(() => {
-        window.print()
-        setPrintingAsanaId(null)
-      }, 100)
+      handleAsanaPrint(asana.id)
     }}
     className="rounded-full border border-violet-200 bg-white px-2.5 py-1 text-sm text-violet-600 transition hover:bg-violet-50"
   >
@@ -1181,6 +1261,10 @@ selectedMainCategories.length === 0 &&
             ))}
         </div>
       </div>
+      <NativePrintHelpDialog
+        open={printHelpOpen}
+        onClose={() => setPrintHelpOpen(false)}
+      />
     </main>
   )
 }
