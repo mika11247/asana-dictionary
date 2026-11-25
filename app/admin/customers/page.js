@@ -6,13 +6,15 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabaseClient"
 import CustomerForm from "@/components/crm/CustomerForm"
 import PhotoPermissionBadge from "@/components/crm/PhotoPermissionBadge"
-import { formatDate } from "@/lib/crm"
+import { formatDate, listCrmBusinesses } from "@/lib/crm"
 
 export default function CustomersPage() {
   const router = useRouter()
   const [customers, setCustomers] = useState([])
   const [locations, setLocations] = useState([])
   const [services, setServices] = useState([])
+  const [businesses, setBusinesses] = useState([])
+  const [businessFilter, setBusinessFilter] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [query, setQuery] = useState("")
@@ -28,12 +30,13 @@ export default function CustomersPage() {
   async function load() {
     setLoading(true)
     setError("")
-    const [customerResult, locationResult, serviceResult] = await Promise.all([
-      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, membership_type, crm_locations(id, name, is_active), crm_services(id, name, is_active)), crm_records(record_date)").eq("archived", archived).order("name"),
+    const [customerResult, locationResult, serviceResult, businessResult] = await Promise.all([
+      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, membership_type, crm_locations(id, name, is_active), crm_services(id, name, is_active)), crm_records(record_date), crm_customer_businesses(business_code, archived_at)").eq("archived", archived).order("name"),
       supabase.from("crm_locations").select("*").order("sort_order").order("name"),
       supabase.from("crm_services").select("*").order("sort_order").order("name"),
+      listCrmBusinesses(supabase),
     ])
-    const firstError = customerResult.error || locationResult.error || serviceResult.error
+    const firstError = customerResult.error || locationResult.error || serviceResult.error || businessResult.error
     if (firstError) {
       console.error("CRM一覧の取得に失敗しました", firstError)
       setError("顧客情報を読み込めませんでした。時間をおいて再度お試しください。")
@@ -41,6 +44,7 @@ export default function CustomersPage() {
       setCustomers(customerResult.data || [])
       setLocations(locationResult.data || [])
       setServices(serviceResult.data || [])
+      setBusinesses(businessResult.data || [])
     }
     setLoading(false)
   }
@@ -56,9 +60,13 @@ export default function CustomersPage() {
       const membershipMatch = !membershipFilter || customer.crm_customer_services?.some((item) => item.membership_type === membershipFilter)
       const favoriteMatch = !favoriteOnly || customer.is_favorite
       const pinnedMatch = !pinnedOnly || customer.is_pinned
-      return textMatch && locationMatch && serviceMatch && membershipMatch && favoriteMatch && pinnedMatch
+      const activeBusinesses = customer.crm_customer_businesses.filter((item) => !item.archived_at)
+      const businessMatch = !businessFilter || (businessFilter === "unassigned"
+        ? activeBusinesses.length === 0
+        : activeBusinesses.some((item) => item.business_code === businessFilter))
+      return textMatch && locationMatch && serviceMatch && membershipMatch && favoriteMatch && pinnedMatch && businessMatch
     })
-  }, [customers, query, locationFilter, serviceFilter, membershipFilter, favoriteOnly, pinnedOnly])
+  }, [customers, query, locationFilter, serviceFilter, membershipFilter, favoriteOnly, pinnedOnly, businessFilter])
 
   async function toggleCustomerFlag(customer, field) {
     const key = `${customer.id}:${field}`
@@ -99,6 +107,11 @@ export default function CustomersPage() {
         <section className="mb-4 rounded-3xl bg-white p-4 shadow-sm">
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="名前・よみがな・ニックネーム・メモで検索" className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-base outline-none focus:border-sky-400" />
           <div className="mt-3 grid grid-cols-2 gap-2">
+            <select aria-label="事業で絞り込み" value={businessFilter} onChange={(e) => setBusinessFilter(e.target.value)} className="col-span-2 rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm">
+              <option value="">全事業</option>
+              <option value="unassigned">事業未設定</option>
+              {businesses.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
+            </select>
             <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm"><option value="">すべての担当先</option>{locations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
             <select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)} className="rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm"><option value="">すべてのサービス</option>{services.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
             <select value={membershipFilter} onChange={(e) => setMembershipFilter(e.target.value)} className="col-span-2 rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm"><option value="">すべての会員種別</option>{["通い放題", "回数券", "月謝", "体験"].map((item) => <option key={item} value={item}>{item}</option>)}</select>
@@ -119,6 +132,7 @@ export default function CustomersPage() {
           <div className="space-y-3">
             {filtered.length === 0 && <p className="rounded-3xl bg-white p-8 text-center text-sm text-gray-500 shadow-sm">該当する顧客はいません。</p>}
             {filtered.map((customer) => {
+              const activeBusinesses = businesses.filter(({ code }) => customer.crm_customer_businesses.some((item) => item.business_code === code && !item.archived_at))
               const lastDate = (customer.crm_records || []).reduce((max, item) => !max || item.record_date > max ? item.record_date : max, null)
               const favoriteKey = `${customer.id}:is_favorite`; const pinnedKey = `${customer.id}:is_pinned`
               return <article key={customer.id} className="group relative rounded-3xl border border-transparent bg-white p-5 shadow-sm transition hover:border-sky-200 hover:shadow-md">
@@ -130,6 +144,11 @@ export default function CustomersPage() {
                 </div>
                 <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap items-center gap-2"><PhotoPermissionBadge value={customer.photo_permission} />{customer.care_notes?.trim() && <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800">⚠️ 配慮あり</span>}</div>
                 <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap gap-2">{customer.crm_customer_services?.map((item) => <span key={item.id} className="rounded-2xl bg-sky-50 px-3 py-1.5 text-xs text-sky-800"><span>{item.crm_locations?.name} × {item.crm_services?.name}</span>{item.membership_type && <span className="ml-2 font-bold text-violet-700">🎫 {item.membership_type}</span>}</span>)}</div>
+                <div className="pointer-events-none relative z-10 mt-2 flex flex-wrap gap-2">
+                  {activeBusinesses.length ? activeBusinesses.map(({ code, name }) => (
+                    <span key={code} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">{name}</span>
+                  )) : <span className="text-xs text-gray-500">事業未設定</span>}
+                </div>
                 <p className="pointer-events-none relative z-10 mt-3 text-sm text-gray-500">最終参加日：<span className="font-semibold text-gray-700">{formatDate(lastDate)}</span></p>
               </article>
             })}

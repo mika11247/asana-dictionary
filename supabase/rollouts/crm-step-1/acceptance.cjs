@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict')
 const { execFileSync, spawn } = require('node:child_process')
 const { createServer } = require('node:http')
-const { mkdtempSync, rmSync } = require('node:fs')
+const { mkdtempSync, readFileSync, rmSync } = require('node:fs')
 const { tmpdir } = require('node:os')
 const { join } = require('node:path')
 
@@ -10,6 +10,7 @@ const restOrigin = 'http://127.0.0.1:35432'
 const gatewayOrigin = 'http://127.0.0.1:35433'
 const appOrigin = 'http://127.0.0.1:35430'
 const accounts = ['owner', 'test-admin', 'member']
+const withBusinesses = process.argv.includes('--step2a')
 const password = 'Local-only-fixture-123!'
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -37,9 +38,13 @@ async function auth(path, account) {
 }
 
 function db(...args) {
+  return dbInput(undefined, ...args)
+}
+
+function dbInput(input, ...args) {
   return execFileSync('docker', ['compose', '-p', 'crm-step1-acceptance', '-f',
     'supabase/rollouts/crm-step-1/acceptance.compose.yml', 'exec', '-T', 'db', ...args],
-  { encoding: 'utf8' })
+  { encoding: 'utf8', input })
 }
 
 async function rest(session, path, method = 'GET', body) {
@@ -155,6 +160,7 @@ async function verifyBrowser(sessions) {
     '--remote-debugging-port=35434', `--user-data-dir=${chromeProfile}`, 'about:blank',
   ], { windowsHide: true, stdio: 'ignore' })
   let socket
+  let readBrowserState
   try {
     await waitFor(async () => (await fetch(appOrigin + '/login')).ok, 'loopback app')
     const targets = await waitFor(async () => (await fetch('http://127.0.0.1:35434/json/list')).json(), 'Chrome')
@@ -178,14 +184,21 @@ async function verifyBrowser(sessions) {
       })
     }
     const evaluate = async expression => (await send('Runtime.evaluate', { expression, returnByValue: true })).result?.value
+    readBrowserState = () => evaluate("({ path: location.pathname, text: document.body?.innerText.slice(0, 1000) })")
     const click = label => evaluate(`Array.from(document.querySelectorAll('button')).find(button =>
       button.textContent.trim() === ${JSON.stringify(label)})?.click()`)
     const fill = (selector, value) => evaluate(`(() => {
       const input = document.querySelector(${JSON.stringify(selector)});
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(value)});
+      const prototype = input instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(prototype, 'value').set.call(input, ${JSON.stringify(value)});
       input.dispatchEvent(new Event('input', { bubbles: true }));
     })()`)
     const hasText = value => evaluate(`document.body.innerText.includes(${JSON.stringify(value)})`)
+    const select = (selector, value) => evaluate(`(() => {
+      const field = document.querySelector(${JSON.stringify(selector)});
+      field.value = ${JSON.stringify(value)};
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+    })()`)
     socket.addEventListener('message', ({ data }) => {
       if (JSON.parse(data).method === 'Page.javascriptDialogOpening') {
         void send('Page.handleJavaScriptDialog', { accept: true })
@@ -210,6 +223,38 @@ async function verifyBrowser(sessions) {
       }
       console.log(`PASS Browser CRM list, record and settings access: ${accounts[index]}`)
       if (index === 0) {
+        if (withBusinesses) {
+          await send('Page.navigate', { url: appOrigin + '/admin/customers' })
+          await waitFor(() => hasText('existing fixture'), 'migrated customer')
+          await select('select[aria-label="事業で絞り込み"]', 'third_place')
+          await waitFor(() => evaluate("document.body.innerText.includes('existing fixture') && !document.body.innerText.includes('Unassigned fixture')"), 'business filter')
+          await select('select[aria-label="事業で絞り込み"]', 'unassigned')
+          await waitFor(() => evaluate("document.body.innerText.includes('Unassigned fixture') && !document.body.innerText.includes('existing fixture')"), 'unassigned filter')
+          await send('Page.navigate', { url: appOrigin + '/admin/customers/1' })
+          await waitFor(() => hasText('未確認'), 'migrated customer stage')
+          await click('＋ 事業を追加')
+          await waitFor(() => hasText('追加する事業'), 'add business form')
+          await select('section[aria-label="顧客の事業情報"] select', 'moments')
+          await fill('section[aria-label="顧客の事業情報"] textarea', 'Synthetic business note')
+          await click('事業情報を保存')
+          await waitFor(() => hasText('Synthetic business note'), 'saved business note')
+          assert.ok(await hasText('3rd place'))
+          assert.ok(await hasText('moments'))
+          const clickMoments = label => evaluate(`Array.from(document.querySelectorAll('section[aria-label="顧客の事業情報"] li'))
+            .find(row => row.innerText.includes('moments'))?.querySelectorAll('button').forEach(button => {
+              if (button.textContent.trim() === ${JSON.stringify(label)}) button.click();
+            })`)
+          await clickMoments('事業情報を編集')
+          await waitFor(() => hasText('momentsの事業情報'), 'edit business form')
+          await fill('section[aria-label="顧客の事業情報"] textarea', 'Edited business note')
+          await click('事業情報を保存')
+          await waitFor(() => hasText('Edited business note'), 'edited business note')
+          await clickMoments('事業をアーカイブ')
+          await waitFor(() => hasText('事業を復元'), 'archived business relationship')
+          await clickMoments('事業を復元')
+          await waitFor(() => evaluate("document.body.innerText.includes('Edited business note') && !document.body.innerText.includes('事業を復元')"), 'restored business relationship')
+          console.log('PASS Browser business filters, multi-business add, edit, archive and restore')
+        }
         await send('Page.navigate', { url: appOrigin + '/admin/customers' })
         await waitFor(() => hasText('＋ 新規顧客'), 'new customer control')
         await click('＋ 新規顧客')
@@ -260,6 +305,9 @@ async function verifyBrowser(sessions) {
     await send('Page.navigate', { url: appOrigin + '/admin/customers' })
     await waitFor(() => evaluate("location.pathname === '/login'"), 'anonymous redirect')
     console.log('PASS Browser anonymous access redirect')
+  } catch (error) {
+    if (readBrowserState) console.error('Synthetic browser state:', await readBrowserState())
+    throw error
   } finally {
     socket?.close()
     browser.kill()
@@ -274,7 +322,18 @@ async function main() {
   await waitFor(async () => (await fetch(restOrigin)).ok, 'local PostgREST')
   if (process.argv.includes('--seed')) {
     for (const account of accounts) await auth('/signup', account)
-    db('bash', '/crm-test/acceptance-fixture.sh')
+    const fixtureScript = readFileSync(join(__dirname, 'acceptance-fixture.sh'), 'utf8').replaceAll('\r\n', '\n')
+    dbInput(fixtureScript, 'bash')
+    if (withBusinesses) {
+      const fixture = `
+update public.crm_services set name = 'ヨガ' where id = 1;
+insert into public.crm_services (name) values ('ピラティス'), ('ネイル'), ('ヒプノ'), ('占い');
+insert into public.crm_customer_services (customer_id, location_id, service_id) values (1, 1, 1);
+insert into public.crm_customers (name) values ('Unassigned fixture');
+`
+      const migration = readFileSync(join(__dirname, '../crm-step-2a/01-businesses.sql'), 'utf8')
+      dbInput(fixture + migration + "\nnotify pgrst, 'reload schema';\n", 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
+    }
   }
   const sessions = await Promise.all(accounts.map(account => auth('/token?grant_type=password', account)))
   for (let index = 0; index < sessions.length; index++) {

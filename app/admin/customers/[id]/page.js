@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import CustomerForm from "@/components/crm/CustomerForm"
+import CustomerBusinesses from "@/components/crm/CustomerBusinesses"
 import PhotoPermissionBadge from "@/components/crm/PhotoPermissionBadge"
 import RecordForm from "@/components/crm/RecordForm"
-import { formatDate, relationKey, saveCrmRecord } from "@/lib/crm"
+import { formatDate, listCrmBusinesses, relationKey, saveCrmBusinessRelationship, saveCrmRecord } from "@/lib/crm"
 
 export default function CustomerDetailPage() {
   const { id } = useParams()
@@ -16,6 +17,7 @@ export default function CustomerDetailPage() {
   const [records, setRecords] = useState([])
   const [locations, setLocations] = useState([])
   const [services, setServices] = useState([])
+  const [businesses, setBusinesses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [mode, setMode] = useState(null)
@@ -25,16 +27,17 @@ export default function CustomerDetailPage() {
 
   async function load() {
     setLoading(true); setError("")
-    const [customerResult, recordResult, locationResult, serviceResult] = await Promise.all([
-      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, membership_type, crm_locations(id, name, is_active), crm_services(id, name, is_active))").eq("id", id).maybeSingle(),
+    const [customerResult, recordResult, locationResult, serviceResult, businessResult] = await Promise.all([
+      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, membership_type, crm_locations(id, name, is_active), crm_services(id, name, is_active)), crm_customer_businesses(business_code, stage, business_note, archived_at)").eq("id", id).maybeSingle(),
       supabase.from("crm_records").select("*, crm_locations(id, name, is_active), crm_services(id, name, is_active)").eq("customer_id", id).order("record_date", { ascending: false }).order("created_at", { ascending: false }),
       supabase.from("crm_locations").select("*").order("sort_order").order("name"),
       supabase.from("crm_services").select("*").order("sort_order").order("name"),
+      listCrmBusinesses(supabase),
     ])
-    const firstError = customerResult.error || recordResult.error || locationResult.error || serviceResult.error
+    const firstError = customerResult.error || recordResult.error || locationResult.error || serviceResult.error || businessResult.error
     if (firstError) { console.error("カルテの取得に失敗しました", firstError); setError("カルテを読み込めませんでした。") }
     else if (!customerResult.data) setError("顧客が見つかりません。")
-    else { setCustomer(customerResult.data); setRecords(recordResult.data || []); setLocations(locationResult.data || []); setServices(serviceResult.data || []) }
+    else { setCustomer(customerResult.data); setRecords(recordResult.data || []); setLocations(locationResult.data || []); setServices(serviceResult.data || []); setBusinesses(businessResult.data || []) }
     setLoading(false)
   }
   useEffect(() => { if (id) load() }, [id])
@@ -131,6 +134,10 @@ export default function CustomerDetailPage() {
       <p className="mt-5 text-sm text-gray-500">最終参加日：<strong className="text-gray-900">{formatDate(latest?.record_date)}</strong></p>
     </section>
 
+    <CustomerBusinesses businesses={businesses} relationships={customer.crm_customer_businesses} onSave={async (code, values, existing) => {
+      await saveCrmBusinessRelationship(supabase, id, code, values, existing)
+      await load()
+    }} />
     <button onClick={() => { setEditingRecord(null); setMode("record") }} className="my-4 w-full rounded-2xl bg-sky-600 px-4 py-4 text-lg font-bold text-white shadow-sm">＋ 今日の記録</button>
     <section className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm"><h2 className="text-lg font-bold">最新記録</h2>{latest ? <RecordBody record={latest} /> : <p className="mt-3 text-sm text-gray-500">まだ記録がありません。</p>}</section>
     <section className="mt-4 rounded-3xl bg-white p-5 shadow-sm"><h2 className="mb-4 text-lg font-bold">過去の記録</h2><div className="space-y-4">{records.map((record) => <article key={record.id} className="rounded-2xl border border-gray-100 p-4"><RecordBody record={record} /><div className="mt-3 flex justify-end gap-3"><button onClick={() => { setEditingRecord(record); setMode("record") }} className="text-sm font-bold text-sky-700">編集</button><button disabled={actionLoading} onClick={() => deleteRecord(record.id)} className="text-sm font-bold text-red-600">削除</button></div></article>)}</div></section>
