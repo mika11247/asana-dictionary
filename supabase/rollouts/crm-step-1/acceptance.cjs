@@ -261,6 +261,17 @@ async function verifyBrowser(sessions) {
         const chooseMembership = label => evaluate(`[...document.querySelectorAll('form label')].find(item =>
           item.textContent.trim() === ${JSON.stringify(label)})?.querySelector('input[type=checkbox]')?.click()`)
         if (withMemberships) {
+          await send('Page.navigate', { url: appOrigin + '/admin/customers' })
+          await waitFor(() => hasText('existing fixture'), 'customer list loaded')
+          await select('select[aria-label="所属で絞り込み"]', 'unassigned')
+          await waitFor(() => hasText('existing fixture'), 'legacy service customer is still unassigned')
+          await evaluate("document.querySelector('details').open = true")
+          await select('select[aria-label="担当先で絞り込み"]', '1')
+          await waitFor(() => evaluate("document.body.innerText.includes('existing fixture') && !document.body.innerText.includes('Unassigned fixture')"), 'legacy location filter')
+          await evaluate("document.querySelector('details').open = false")
+          await waitFor(() => hasText('適用中：'), 'collapsed filter summary')
+          await select('select[aria-label="所属で絞り込み"]', 'lilly')
+          await waitFor(() => hasText('該当する顧客はいません。'), 'legacy service alone does not count as Lilly membership')
           await send('Page.navigate', { url: appOrigin + '/admin/customers/1' })
           await waitFor(() => hasText('所属未設定'), 'legacy customer remains unclassified')
           await click('所属を編集')
@@ -272,6 +283,20 @@ async function verifyBrowser(sessions) {
           assert.ok(await evaluate("(() => {const f=document.querySelector('form');return f && f.scrollWidth<=f.clientWidth})()"))
           await click('保存')
           await waitFor(() => evaluate("document.querySelector('section[aria-label=\"現在の所属\"]')?.innerText.includes('M.glitter・NUS・Lilly') && document.body.innerText.includes('M.glitterのブランド：moments')"), 'save three groups and brand on same customer')
+          await send('Page.navigate', { url: appOrigin + '/admin/customers' })
+          await waitFor(() => hasText('existing fixture'), 'membership list loaded')
+          await select('select[aria-label="所属で絞り込み"]', 'mglitter')
+          const brandSelect = 'select[aria-label="ブランドで絞り込み"]'
+          assert.equal(await evaluate(`document.querySelector(${JSON.stringify(brandSelect)}).options.length`), 8)
+          await select(brandSelect, 'third_place')
+          await waitFor(() => hasText('該当する顧客はいません。'), 'legacy business is not an explicit brand')
+          await select(brandSelect, 'moments')
+          await waitFor(() => hasText('existing fixture'), 'explicit brand matches')
+          await select('select[aria-label="所属で絞り込み"]', 'lilly')
+          await waitFor(() => hasText('existing fixture'), 'same customer matches Lilly')
+          assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'))
+          await send('Page.navigate', { url: appOrigin + '/admin/customers/1' })
+          await waitFor(() => hasText('NUS情報を編集'), 'return to customer detail')
           console.log('PASS Mobile width unified membership edit, legacy preservation and multiple affiliations')
         }
         if (withNus) {
@@ -303,9 +328,11 @@ async function verifyBrowser(sessions) {
           await waitFor(() => hasText('ビジネス案内・商品案内・事務連絡'), 'global refusal blocks all NUS purposes')
           await send('Page.navigate', { url: appOrigin + '/admin/customers' })
           await waitFor(() => hasText('existing fixture'), 'CRM list after NUS edit')
-          await select('select[aria-label="事業で絞り込み"]', 'nus')
-          await waitFor(() => evaluate("!!document.querySelector('section[aria-label=\"NUS関係者の絞り込み\"]') && document.body.innerText.includes('existing fixture') && !document.body.innerText.includes('Unassigned fixture')"), 'NUS filtered list')
-          await select('section[aria-label="NUS関係者の絞り込み"] select', withMemberships ? 'unconfirmed' : 'prospect')
+          await select(withMemberships ? 'select[aria-label="所属で絞り込み"]' : 'select[aria-label="事業で絞り込み"]', 'nus')
+          const nusStage = withMemberships ? 'details label select' : 'section[aria-label="NUS関係者の絞り込み"] select'
+          await waitFor(() => evaluate(`!!document.querySelector(${JSON.stringify(nusStage)}) && document.body.innerText.includes('existing fixture') && !document.body.innerText.includes('Unassigned fixture')`), 'NUS filtered list')
+          if (withMemberships) await evaluate("document.querySelector('details').open = true")
+          await select(nusStage, withMemberships ? 'unconfirmed' : 'prospect')
           await waitFor(() => hasText('existing fixture'), 'NUS stage filter')
           console.log('PASS Browser NUS stage, relationship, profile, global refusal and filters')
         }
@@ -329,6 +356,10 @@ async function verifyBrowser(sessions) {
         if (withMemberships) {
           assert.ok(await hasText('M.glitter・Lilly'))
           assert.ok(await hasText('M.glitterのブランド：unite'))
+          const id = detail.split('/').pop()
+          for (const table of ['crm_customer_services', 'crm_records']) {
+            assert.deepEqual(await rest(sessions[0], `/${table}?customer_id=eq.${id}`), { status: 200, data: [] })
+          }
         }
         await click('編集')
         await waitFor(() => hasText(withMemberships ? '顧客情報と所属を編集' : '顧客情報を編集'), 'edit form')

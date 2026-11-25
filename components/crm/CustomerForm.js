@@ -108,6 +108,7 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
       )}
       <fieldset className="rounded-2xl bg-sky-50 p-4">
         <legend className="px-1 text-sm font-bold">所属（複数選択可）</legend>
+        <p className="mb-2 text-sm text-gray-600">この方と関係のあるグループを選びます。具体的な利用サービスは下の「担当先 × サービス」で必要なときに登録します。</p>
         {Object.entries(groupLabels).map(([code, label]) => (
           <label key={code} className="flex min-h-11 items-center gap-3 text-sm font-semibold">
             <input type="checkbox" checked={groups.includes(code)} onChange={(event) =>
@@ -118,6 +119,7 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
         {groups.includes("mglitter") && (
           <fieldset className="mt-3 border-t border-sky-200 pt-2">
             <legend className="text-sm font-semibold">M.glitterのブランド</legend>
+            <p className="text-sm text-gray-600">関係のあるブランドを複数選べます。</p>
             {businesses.filter(({ code, is_active }) => code !== "nus" && (is_active || brands.includes(code))).map(({ code, name }) => (
               <label key={code} className="flex min-h-11 items-center gap-3 text-sm">
                 <input type="checkbox" checked={brands.includes(code)} onChange={(event) =>
@@ -128,26 +130,30 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
           </fieldset>
         )}
       </fieldset>
-      <label className="block text-sm font-semibold text-gray-700">写真掲載可否<select name="photo_permission" value={form.photo_permission} onChange={change} className={inputClass}>{PHOTO_PERMISSION_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-      <label className="block text-sm font-semibold text-gray-700">本人から聞いている悩み・希望<textarea name="customer_request" value={form.customer_request || ""} onChange={change} rows={3} className={inputClass} /></label>
-      <label className="block text-sm font-semibold text-gray-700">継続的な配慮事項<textarea name="care_notes" value={form.care_notes || ""} onChange={change} rows={3} className={inputClass} /></label>
-      <label className="block text-sm font-semibold text-gray-700">📝 自分用メモ<textarea name="private_note" value={form.private_note || ""} onChange={change} rows={3} placeholder="外見・持ち物・仕事・以前話した内容など" className={inputClass} /></label>
       <fieldset className="rounded-2xl bg-slate-50 p-4">
         <legend className="px-1 text-sm font-bold text-gray-800">担当先 × サービス</legend>
+        <p className="mb-2 text-sm text-gray-600">利用サービスを担当先と組み合わせて登録します。会員種別は組み合わせごとに任意で記録します。</p>
+        <details className="rounded-xl border border-slate-200 px-3">
+        <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">担当先とサービスを追加</summary>
         <div className="grid gap-2 sm:grid-cols-2">
-          <select value={locationId} onChange={(e) => setLocationId(e.target.value)} className={inputClass}><option value="">担当先を選択</option>{activeLocations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
-          <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className={inputClass}><option value="">サービスを選択</option>{activeServices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
-          <select value={membershipType} onChange={(e) => setMembershipType(e.target.value)} className={inputClass}><option value="">会員種別：未設定</option>{membershipOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select>
-          <button type="button" onClick={addRelation} className="mt-1 rounded-2xl bg-slate-700 px-4 py-3 text-sm font-bold text-white">組み合わせを追加</button>
+          <select aria-label="利用サービスの担当先" value={locationId} onChange={(e) => setLocationId(e.target.value)} className={inputClass}><option value="">担当先を選択</option>{activeLocations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+          <select aria-label="利用サービス" value={serviceId} onChange={(e) => setServiceId(e.target.value)} className={inputClass}><option value="">サービスを選択</option>{activeServices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+          <select aria-label="追加する組み合わせの会員種別" value={membershipType} onChange={(e) => setMembershipType(e.target.value)} className={inputClass}><option value="">会員種別：未設定</option>{membershipOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+          <button type="button" onClick={addRelation} disabled={!locationId || !serviceId} className="mt-1 rounded-2xl bg-slate-700 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">組み合わせを追加</button>
         </div>
+        </details>
         <div className="mt-3 space-y-2">
           {relations.length === 0 && <span className="text-sm text-gray-500">未登録</span>}
           {relations.map((relation) => {
             const label = `${locations.find((x) => x.id === relation.location_id)?.name || "不明"} × ${services.find((x) => x.id === relation.service_id)?.name || "不明"}`
-            return <div key={relationKey(relation)} className="rounded-2xl bg-white p-3 shadow-sm"><div className="flex items-center justify-between gap-2"><span className="text-sm font-medium text-gray-700">{label}</span><button type="button" aria-label={`${label}を削除`} onClick={() => setRelations((items) => items.filter((x) => relationKey(x) !== relationKey(relation)))} className="shrink-0 px-2 text-gray-400">×</button></div><select value={relation.membership_type || ""} onChange={(e) => setRelations((items) => items.map((item) => relationKey(item) === relationKey(relation) ? { ...item, membership_type: e.target.value || null } : item))} className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"><option value="">会員種別：未設定</option>{membershipOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
+            return <div key={relationKey(relation)} className="rounded-2xl bg-white p-3 shadow-sm"><div className="flex items-center justify-between gap-2"><span className="text-sm font-medium text-gray-700">{label}</span><button type="button" aria-label={`${label}を削除`} onClick={() => setRelations((items) => items.filter((x) => relationKey(x) !== relationKey(relation)))} className="shrink-0 px-2 text-gray-400">×</button></div><select aria-label={label + "の会員種別"} value={relation.membership_type || ""} onChange={(e) => setRelations((items) => items.map((item) => relationKey(item) === relationKey(relation) ? { ...item, membership_type: e.target.value || null } : item))} className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"><option value="">会員種別：未設定</option>{membershipOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
           })}
         </div>
       </fieldset>
+      <label className="block text-sm font-semibold text-gray-700">写真掲載可否<select name="photo_permission" value={form.photo_permission} onChange={change} className={inputClass}>{PHOTO_PERMISSION_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+      <label className="block text-sm font-semibold text-gray-700">本人から聞いている悩み・希望<textarea name="customer_request" value={form.customer_request || ""} onChange={change} rows={3} className={inputClass} /></label>
+      <label className="block text-sm font-semibold text-gray-700">継続的な配慮事項<textarea name="care_notes" value={form.care_notes || ""} onChange={change} rows={3} className={inputClass} /></label>
+      <label className="block text-sm font-semibold text-gray-700">📝 自分用メモ<textarea name="private_note" value={form.private_note || ""} onChange={change} rows={3} placeholder="外見・持ち物・仕事・以前話した内容など" className={inputClass} /></label>
       </fieldset>
       <div className="sticky bottom-0 mt-4 flex gap-3 bg-white py-2">
         {onCancel && <button type="button" onClick={onCancel} disabled={saving} className="flex-1 rounded-2xl border border-gray-200 px-4 py-3 font-bold text-gray-600">キャンセル</button>}
