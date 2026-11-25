@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import LillyProfile from "@/components/crm/LillyProfile"
-import { isLegacyLilly, lillyDisplayName, usesLillyDisplay } from "@/lib/crmLilly"
+import { isLegacyLilly, lillyDisplayName, lillyFormalName, usesLillyDisplay } from "@/lib/crmLilly"
 import CustomerForm from "@/components/crm/CustomerForm"
 import CustomerBusinesses from "@/components/crm/CustomerBusinesses"
 import ContactPreferences from "@/components/crm/ContactPreferences"
@@ -98,7 +98,8 @@ export default function CustomerDetailPage() {
     customer.crm_customer_groups.some((item) => item.group_code === code && !item.archived_at)
     || (code === "nus" && nus && !nus.archived_at))
   const lillyView = usesLillyDisplay(customer) || new URLSearchParams(window.location.search).get("view") === "lilly"
-  const displayName = lillyView ? lillyDisplayName(customer) : customer.name || lillyDisplayName(customer)
+  const displayName = lillyView ? lillyDisplayName(customer) : customer.name || lillyDisplayName(customer, { includeId: true })
+  const formalName = lillyView && lillyFormalName(customer)
   const brands = customer.crm_customer_group_brands.filter((item) => !item.archived_at).map((item) => item.business_code)
   return <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 px-4 py-6 sm:p-8"><div className="mx-auto max-w-3xl">
     <Link href="/admin/customers" className="text-sm text-sky-700">← 顧客一覧</Link>
@@ -106,7 +107,7 @@ export default function CustomerDetailPage() {
     <section className="mt-4 rounded-3xl bg-white p-5 shadow-sm sm:p-7">
       <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-start gap-1">
         <button type="button" disabled={Boolean(flagLoading)} onClick={() => toggleCustomerFlag("is_favorite")} aria-label={customer.is_favorite ? "お気に入りから解除" : "お気に入りに追加"} className={`flex h-11 w-11 items-center justify-center rounded-full text-2xl transition disabled:opacity-50 ${customer.is_favorite ? "bg-amber-50" : "text-gray-400 hover:bg-gray-50"}`}>{customer.is_favorite ? "⭐️" : "☆"}</button>
-        <div className="min-w-0 px-2"><h1 className="break-words text-2xl font-bold leading-snug text-gray-900"><span>{displayName}</span>{!lillyView && <span className="whitespace-nowrap"> 様</span>}</h1>{!lillyView && customer.name_yomi && <p className="mt-1 text-base font-medium text-gray-600">{customer.name_yomi}</p>}{!lillyView && customer.nickname && <p className="mt-0.5 text-sm text-gray-500">{customer.nickname}</p>}</div>
+        <div className="min-w-0 px-2"><h1 className="break-words text-2xl font-bold leading-snug text-gray-900"><span>{displayName}</span>{!lillyView && <span className="whitespace-nowrap"> 様</span>}</h1>{formalName && <p className="mt-1 break-words text-sm text-gray-600">{formalName}</p>}{!lillyView && customer.name_yomi && <p className="mt-1 text-base font-medium text-gray-600">{customer.name_yomi}</p>}{!lillyView && customer.nickname && <p className="mt-0.5 text-sm text-gray-500">{customer.nickname}</p>}</div>
         <button type="button" disabled={Boolean(flagLoading)} onClick={() => toggleCustomerFlag("is_pinned")} aria-label={customer.is_pinned ? "ピックアップから解除" : "ピックアップに追加"} className={`flex h-11 w-11 items-center justify-center rounded-full text-2xl transition disabled:opacity-50 ${customer.is_pinned ? "bg-sky-100 opacity-100" : "opacity-30 hover:bg-gray-50 hover:opacity-60"}`}>📌</button>
       </div>
       <div className="mt-2 flex justify-end"><button onClick={() => setMode("customer")} className="rounded-xl bg-gray-100 px-3 py-2 text-sm font-bold text-gray-600">編集</button></div>

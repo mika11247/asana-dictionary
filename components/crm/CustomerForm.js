@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import Link from "next/link"
 import { PHOTO_PERMISSION_OPTIONS, relationKey } from "@/lib/crm"
 import { groupLabels } from "@/lib/crmMemberships"
-import { isLegacyLilly, usesLillyDisplay } from "@/lib/crmLilly"
+import { isLegacyLilly, lillyDisplayName, lillyFormalName, usesLillyDisplay } from "@/lib/crmLilly"
 import LillyFields from "@/components/crm/LillyFields"
 
 const emptyCustomer = {
@@ -104,11 +104,18 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
         <section aria-label="既存顧客の候補" className="rounded-2xl bg-amber-50 p-4 text-sm">
           <p className="font-bold">同じ方が登録されている場合は、既存のカルテを開いてください。</p>
           <ul className="mt-2">
-            {candidates.map(({ id, name, name_yomi, nickname, archived, lillyDisplay }) => <li key={id}>
-              <Link href={`/admin/customers/${id}${lillyDisplay ? "?view=lilly" : ""}`} onClick={onCancel} className="inline-flex min-h-11 items-center text-sky-800 underline">
-                {[name, lillyDisplay && `#${id}`, name_yomi, nickname, archived && "アーカイブ済み"].filter(Boolean).join(" / ")}
-              </Link>
-            </li>)}
+            {candidates.map((candidate) => {
+              const { id, name, name_yomi, nickname, archived, lillyDisplay } = candidate
+              const formalName = lillyDisplay && lillyFormalName(candidate)
+              return <li key={id}>
+                <Link href={`/admin/customers/${id}${lillyDisplay ? "?view=lilly" : ""}`} onClick={onCancel} className="inline-flex min-h-11 items-center text-sky-800 underline">
+                  {lillyDisplay ? <span className="min-w-0 break-words">
+                    <span className="block font-semibold">{lillyDisplayName(candidate)}{archived && <span className="ml-2 text-xs">アーカイブ済み</span>}</span>
+                    {formalName && <span className="block text-xs text-gray-600">{formalName}</span>}
+                  </span> : [name, name_yomi, nickname, archived && "アーカイブ済み"].filter(Boolean).join(" / ")}
+                </Link>
+              </li>
+            })}
           </ul>
           <label className="flex min-h-11 items-center gap-2"><input type="checkbox" checked={differentPerson} onChange={(event) => setDifferentPerson(event.target.checked)} />別の方として新規登録する</label>
         </section>

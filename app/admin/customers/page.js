@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabaseClient"
 import LillyFields from "@/components/crm/LillyFields"
-import { isLegacyLilly as isLilly, lillyDisplayName, lillyMemberships, lillyServices, usesLillyDisplay } from "@/lib/crmLilly"
+import { isLegacyLilly as isLilly, lillyDisplayName, lillyFormalName, lillyMemberships, lillyServices, usesLillyDisplay } from "@/lib/crmLilly"
 import CustomerForm from "@/components/crm/CustomerForm"
 import PhotoPermissionBadge from "@/components/crm/PhotoPermissionBadge"
 import { formatDate, listCrmBusinesses } from "@/lib/crm"
@@ -291,13 +291,14 @@ export default function CustomersPage() {
               const activeBrands = brands.filter(({ code }) => customer.crm_customer_group_brands.some((item) => item.business_code === code && !item.archived_at))
               const lastDate = (customer.crm_records || []).reduce((max, item) => !max || item.record_date > max ? item.record_date : max, null)
               const nicknameView = lillyView(customer)
-              const displayName = nicknameView ? lillyDisplayName(customer) : customer.name || lillyDisplayName(customer)
+              const displayName = nicknameView ? lillyDisplayName(customer) : customer.name || lillyDisplayName(customer, { includeId: true })
+              const formalName = nicknameView && lillyFormalName(customer)
               const favoriteKey = `${customer.id}:is_favorite`; const pinnedKey = `${customer.id}:is_pinned`
               return <article key={customer.id} className="group relative rounded-3xl border border-transparent bg-white p-5 shadow-sm transition hover:border-sky-200 hover:shadow-md">
-                <Link href={`/admin/customers/${customer.id}${nicknameView ? "?view=lilly" : ""}`} aria-label={`${displayName}の個人カルテを開く`} className="absolute inset-0 z-0 rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2" />
+                <Link href={`/admin/customers/${customer.id}${nicknameView ? "?view=lilly" : ""}`} aria-label={`${displayName}${formalName ? `（${formalName}）` : ""}の個人カルテを開く`} className="absolute inset-0 z-0 rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2" />
                 <div className="pointer-events-none relative z-10 grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-start gap-1">
                   <button type="button" disabled={updatingFlags[favoriteKey]} onClick={(event) => { event.stopPropagation(); toggleCustomerFlag(customer, "is_favorite") }} aria-label={customer.is_favorite ? "お気に入りから解除" : "お気に入りに追加"} className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full text-xl transition disabled:opacity-50 ${customer.is_favorite ? "bg-amber-50" : "text-gray-400 hover:bg-gray-50"}`}>{customer.is_favorite ? "⭐️" : "☆"}</button>
-                  <div className="min-w-0 px-1"><h2 className="break-words text-lg font-bold leading-snug text-gray-900"><span>{displayName}</span>{!nicknameView && <span className="whitespace-nowrap"> 様</span>}</h2>{!nicknameView && customer.name_yomi && <p className="mt-1 text-sm font-medium text-gray-600">{customer.name_yomi}</p>}{!nicknameView && customer.nickname && <p className="mt-0.5 text-sm text-gray-500">{customer.nickname}</p>}</div>
+                  <div className="min-w-0 px-1"><h2 className="break-words text-lg font-bold leading-snug text-gray-900"><span>{displayName}</span>{!nicknameView && <span className="whitespace-nowrap"> 様</span>}</h2>{formalName && <p className="mt-1 break-words text-sm text-gray-600">{formalName}</p>}{!nicknameView && customer.name_yomi && <p className="mt-1 text-sm font-medium text-gray-600">{customer.name_yomi}</p>}{!nicknameView && customer.nickname && <p className="mt-0.5 text-sm text-gray-500">{customer.nickname}</p>}</div>
                   <button type="button" disabled={updatingFlags[pinnedKey]} onClick={(event) => { event.stopPropagation(); toggleCustomerFlag(customer, "is_pinned") }} aria-label={customer.is_pinned ? "ピックアップから解除" : "ピックアップに追加"} className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full text-xl transition disabled:opacity-50 ${customer.is_pinned ? "bg-sky-100 opacity-100" : "opacity-30 hover:bg-gray-50 hover:opacity-60"}`}>📌</button>
                 </div>
                 <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap items-center gap-2"><PhotoPermissionBadge value={customer.photo_permission} />{customer.care_notes?.trim() && <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800">⚠️ 配慮あり</span>}</div>
