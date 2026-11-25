@@ -8,13 +8,10 @@ export default function CustomerBusinesses({ businesses, relationships, onSave }
   const [draft, setDraft] = useState(null)
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
-  const available = businesses.filter(({ code, is_active }) => is_active && !relationships.some((relation) => relation.business_code === code))
 
   function open(relation) {
     setError("")
-    setDraft(relation ? {
-      code: relation.business_code, stage: relation.stage, note: relation.business_note || "", existing: true,
-    } : { code: "", stage: "unconfirmed", note: "", existing: false })
+    setDraft({ code: relation.business_code, stage: relation.stage, note: relation.business_note || "" })
   }
 
   async function save(code, values, existing) {
@@ -54,20 +51,13 @@ export default function CustomerBusinesses({ businesses, relationships, onSave }
           )
         })}
       </ul>
-      {!draft && available.length > 0 && <button type="button" disabled={saving} onClick={() => open()} className="mt-2 min-h-11 text-sm font-bold text-sky-800">＋ 事業を追加</button>}
       {draft && (
         <form className="mt-4 space-y-3" onSubmit={(event) => {
           event.preventDefault()
-          if (draft.code && !saving) void save(draft.code, { stage: draft.stage, business_note: draft.note.trim() || null }, draft.existing)
+          if (!saving) void save(draft.code, { stage: draft.stage, business_note: draft.note.trim() || null }, true)
         }}>
           <fieldset disabled={saving} className="space-y-3">
-            {!draft.existing && <label className="block text-sm">追加する事業
-              <select required value={draft.code} onChange={(event) => setDraft({ ...draft, code: event.target.value, stage: draft.stage === "prospect" ? "unconfirmed" : draft.stage })} className="mt-1 block w-full rounded-xl border border-slate-300 p-2 text-base">
-                <option value="">選択してください</option>
-                {available.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
-              </select>
-            </label>}
-            {draft.existing && <p className="text-sm font-bold">{businesses.find(({ code }) => code === draft.code)?.name || draft.code}の事業情報</p>}
+            <p className="text-sm font-bold">{businesses.find(({ code }) => code === draft.code)?.name || draft.code}の事業情報</p>
             <label className="block text-sm">顧客区分
               <select value={draft.stage} onChange={(event) => setDraft({ ...draft, stage: event.target.value })} className="mt-1 block w-full rounded-xl border border-slate-300 p-2 text-base">
                 {Object.entries(stageLabels).filter(([key]) => key !== "prospect" || draft.code === "nus").map(([key, label]) => <option key={key} value={key}>{label}</option>)}

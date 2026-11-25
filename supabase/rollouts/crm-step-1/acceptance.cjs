@@ -10,7 +10,8 @@ const restOrigin = 'http://127.0.0.1:35432'
 const gatewayOrigin = 'http://127.0.0.1:35433'
 const appOrigin = 'http://127.0.0.1:35430'
 const accounts = ['owner', 'test-admin', 'member']
-const withNus = process.argv.includes('--step2b')
+const withMemberships = process.argv.includes('--membership-a')
+const withNus = withMemberships || process.argv.includes('--step2b')
 const withBusinesses = withNus || process.argv.includes('--step2a')
 const password = 'Local-only-fixture-123!'
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
@@ -208,6 +209,7 @@ async function verifyBrowser(sessions) {
     await send('Page.enable')
     await send('Network.enable')
     await send('Network.setBlockedURLs', { urls: ['*supabase.co*'] })
+    if (withMemberships) await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true })
     await send('Page.navigate', { url: appOrigin + '/login' })
     await waitFor(() => evaluate(`location.origin === '${appOrigin}' && document.readyState === 'complete'`), 'login origin')
     const routes = [['/admin/customers', '顧客管理'], ['/admin/customers/1', 'existing fixture'],
@@ -224,7 +226,7 @@ async function verifyBrowser(sessions) {
       }
       console.log(`PASS Browser CRM list, record and settings access: ${accounts[index]}`)
       if (index === 0) {
-        if (withBusinesses) {
+        if (withBusinesses && !withMemberships) {
           await send('Page.navigate', { url: appOrigin + '/admin/customers' })
           await waitFor(() => hasText('existing fixture'), 'migrated customer')
           await select('select[aria-label="事業で絞り込み"]', 'third_place')
@@ -256,7 +258,24 @@ async function verifyBrowser(sessions) {
           await waitFor(() => evaluate("document.body.innerText.includes('Edited business note') && !document.body.innerText.includes('事業を復元')"), 'restored business relationship')
           console.log('PASS Browser business filters, multi-business add, edit, archive and restore')
         }
+        const chooseMembership = label => evaluate(`[...document.querySelectorAll('form label')].find(item =>
+          item.textContent.trim() === ${JSON.stringify(label)})?.querySelector('input[type=checkbox]')?.click()`)
+        if (withMemberships) {
+          await send('Page.navigate', { url: appOrigin + '/admin/customers/1' })
+          await waitFor(() => hasText('所属未設定'), 'legacy customer remains unclassified')
+          await click('所属を編集')
+          await waitFor(() => hasText('所属（複数選択可）'), 'unified edit form')
+          await chooseMembership('M.glitter')
+          await chooseMembership('moments')
+          await chooseMembership('Lilly')
+          await chooseMembership('NUS')
+          assert.ok(await evaluate("(() => {const f=document.querySelector('form');return f && f.scrollWidth<=f.clientWidth})()"))
+          await click('保存')
+          await waitFor(() => evaluate("document.querySelector('section[aria-label=\"現在の所属\"]')?.innerText.includes('M.glitter・NUS・Lilly') && document.body.innerText.includes('M.glitterのブランド：moments')"), 'save three groups and brand on same customer')
+          console.log('PASS Mobile width unified membership edit, legacy preservation and multiple affiliations')
+        }
         if (withNus) {
+          if (!withMemberships) {
           await click('＋ 事業を追加')
           await waitFor(() => hasText('追加する事業'), 'add NUS to an existing customer')
           await select('section[aria-label="顧客の事業情報"] select', 'nus')
@@ -265,6 +284,7 @@ async function verifyBrowser(sessions) {
             field.value = 'prospect'; field.dispatchEvent(new Event('change', { bubbles: true }));
           })()`)
           await click('事業情報を保存')
+          }
           await waitFor(() => hasText('NUS情報を編集'), 'active NUS panel')
           await click('NUS情報を編集')
           await waitFor(() => hasText('アップライン'), 'NUS edit form')
@@ -285,19 +305,33 @@ async function verifyBrowser(sessions) {
           await waitFor(() => hasText('existing fixture'), 'CRM list after NUS edit')
           await select('select[aria-label="事業で絞り込み"]', 'nus')
           await waitFor(() => evaluate("!!document.querySelector('section[aria-label=\"NUS関係者の絞り込み\"]') && document.body.innerText.includes('existing fixture') && !document.body.innerText.includes('Unassigned fixture')"), 'NUS filtered list')
-          await select('section[aria-label="NUS関係者の絞り込み"] select', 'prospect')
-          await waitFor(() => hasText('existing fixture'), 'NUS prospect filter')
-          console.log('PASS Browser NUS prospect, relationship, profile, global refusal and filters')
+          await select('section[aria-label="NUS関係者の絞り込み"] select', withMemberships ? 'unconfirmed' : 'prospect')
+          await waitFor(() => hasText('existing fixture'), 'NUS stage filter')
+          console.log('PASS Browser NUS stage, relationship, profile, global refusal and filters')
         }
         await send('Page.navigate', { url: appOrigin + '/admin/customers' })
         await waitFor(() => hasText('＋ 新規顧客'), 'new customer control')
         await click('＋ 新規顧客')
         await waitFor(() => hasText('顧客を登録'), 'customer form')
+        if (withMemberships) {
+          await fill('input[name=name]', 'existing fixture')
+          await click('顧客を登録')
+          await waitFor(() => hasText('既存のカルテを開いてください'), 'duplicate candidate instead of creating')
+        }
         await fill('input[name=name]', 'Browser customer')
+        if (withMemberships) {
+          await chooseMembership('M.glitter')
+          await chooseMembership('unite')
+          await chooseMembership('Lilly')
+        }
         await click('顧客を登録')
         const detail = await waitFor(() => evaluate("location.pathname.match(/^\\/admin\\/customers\\/\\d+$/) && document.body.innerText.includes('Browser customer') && location.pathname"), 'browser registration')
+        if (withMemberships) {
+          assert.ok(await hasText('M.glitter・Lilly'))
+          assert.ok(await hasText('M.glitterのブランド：unite'))
+        }
         await click('編集')
-        await waitFor(() => hasText('顧客情報を編集'), 'edit form')
+        await waitFor(() => hasText(withMemberships ? '顧客情報と所属を編集' : '顧客情報を編集'), 'edit form')
         await fill('input[name=name]', 'Browser customer edited')
         await click('保存')
         await waitFor(() => hasText('Browser customer edited'), 'browser edit')
@@ -367,6 +401,7 @@ insert into public.crm_customers (name) values ('Unassigned fixture');
 `
       let migration = readFileSync(join(__dirname, '../crm-step-2a/01-businesses.sql'), 'utf8')
       if (withNus) migration += readFileSync(join(__dirname, '../crm-step-2b/01-nus.sql'), 'utf8')
+      if (withMemberships) migration += readFileSync(join(__dirname, '../crm-membership-a/01-memberships.sql'), 'utf8')
       dbInput(fixture + migration + "\nnotify pgrst, 'reload schema';\n", 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
     }
   }
@@ -379,6 +414,21 @@ insert into public.crm_customers (name) values ('Unassigned fixture');
   }
   assert.equal(new Set(sessions.map(session => session.user.id)).size, 3)
   await verifyApi(sessions)
+  if (withMemberships) {
+    const tables = ['crm_groups', 'crm_customer_groups', 'crm_customer_group_brands']
+    for (const session of [null, sessions[1], sessions[2]]) {
+      for (const table of tables) {
+        const response = await rest(session, `/${table}`)
+        if (session) assert.deepEqual(response, { status: 200, data: [] })
+        else assert.ok([401, 403].includes(response.status))
+      }
+      const write = await rest(session, '/rpc/crm_save_customer_memberships', 'POST', {
+        target_customer_id: null, customer: { name: 'Denied' }, relations: [], selected_groups: ['nus'], selected_brands: [],
+      })
+      assert.ok([401, 403].includes(write.status))
+    }
+    console.log('PASS Data API membership rows and atomic save deny unauthorized users')
+  }
   if (withNus) {
     for (const session of [null, sessions[1], sessions[2]]) {
       for (const table of ['crm_nus_profiles', 'crm_nus_customer_relationships', 'crm_contact_preference_events', 'crm_contact_preferences_current']) {

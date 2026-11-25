@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient"
 import CustomerForm from "@/components/crm/CustomerForm"
 import PhotoPermissionBadge from "@/components/crm/PhotoPermissionBadge"
 import { formatDate, listCrmBusinesses } from "@/lib/crm"
+import { findCrmCustomerCandidates, saveCrmCustomerMemberships } from "@/lib/crmMemberships"
 import { contactRestrictions, interestLabels, listNusRelationshipTypes, progressFields, progressLabels } from "@/lib/crmNus"
 
 export default function CustomersPage() {
@@ -116,14 +117,8 @@ export default function CustomersPage() {
     setUpdatingFlags((current) => ({ ...current, [key]: false }))
   }
 
-  async function createCustomer(values, relations) {
-    const { data: customerId, error } = await supabase.rpc(businessFilter === "nus" ? "crm_create_nus_customer" : "crm_create_customer", {
-      customer: values,
-      relations: relations.map(({ location_id, service_id, membership_type }) => ({
-        location_id, service_id, membership_type: membership_type || null,
-      })),
-    })
-    if (error || customerId == null) throw new Error("顧客を登録できませんでした。入力内容を確認してください。")
+  async function createCustomer(values, relations, selection) {
+    const customerId = await saveCrmCustomerMemberships(supabase, null, values, relations, selection)
     setShowCreate(false)
     router.push(`/admin/customers/${customerId}`)
   }
@@ -178,7 +173,7 @@ export default function CustomersPage() {
           </section>
         )}
         {businessFilter === "nus" && <button type="button" onClick={() => setBusinessFilter("")} className="mb-2 min-h-11 text-sm font-semibold text-sky-800">全事業で既存顧客を探す</button>}
-        <button onClick={() => setShowCreate(true)} className="mb-4 w-full rounded-2xl bg-sky-600 px-4 py-3 font-bold text-white shadow-sm">{businessFilter === "nus" ? "＋ NUSの新規顧客" : "＋ 新規顧客"}</button>
+        <button onClick={() => setShowCreate(true)} className="mb-4 w-full rounded-2xl bg-sky-600 px-4 py-3 font-bold text-white shadow-sm">＋ 新規顧客</button>
         {error && <p className="mb-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
         {businessFilter === "nus" && nusError && <p role="alert" className="mb-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{nusError}</p>}
         {loading || (businessFilter === "nus" && !nusData && !nusError) ? <p className="py-10 text-center text-gray-500">読み込み中...</p> : (
@@ -208,7 +203,7 @@ export default function CustomersPage() {
           </div>
         )}
       </div>
-      {showCreate && <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">新規顧客</h2><CustomerForm locations={locations} services={services} onSave={createCustomer} onCancel={() => setShowCreate(false)} submitLabel="顧客を登録" /></div></div>}
+      {showCreate && <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">新規顧客</h2><CustomerForm locations={locations} services={services} businesses={businesses} findCandidates={(form) => findCrmCustomerCandidates(supabase, form)} onSave={createCustomer} onCancel={() => setShowCreate(false)} submitLabel="顧客を登録" /></div></div>}
     </main>
   )
 }
