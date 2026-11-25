@@ -23,7 +23,7 @@ export default function LillyProfile({ customer, onSaved }) {
         target_customer_id: customer.id,
         membership_code: draft.membership,
         selected_services: draft.services,
-        nickname_value: draft.nickname,
+        nickname_value: null,
       })
       if (result.error) throw result.error
       setDraft(null)
@@ -39,10 +39,6 @@ export default function LillyProfile({ customer, onSaved }) {
     <h2 className="font-bold">Lilly専用情報</h2>
     {draft ? <form onSubmit={save}>
       <fieldset disabled={saving} className="mt-3 space-y-3">
-        <label className="block text-sm font-semibold">呼び名（共通のニックネーム）
-          <input value={draft.nickname} required={!customer.name} onChange={(event) => setDraft({ ...draft, nickname: event.target.value })}
-            className="mt-1 block min-h-11 w-full rounded-xl border border-gray-200 px-3 text-base" />
-        </label>
         <LillyFields value={draft} onChange={setDraft} />
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         <div className="flex flex-wrap gap-3">
@@ -54,7 +50,7 @@ export default function LillyProfile({ customer, onSaved }) {
       <p className="mt-2 text-sm">会員種別：{lillyMemberships[membership]}</p>
       <p className="mt-1 text-sm">サービス：{services.length ? services.map((code) => lillyServices[code]).join("・") : "未選択"}</p>
       <button type="button" className="min-h-11 text-sm font-semibold text-sky-800"
-        onClick={() => setDraft({ membership, services, nickname: customer.nickname || "" })}>Lilly情報を編集</button>
+        onClick={() => setDraft({ membership, services })}>Lilly情報を編集</button>
     </>}
   </section>
 }

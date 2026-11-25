@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import Link from "next/link"
 import { PHOTO_PERMISSION_OPTIONS, relationKey } from "@/lib/crm"
 import { groupLabels } from "@/lib/crmMemberships"
-import { isLegacyLilly, lillyDisplayName, lillyFormalName, usesLillyDisplay } from "@/lib/crmLilly"
+import { isLegacyLilly, customerDisplayName, customerFormalName, usesLillyDisplay } from "@/lib/crmLilly"
 import LillyFields from "@/components/crm/LillyFields"
 
 const emptyCustomer = {
@@ -41,14 +41,18 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
   const activeLocations = useMemo(() => locations.filter((item) => item.is_active && String(item.id) !== "1"), [locations])
   const activeServices = useMemo(() => services.filter((item) => item.is_active), [services])
   const lillyOnly = groups.length === 1 && groups.includes("lilly")
-  const hideFormalName = lillyOnly || (lillyView && Boolean(initialCustomer?.name)) ||
-    (groups.length === 0 && initialCustomer && usesLillyDisplay(initialCustomer))
+  const hidePrivateNotes = lillyOnly || lillyView || (groups.length === 0 && initialCustomer && usesLillyDisplay(initialCustomer))
+  const [confirmedClear, setConfirmedClear] = useState(false)
+  const clearsFormal = initialCustomer && ["name", "name_yomi"].some((key) => initialCustomer[key]?.trim() && !form[key].trim())
+  const sharedGroups = [...new Set([...initialGroups, ...groups])]
+  const needsClearConfirmation = clearsFormal && sharedGroups.length > 1
 
   function change(event) {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
     if (["name", "nickname", "name_yomi"].includes(event.target.name)) {
       setCandidates(null)
       setDifferentPerson(false)
+      setConfirmedClear(false)
     }
   }
 
@@ -64,20 +68,22 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
   async function submit(event) {
     event.preventDefault()
     if (saving) return
-    if (!form.name.trim() && !lillyOnly) return setError("名前を入力してください。")
-    if ((lillyOnly && !initialCustomer || !form.name.trim()) && !form.nickname.trim()) return setError("呼び名を入力してください。")
+    if ((!initialCustomer || initialCustomer.nickname?.trim() || !form.name.trim()) && !form.nickname.trim()) {
+      return setError("普段の名前を入力してください。")
+    }
+    if (needsClearConfirmation && !confirmedClear) return setError("共通の氏名情報を空欄にすることを確認してください。")
     setSaving(true)
     setError("")
     try {
       if (findCandidates && !differentPerson) {
-        const matches = await findCandidates(lillyOnly ? { name: "", name_yomi: "", nickname: form.nickname } : form, lillyOnly)
+        const matches = await findCandidates(form, lillyOnly)
         setCandidates(matches)
         if (matches.length) return
       }
       await onSave({
-        name: initialCustomer && hideFormalName ? initialCustomer.name : lillyOnly ? null : form.name.trim(),
-        nickname: form.nickname.trim(),
-        name_yomi: initialCustomer && hideFormalName ? initialCustomer.name_yomi : lillyOnly ? null : form.name_yomi.trim(),
+        ...Object.fromEntries(["nickname", "name", "name_yomi"]
+          .filter((key) => !initialCustomer || form[key] !== (initialCustomer[key] ?? ""))
+          .map((key) => [key, form[key].trim() || null])),
         photo_permission: form.photo_permission,
         customer_request: form.customer_request,
         care_notes: form.care_notes,
@@ -95,24 +101,29 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
     <form onSubmit={submit}>
       {error && <p className="rounded-2xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <fieldset disabled={saving} className="space-y-5">
-      {!hideFormalName && <label className="block text-sm font-semibold text-gray-700">名前 <span className="text-red-500">*</span><input name="name" value={form.name} onChange={change} className={inputClass} /></label>}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-semibold text-gray-700">{hideFormalName ? "呼び名" : "ニックネーム"}<input name="nickname" value={form.nickname || ""} onChange={change} className={inputClass} /></label>
-        {!hideFormalName && <label className="block text-sm font-semibold text-gray-700">よみがな<input name="name_yomi" value={form.name_yomi || ""} onChange={change} className={inputClass} /></label>}
-      </div>
+      <label className="block text-sm font-semibold text-gray-700">名前{(!initialCustomer || initialCustomer.nickname?.trim()) && "（必須）"}
+        <input name="nickname" value={form.nickname} onChange={change} required={!initialCustomer || Boolean(initialCustomer.nickname?.trim())} className={inputClass} />
+      </label>
+      {initialCustomer && !initialCustomer.nickname?.trim() && <p className="text-sm text-gray-600">名前は未登録です。他の項目だけでも保存できます。</p>}
+      <label className="block text-sm font-semibold text-gray-700">フルネーム（任意）<input name="name" value={form.name} onChange={change} className={inputClass} /></label>
+      <label className="block text-sm font-semibold text-gray-700">ふりがな（任意）<input name="name_yomi" value={form.name_yomi} onChange={change} className={inputClass} /></label>
+      {needsClearConfirmation && <label className="flex min-h-11 items-center gap-2 text-sm">
+        <input type="checkbox" checked={confirmedClear} onChange={(event) => setConfirmedClear(event.target.checked)} />
+        {sharedGroups.map((code) => groupLabels[code]).join("・")}で共通の氏名情報が空欄になることを確認しました
+      </label>}
       {findCandidates && candidates?.length > 0 && (
         <section aria-label="既存顧客の候補" className="rounded-2xl bg-amber-50 p-4 text-sm">
           <p className="font-bold">同じ方が登録されている場合は、既存のカルテを開いてください。</p>
           <ul className="mt-2">
             {candidates.map((candidate) => {
-              const { id, name, name_yomi, nickname, archived, lillyDisplay } = candidate
-              const formalName = lillyDisplay && lillyFormalName(candidate)
+              const { id, archived, lillyDisplay } = candidate
+              const formalName = customerFormalName(candidate)
               return <li key={id}>
                 <Link href={`/admin/customers/${id}${lillyDisplay ? "?view=lilly" : ""}`} onClick={onCancel} className="inline-flex min-h-11 items-center text-sky-800 underline">
-                  {lillyDisplay ? <span className="min-w-0 break-words">
-                    <span className="block font-semibold">{lillyDisplayName(candidate)}{archived && <span className="ml-2 text-xs">アーカイブ済み</span>}</span>
+                  <span className="min-w-0 break-words">
+                    <span className="block font-semibold">{customerDisplayName(candidate)} <span className="text-xs font-normal text-gray-600">#{id}</span>{archived && <span className="ml-2 text-xs">アーカイブ済み</span>}</span>
                     {formalName && <span className="block text-xs text-gray-600">{formalName}</span>}
-                  </span> : [name, name_yomi, nickname, archived && "アーカイブ済み"].filter(Boolean).join(" / ")}
+                  </span>
                 </Link>
               </li>
             })}
@@ -126,7 +137,7 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
         {Object.entries(groupLabels).map(([code, label]) => (
           <label key={code} className="flex min-h-11 items-center gap-3 text-sm font-semibold">
             <input type="checkbox" checked={groups.includes(code)} onChange={(event) =>
-              { setGroups(event.target.checked ? [...groups, code] : groups.filter((value) => value !== code)); setCandidates(null); setDifferentPerson(false) }} />
+              { setGroups(event.target.checked ? [...groups, code] : groups.filter((value) => value !== code)); setCandidates(null); setDifferentPerson(false); setConfirmedClear(false) }} />
             {label}
           </label>
         ))}
@@ -166,7 +177,7 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
         </div>
       </fieldset>
       <label className="block text-sm font-semibold text-gray-700">写真掲載可否<select name="photo_permission" value={form.photo_permission} onChange={change} className={inputClass}>{PHOTO_PERMISSION_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-      {!hideFormalName && <>
+      {!hidePrivateNotes && <>
       <label className="block text-sm font-semibold text-gray-700">本人から聞いている悩み・希望<textarea name="customer_request" value={form.customer_request || ""} onChange={change} rows={3} className={inputClass} /></label>
       <label className="block text-sm font-semibold text-gray-700">継続的な配慮事項<textarea name="care_notes" value={form.care_notes || ""} onChange={change} rows={3} className={inputClass} /></label>
       <label className="block text-sm font-semibold text-gray-700">📝 自分用メモ<textarea name="private_note" value={form.private_note || ""} onChange={change} rows={3} placeholder="外見・持ち物・仕事・以前話した内容など" className={inputClass} /></label>

@@ -11,6 +11,7 @@ const gatewayOrigin = 'http://127.0.0.1:35433'
 const appOrigin = 'http://127.0.0.1:35430'
 const accounts = ['owner', 'test-admin', 'member']
 const withMemberships = process.argv.includes('--membership-a')
+const withCommonName = process.argv.includes('--common-name')
 const legacyAppDir = process.env.CRM_ACCEPTANCE_LEGACY_APP_DIR
 const withNus = withMemberships || process.argv.includes('--step2b')
 const withBusinesses = withNus || process.argv.includes('--step2a')
@@ -75,7 +76,7 @@ async function verifyApi(sessions) {
     }
   }
   const created = await rest(owner, '/rpc/crm_create_customer', 'POST', {
-    customer: { name: 'Acceptance customer' }, relations: [{ location_id: 1, service_id: 1 }],
+    customer: { name: 'Acceptance customer', nickname: 'Acceptance customer' }, relations: [{ location_id: 1, service_id: 1 }],
   })
   assert.equal(created.status, 200)
   const path = `/crm_customers?id=eq.${created.data}`
@@ -87,7 +88,7 @@ async function verifyApi(sessions) {
   }
   assert.equal((await rest(owner, path, 'DELETE')).status, 403)
   const rolledBack = await rest(owner, '/rpc/crm_create_customer', 'POST', {
-    customer: { name: 'Must roll back' }, relations: [{ location_id: 1, service_id: 99999 }],
+    customer: { name: 'Must roll back', nickname: 'Must roll back' }, relations: [{ location_id: 1, service_id: 99999 }],
   })
   assert.equal(rolledBack.data.code, '23503')
   assert.deepEqual((await rest(owner, '/crm_customers?name=eq.Must%20roll%20back')).data, [])
@@ -229,6 +230,77 @@ async function verifyBrowser(sessions) {
           !document.body.innerText.includes('読み込み中...')`), `${accounts[index]} ${path}`)
       }
       console.log(`PASS Browser CRM list, record and settings access: ${accounts[index]}`)
+      if (withCommonName && index === 0) {
+        const owner = sessions[0]
+        const oldLinks = await rest(owner, '/crm_customer_services?customer_id=eq.1&order=id')
+        await send('Page.navigate', { url: appOrigin + '/admin/customers/1' })
+        await waitFor(() => hasText('名前未登録'), 'legacy customer with no display name')
+        await click('所属を編集')
+        await waitFor(() => hasText('フルネーム（任意）'), 'legacy common form')
+        assert.equal(await evaluate("document.querySelector('input[name=nickname]').required"), false)
+        await select('select[name=photo_permission]', 'ok')
+        await click('保存')
+        await waitFor(() => evaluate("!document.querySelector('input[name=nickname]')"), 'legacy save without nickname')
+        const legacy = await rest(owner, '/crm_customers?id=eq.1&select=name,nickname,photo_permission')
+        assert.deepEqual(legacy.data, [{ name: 'existing fixture', nickname: null, photo_permission: 'ok' }])
+        assert.deepEqual(await rest(owner, '/crm_customer_services?customer_id=eq.1&order=id'), oldLinks)
+
+        const chooseGroup = (name) => evaluate(`[...document.querySelectorAll('form label')].find(label => label.textContent.trim() === ${JSON.stringify(name)}).querySelector('input').click()`)
+        const ids = []
+        for (const group of ['M.glitter', 'Lilly', 'NUS']) {
+          await send('Page.navigate', { url: appOrigin + '/admin/customers' })
+          await waitFor(() => hasText('＋ 新規顧客'), 'customer list')
+          await click('＋ 新規顧客')
+          await waitFor(() => hasText('フルネーム（任意）'), 'shared registration field order')
+          assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('form input[name]')).slice(0,3).map(input => input.name)"), ['nickname', 'name', 'name_yomi'])
+          assert.equal(await evaluate("document.querySelector('input[name=nickname]').required"), true)
+          await chooseGroup(group)
+          await fill('input[name=nickname]', '共通テスト名')
+          await click('顧客を登録')
+          if (ids.length) {
+            await waitFor(() => hasText('既存のカルテを開いてください'), 'duplicate candidate across affiliations')
+            for (const id of ids) assert.ok(await hasText('#' + id))
+            await evaluate("document.querySelector('section[aria-label=\"既存顧客の候補\"] input').click()")
+            await click('顧客を登録')
+          }
+          const path = await waitFor(() => evaluate("location.pathname.match(/^\\/admin\\/customers\\/\\d+$/) && document.querySelector('main h1')?.textContent.includes('共通テスト名') && location.pathname"), 'nickname-only record')
+          const id = path.split('/').pop()
+          ids.push(id)
+          assert.deepEqual((await rest(owner, '/crm_customers?id=eq.' + id + '&select=name,name_yomi,nickname')).data,
+            [{ name: null, name_yomi: null, nickname: '共通テスト名' }])
+          await click('所属を編集')
+          await waitFor(() => hasText('フルネーム（任意）'), 'common edit')
+          await fill('input[name=name]', 'Synthetic formal ' + group)
+          await fill('input[name=name_yomi]', '合成ふりがな')
+          if (group === 'Lilly') await chooseGroup('NUS')
+          await click('保存')
+          await waitFor(() => hasText('Synthetic formal ' + group), 'formal name supplemental line')
+          await click('所属を編集')
+          await waitFor(() => hasText('フルネーム（任意）'), 'reopen common edit')
+          await fill('input[name=name]', '')
+          await fill('input[name=name_yomi]', '')
+          if (group === 'Lilly') {
+            await click('保存')
+            await waitFor(() => hasText('空欄にすることを確認'), 'shared clear confirmation required')
+            await evaluate("Array.from(document.querySelectorAll('form label')).find(label => label.textContent.includes('で共通の氏名情報')).querySelector('input').click()")
+          }
+          await click('保存')
+          await waitFor(() => evaluate("!document.querySelector('input[name=nickname]')"), 'formal fields cleared')
+          assert.deepEqual((await rest(owner, '/crm_customers?id=eq.' + id + '&select=name,name_yomi,nickname')).data,
+            [{ name: null, name_yomi: null, nickname: '共通テスト名' }])
+          assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'))
+        }
+        await send('Page.navigate', { url: appOrigin + '/admin/customers' })
+        await waitFor(() => hasText('＋ 新規顧客'), 'list after edits')
+        for (const [group, count] of [['M.glitter', 1], ['Lilly', 1], ['NUS', 2]]) {
+          await click('条件をすべて解除')
+          await click(group)
+          await fill('input[placeholder^="名前"]', '共通テスト名')
+          await waitFor(() => evaluate(`document.querySelectorAll('article').length === ${count}`), 'group search by display name')
+        }
+        console.log('PASS Common name: legacy save, all groups, duplicate IDs, optional fields, shared-name confirmation and 390px search')
+        continue
+      }
       if (legacyAppDir) {
         if (index !== 0) continue
         await send('Page.navigate', { url: appOrigin + '/admin/customers' })
@@ -575,6 +647,8 @@ update public.crm_customer_services set membership_type='回数券' where custom
 insert into public.crm_customer_services (customer_id, location_id, service_id, membership_type)
 values (1, 1, 2, '月謝');
 `
+      if (withCommonName) migration += "update public.crm_customers set nickname=null where id=1;\n" +
+        readFileSync(join(__dirname, '../crm-common-name/01-common-name.sql'), 'utf8')
       dbInput(fixture + migration + "\nnotify pgrst, 'reload schema';\n", 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
     }
   }
@@ -587,6 +661,19 @@ values (1, 1, 2, '月謝');
   }
   assert.equal(new Set(sessions.map(session => session.user.id)).size, 3)
   await verifyApi(sessions)
+  if (withCommonName) {
+    for (const [path, args] of [
+      ['/rpc/crm_create_customer', { customer: { name: 'Formal only rejected' }, relations: [] }],
+      ['/rpc/crm_create_nus_customer', { customer: { name: 'Formal only rejected' }, relations: [] }],
+      ['/rpc/crm_save_customer_memberships', { target_customer_id: null, customer: { name: 'Formal only rejected' }, relations: [], selected_groups: ['mglitter'], selected_brands: [] }],
+      ['/rpc/crm_create_customer_with_lilly', { customer: { nickname: '  ' }, relations: [], selected_groups: ['lilly'], selected_brands: [], membership_code: 'unknown', selected_services: [] }],
+      ['/crm_customers', { name: 'Direct insert rejected' }],
+    ]) {
+      const rejected = await rest(sessions[0], path, 'POST', args)
+      assert.equal(rejected.data.code, '23514')
+    }
+    console.log('PASS DB and RPC enforce a nonblank nickname for every new customer')
+  }
   if (withMemberships) {
     const tables = ['crm_groups', 'crm_customer_groups', 'crm_customer_group_brands', 'crm_lilly_profiles']
     for (const session of [null, sessions[1], sessions[2]]) {
