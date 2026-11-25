@@ -117,7 +117,7 @@ async function verifyRevocation(owner) {
   console.log('PASS Existing Auth session denied after scheduled deletion, admin removal, CRM permission removal')
 }
 
-function startGateway() {
+function startGateway(nusFailure = () => 0) {
   const server = createServer(async (request, response) => {
     response.setHeader('access-control-allow-origin', appOrigin)
     response.setHeader('access-control-allow-headers', '*')
@@ -126,6 +126,8 @@ function startGateway() {
     if (request.method === 'OPTIONS') return response.writeHead(204).end()
     const match = request.url.match(/^\/(auth|rest)\/v1(\/.*)$/)
     if (!match) return response.writeHead(404).end()
+    const failure = request.url.startsWith('/rest/v1/crm_nus_profiles?') && nusFailure()
+    if (failure) return response.writeHead(failure, { 'content-type': 'application/json' }).end('{}')
     const origin = match[1] === 'auth' ? authOrigin : restOrigin
     const headers = { ...request.headers }
     delete headers.host
@@ -149,7 +151,8 @@ function startGateway() {
 }
 
 async function verifyBrowser(sessions) {
-  const gateway = await startGateway()
+  let nusFailure = 0
+  const gateway = await startGateway(() => nusFailure)
   const chromeProfile = mkdtempSync(join(tmpdir(), 'crm-step1-chrome-'))
   const env = {
     ...process.env, NEXT_PUBLIC_SUPABASE_URL: gatewayOrigin,
@@ -263,14 +266,15 @@ async function verifyBrowser(sessions) {
         if (withMemberships) {
           await send('Page.navigate', { url: appOrigin + '/admin/customers' })
           await waitFor(() => hasText('existing fixture'), 'customer list loaded')
-          await select('select[aria-label="所属で絞り込み"]', 'unassigned')
+          await click('所属未設定')
           await waitFor(() => hasText('existing fixture'), 'legacy service customer is still unassigned')
-          await evaluate("document.querySelector('details').open = true")
-          await select('select[aria-label="担当先で絞り込み"]', '1')
+          await click('旧サービス情報を確認')
+          await evaluate("document.querySelector('#filters-legacy input').click()")
           await waitFor(() => evaluate("document.body.innerText.includes('existing fixture') && !document.body.innerText.includes('Unassigned fixture')"), 'legacy location filter')
-          await evaluate("document.querySelector('details').open = false")
-          await waitFor(() => hasText('適用中：'), 'collapsed filter summary')
-          await select('select[aria-label="所属で絞り込み"]', 'lilly')
+          await click('旧サービス情報を確認（1件適用中）')
+          await waitFor(() => hasText('1件適用中'), 'collapsed filter summary')
+          await click('条件をすべて解除')
+          await click('Lilly')
           await waitFor(() => hasText('該当する顧客はいません。'), 'legacy service alone does not count as Lilly membership')
           await send('Page.navigate', { url: appOrigin + '/admin/customers/1' })
           await waitFor(() => hasText('所属未設定'), 'legacy customer remains unclassified')
@@ -285,15 +289,27 @@ async function verifyBrowser(sessions) {
           await waitFor(() => evaluate("document.querySelector('section[aria-label=\"現在の所属\"]')?.innerText.includes('M.glitter・NUS・Lilly') && document.body.innerText.includes('M.glitterのブランド：moments')"), 'save three groups and brand on same customer')
           await send('Page.navigate', { url: appOrigin + '/admin/customers' })
           await waitFor(() => hasText('existing fixture'), 'membership list loaded')
-          await select('select[aria-label="所属で絞り込み"]', 'mglitter')
-          const brandSelect = 'select[aria-label="ブランドで絞り込み"]'
-          assert.equal(await evaluate(`document.querySelector(${JSON.stringify(brandSelect)}).options.length`), 8)
-          await select(brandSelect, 'third_place')
+          await click('M.glitter')
+          const brand = (name) => evaluate(`[...document.querySelectorAll('#filters-mglitter label')].find(label => label.textContent.trim() === ${JSON.stringify(name)}).querySelector('input').click()`)
+          assert.equal(await evaluate("document.querySelectorAll('#filters-mglitter input').length"), 7)
+          await brand('3rd place')
           await waitFor(() => hasText('該当する顧客はいません。'), 'legacy business is not an explicit brand')
-          await select(brandSelect, 'moments')
+          await brand('moments')
           await waitFor(() => hasText('existing fixture'), 'explicit brand matches')
-          await select('select[aria-label="所属で絞り込み"]', 'lilly')
+          await click('Lilly')
           await waitFor(() => hasText('existing fixture'), 'same customer matches Lilly')
+          assert.equal(await evaluate("document.querySelectorAll('article').length"), 1)
+          assert.equal(await evaluate("document.querySelector('#filters-mglitter').hidden"), true)
+          await click('M.glitter')
+          await select('#filters-lilly select', '1')
+          await evaluate("const selects = document.querySelectorAll('#filters-lilly select'); selects[1].value = '月謝'; selects[1].dispatchEvent(new Event('change', { bubbles: true }))")
+          await waitFor(() => hasText('該当する顧客はいません。'), 'Lilly service and membership must share a row')
+          await select('#filters-lilly select', '2')
+          await waitFor(() => hasText('existing fixture'), 'Lilly matching service and membership row')
+          await click('所属未設定')
+          await waitFor(() => hasText('Unassigned fixture'), 'unassigned OR group')
+          await click('M.glitter')
+          assert.equal(await evaluate("document.querySelectorAll('#filters-mglitter input:checked').length"), 2)
           assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'))
           await send('Page.navigate', { url: appOrigin + '/admin/customers/1' })
           await waitFor(() => hasText('NUS情報を編集'), 'return to customer detail')
@@ -328,12 +344,28 @@ async function verifyBrowser(sessions) {
           await waitFor(() => hasText('ビジネス案内・商品案内・事務連絡'), 'global refusal blocks all NUS purposes')
           await send('Page.navigate', { url: appOrigin + '/admin/customers' })
           await waitFor(() => hasText('existing fixture'), 'CRM list after NUS edit')
-          await select(withMemberships ? 'select[aria-label="所属で絞り込み"]' : 'select[aria-label="事業で絞り込み"]', 'nus')
-          const nusStage = withMemberships ? 'details label select' : 'section[aria-label="NUS関係者の絞り込み"] select'
+          if (withMemberships) await click('NUS')
+          else await select('select[aria-label="事業で絞り込み"]', 'nus')
+          const nusStage = withMemberships ? '#filters-nus select' : 'section[aria-label="NUS関係者の絞り込み"] select'
           await waitFor(() => evaluate(`!!document.querySelector(${JSON.stringify(nusStage)}) && document.body.innerText.includes('existing fixture') && !document.body.innerText.includes('Unassigned fixture')`), 'NUS filtered list')
-          if (withMemberships) await evaluate("document.querySelector('details').open = true")
           await select(nusStage, withMemberships ? 'unconfirmed' : 'prospect')
           await waitFor(() => hasText('existing fixture'), 'NUS stage filter')
+          if (withMemberships) {
+            nusFailure = 503
+            await click('NUS')
+            await click('NUS')
+            await waitFor(() => hasText('NUS情報を読み込めませんでした。'), 'NUS only failure')
+            assert.equal(await hasText('該当する顧客はいません。'), false)
+            await click('Lilly')
+            await waitFor(() => hasText('一部の検索結果'), 'mixed results disclose incomplete NUS branch')
+            assert.ok(await hasText('existing fixture'))
+            nusFailure = 403
+            await click('NUS')
+            await click('NUS')
+            await waitFor(() => hasText('CRMを閲覧できません。'), 'NUS authorization failure hides results')
+            assert.equal(await hasText('existing fixture'), false)
+            nusFailure = 0
+          }
           console.log('PASS Browser NUS stage, relationship, profile, global refusal and filters')
         }
         await send('Page.navigate', { url: appOrigin + '/admin/customers' })
@@ -432,7 +464,11 @@ insert into public.crm_customers (name) values ('Unassigned fixture');
 `
       let migration = readFileSync(join(__dirname, '../crm-step-2a/01-businesses.sql'), 'utf8')
       if (withNus) migration += readFileSync(join(__dirname, '../crm-step-2b/01-nus.sql'), 'utf8')
-      if (withMemberships) migration += readFileSync(join(__dirname, '../crm-membership-a/01-memberships.sql'), 'utf8')
+      if (withMemberships) migration += readFileSync(join(__dirname, '../crm-membership-a/01-memberships.sql'), 'utf8') + `
+update public.crm_customer_services set membership_type='回数券' where customer_id=1 and location_id=1 and service_id=1;
+insert into public.crm_customer_services (customer_id, location_id, service_id, membership_type)
+values (1, 1, 2, '月謝');
+`
       dbInput(fixture + migration + "\nnotify pgrst, 'reload schema';\n", 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
     }
   }

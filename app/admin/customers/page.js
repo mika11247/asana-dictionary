@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabaseClient"
 import CustomerForm from "@/components/crm/CustomerForm"
@@ -10,14 +10,22 @@ import { formatDate, listCrmBusinesses } from "@/lib/crm"
 import { findCrmCustomerCandidates, groupLabels, saveCrmCustomerMemberships } from "@/lib/crmMemberships"
 import { contactRestrictions, interestLabels, listNusRelationshipTypes, progressFields, progressLabels } from "@/lib/crmNus"
 
+const isLilly = ({ location_id }) => String(location_id) === "1"
+const toggle = (values, key) => values.includes(key) ? values.filter((value) => value !== key) : [...values, key]
+const isDenied = ({ status, error }) => [401, 403].includes(status) || ["42501", "PGRST301", "PGRST303"].includes(error?.code)
+
 export default function CustomersPage() {
   const router = useRouter()
   const [customers, setCustomers] = useState([])
   const [locations, setLocations] = useState([])
   const [services, setServices] = useState([])
   const [businesses, setBusinesses] = useState([])
-  const [groupFilter, setGroupFilter] = useState("")
-  const [brandFilter, setBrandFilter] = useState("")
+  const [groups, setGroups] = useState([])
+  const [panel, setPanel] = useState("")
+  const [legacyLilly, setLegacyLilly] = useState(false)
+  const [lilly, setLilly] = useState({})
+  const [denied, setDenied] = useState(false)
+  const [brandFilter, setBrandFilter] = useState([])
   const [nusFilter, setNusFilter] = useState({})
   const [nusData, setNusData] = useState(null)
   const [nusError, setNusError] = useState("")
@@ -44,6 +52,8 @@ export default function CustomersPage() {
     ])
     const firstError = customerResult.error || locationResult.error || serviceResult.error || businessResult.error
     if (firstError) {
+      setCustomers([])
+      if ([customerResult, locationResult, serviceResult, businessResult].some(isDenied)) setDenied(true)
       console.error("CRM一覧の取得に失敗しました", firstError)
       setError("顧客情報を読み込めませんでした。時間をおいて再度お試しください。")
     } else {
@@ -57,87 +67,113 @@ export default function CustomersPage() {
 
   useEffect(() => { load() }, [archived])
 
+  const includeNus = groups.includes("nus")
+  const nusOnly = includeNus && groups.length === 1
+
   useEffect(() => {
-    if (groupFilter !== "nus") return
+    if (!includeNus) return
     let mounted = true
     Promise.all([
       supabase.from("crm_nus_profiles").select("customer_id, product_interest, business_interest, disclosure_status, product_proposal_status, business_proposal_status"),
       supabase.from("crm_nus_customer_relationships").select("customer_id, type_code").is("archived_at", null),
       supabase.from("crm_contact_preferences_current").select("customer_id, scope, decision, coverage").eq("decision", "refuse"),
       listNusRelationshipTypes(supabase),
-    ]).then(([profiles, roles, preferences, types]) => {
+      supabase.rpc("is_crm_admin"),
+    ]).then(([profiles, roles, preferences, types, access]) => {
       if (!mounted) return
-      if (profiles.error || roles.error || preferences.error || types.error) setNusError("NUS情報を読み込めませんでした。")
+      if (access.data === false || [profiles, roles, preferences, types, access].some(isDenied)) setDenied(true)
+      else if (profiles.error || roles.error || preferences.error || types.error || access.data !== true) setNusError("NUS情報を読み込めませんでした。")
       else setNusData({ profiles: profiles.data, roles: roles.data, preferences: preferences.data, types: types.data })
+    }).catch(() => {
+      if (mounted) setNusError("NUS情報を読み込めませんでした。")
     })
     return () => { mounted = false }
-  }, [groupFilter])
+  }, [includeNus])
 
-  function changeGroup(value) {
-    setGroupFilter(value)
-    setBrandFilter("")
+  function changeGroup(code) {
+    const selected = groups.includes(code)
+    if (code === "nus") {
+      setNusData(null)
+      setNusError("")
+    }
+    setGroups(toggle(groups, code))
+    if (!selected && code !== "unassigned") setPanel(code)
+    else if (panel === code) setPanel("")
+  }
+
+  function clearFilters() {
+    setGroups([])
+    setPanel("")
+    setBrandFilter([])
     setNusFilter({})
-    setNusData(null)
-    setNusError("")
+    setLilly({})
+    setLegacyLilly(false)
     setLocationFilter("")
     setServiceFilter("")
     setMembershipFilter("")
+    setQuery("")
+    setFavoriteOnly(false)
+    setPinnedOnly(false)
+    setNusData(null)
+    setNusError("")
   }
 
   const brands = businesses.filter(({ code }) => code !== "nus")
-  const nusOptions = nusData ? [
+  const nusOptions = [
     ["stage", "NUS顧客区分", { prospect: "見込み客", customer: "顧客", unconfirmed: "未確認" }],
-    ["role", "関係性", Object.fromEntries(nusData.types.map(({ code, label }) => [code, label]))],
+    ["role", "関係性", Object.fromEntries((nusData?.types || []).map(({ code, label }) => [code, label]))],
     ["product_interest", "商品への関心", interestLabels],
     ["business_interest", "ビジネスへの関心", interestLabels],
     ...progressFields.map(([key, label]) => [`${key}_status`, label, progressLabels]),
     ["restriction", "連絡制限", { business: "ビジネス案内停止", product: "商品案内停止", administrative: "事務連絡も停止" }],
-  ] : []
-  // Stage A uses the existing Lilly location ID for service links.
-  const lillyLocationId = "1"
-  const appliedDetails = [
-    locations.find(({ id }) => String(id) === locationFilter)?.name,
-    services.find(({ id }) => String(id) === serviceFilter)?.name,
-    membershipFilter,
-    ...nusOptions.map(([key, label, options]) => nusFilter[key] && `${label}：${options[nusFilter[key]]}`),
-  ].filter(Boolean)
+  ]
+  const locationOptions = locations.map(({ id, name }) => [String(id), name])
+  const serviceOptions = services.map(({ id, name }) => [String(id), name])
+  const memberOptions = ["通い放題", "回数券", "月謝", "体験"].map((name) => [name, name])
+  const lillyLinks = customers.flatMap((customer) => customer.crm_customer_services.filter(isLilly))
+  const lillyServices = new Set(lillyLinks.map(({ service_id }) => String(service_id)))
+  const lillyMembers = [...new Set([...lillyLinks.map(({ membership_type }) => membership_type), lilly.membership].filter(Boolean))]
+  const labelFor = (options, value) => options.find(([key]) => key === value)?.[1] || value
+  const summaries = {
+    mglitter: brands.filter(({ code }) => brandFilter.includes(code)).map(({ name }) => name),
+    nus: nusOptions.flatMap(([key, label, options]) => nusFilter[key] ? [label + "：" + (options[nusFilter[key]] || "選択済み")] : []),
+    lilly: [labelFor(serviceOptions, lilly.service), lilly.membership].filter(Boolean),
+    legacy: [legacyLilly && "旧Lilly情報あり", labelFor(locationOptions, locationFilter), labelFor(serviceOptions, serviceFilter), membershipFilter].filter(Boolean),
+  }
 
-  const filtered = useMemo(() => {
-    const word = query.trim().toLocaleLowerCase("ja")
-    return customers.filter((customer) => {
-      const textMatch = !word || [customer.name, customer.nickname, customer.name_yomi, customer.private_note].some((value) => (value || "").toLocaleLowerCase("ja").includes(word))
-      const serviceLinks = customer.crm_customer_services
-      const detailMatch = groupFilter === "lilly"
-        ? !(serviceFilter || membershipFilter) || serviceLinks.some((item) =>
-          String(item.location_id) === lillyLocationId &&
-          (!serviceFilter || String(item.service_id) === serviceFilter) &&
-          (!membershipFilter || item.membership_type === membershipFilter))
-        : (!locationFilter || serviceLinks.some((item) => String(item.location_id) === locationFilter)) &&
-          (!serviceFilter || serviceLinks.some((item) => String(item.service_id) === serviceFilter)) &&
-          (!membershipFilter || serviceLinks.some((item) => item.membership_type === membershipFilter))
-      const favoriteMatch = !favoriteOnly || customer.is_favorite
-      const pinnedMatch = !pinnedOnly || customer.is_pinned
-      const activeBusinesses = customer.crm_customer_businesses.filter((item) => !item.archived_at)
-      const groups = customer.crm_customer_groups.filter((item) => !item.archived_at)
-      const groupMatch = !groupFilter || (groupFilter === "unassigned"
-        ? groups.length === 0
-        : groups.some((item) => item.group_code === groupFilter))
-      const brandMatch = !brandFilter || customer.crm_customer_group_brands.some((item) => item.business_code === brandFilter && !item.archived_at)
-      if (!(textMatch && detailMatch && favoriteMatch && pinnedMatch && groupMatch && brandMatch)) return false
-      if (groupFilter !== "nus" || !Object.values(nusFilter).some(Boolean)) return true
-      if (!nusData) return false
-      const profile = nusData.profiles.find((item) => item.customer_id === customer.id)
-      const stage = activeBusinesses.find((item) => item.business_code === "nus")?.stage || "unconfirmed"
-      const restrictions = contactRestrictions(nusData.preferences.filter((item) => item.customer_id === customer.id))
-      return Object.entries(nusFilter).every(([key, value]) => {
-        if (!value) return true
-        if (key === "stage") return stage === value
-        if (key === "role") return nusData.roles.some((item) => item.customer_id === customer.id && item.type_code === value)
-        if (key === "restriction") return restrictions[value]
-        return (profile?.[key] || "unknown") === value
-      })
+  function matchesGroup(customer, code) {
+    const active = customer.crm_customer_groups.filter((item) => !item.archived_at)
+    if (code === "unassigned") return active.length === 0
+    if (!active.some(({ group_code }) => group_code === code)) return false
+    if (code === "mglitter") return !brandFilter.length || customer.crm_customer_group_brands.some((item) =>
+      !item.archived_at && brandFilter.includes(item.business_code))
+    if (code === "lilly") return !(lilly.service || lilly.membership) || customer.crm_customer_services.some((item) =>
+      isLilly(item) && (!lilly.service || String(item.service_id) === lilly.service) && (!lilly.membership || item.membership_type === lilly.membership))
+    if (!nusData) return false
+    const profile = nusData.profiles.find((item) => item.customer_id === customer.id)
+    const stage = customer.crm_customer_businesses.find((item) => item.business_code === "nus" && !item.archived_at)?.stage || "unconfirmed"
+    const restrictions = contactRestrictions(nusData.preferences.filter((item) => item.customer_id === customer.id))
+    return Object.entries(nusFilter).every(([key, value]) => {
+      if (!value) return true
+      if (key === "stage") return stage === value
+      if (key === "role") return nusData.roles.some((item) => item.customer_id === customer.id && item.type_code === value)
+      if (key === "restriction") return restrictions[value]
+      return (profile?.[key] || "unknown") === value
     })
-  }, [customers, query, locationFilter, serviceFilter, membershipFilter, favoriteOnly, pinnedOnly, groupFilter, brandFilter, nusFilter, nusData])
+  }
+
+  const word = query.trim().toLocaleLowerCase("ja")
+  const filtered = customers.filter((customer) => {
+    const links = customer.crm_customer_services
+    const textMatch = !word || [customer.name, customer.nickname, customer.name_yomi, customer.private_note]
+      .some((value) => (value || "").toLocaleLowerCase("ja").includes(word))
+    return textMatch && (!favoriteOnly || customer.is_favorite) && (!pinnedOnly || customer.is_pinned) &&
+      (!legacyLilly || links.some(isLilly)) &&
+      (!locationFilter || links.some((item) => String(item.location_id) === locationFilter)) &&
+      (!serviceFilter || links.some((item) => String(item.service_id) === serviceFilter)) &&
+      (!membershipFilter || links.some((item) => item.membership_type === membershipFilter)) &&
+      (!groups.length || groups.some((code) => matchesGroup(customer, code)))
+  })
 
   async function toggleCustomerFlag(customer, field) {
     const key = `${customer.id}:${field}`
@@ -161,7 +197,17 @@ export default function CustomersPage() {
     router.push(`/admin/customers/${customerId}`)
   }
 
-  const filterClass = "mt-2 min-h-11 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base"
+  function filterSelect(label, value, onChange, options) {
+    return <label key={label} className="block min-w-0 text-sm">{label}
+      <select value={value || ""} onChange={(event) => onChange(event.target.value)}
+        className="mt-1 min-h-11 w-full min-w-0 rounded-xl border border-gray-200 bg-white px-3 text-base">
+        <option value="">すべて</option>
+        {options.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+      </select>
+    </label>
+  }
+
+  if (denied) return <p role="alert" className="p-6">CRMを閲覧できません。</p>
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 px-4 py-6 sm:p-8">
@@ -173,37 +219,56 @@ export default function CustomersPage() {
 
         <section className="mb-4 rounded-3xl bg-white p-4 shadow-sm">
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="名前・よみがな・ニックネーム・メモで検索" className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-base outline-none focus:border-sky-400" />
-          <select aria-label="所属で絞り込み" value={groupFilter} onChange={(e) => changeGroup(e.target.value)} className={filterClass}>
-            <option value="">全顧客</option>
-            {Object.entries(groupLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
-            <option value="unassigned">所属未設定</option>
-          </select>
-          {groupFilter === "mglitter" && <select aria-label="ブランドで絞り込み" value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)} className={filterClass}>
-            <option value="">すべてのブランド</option>
-            {brands.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
-          </select>}
-          {groupFilter === "unassigned" && <p className="mt-2 text-sm text-gray-600">所属未設定の顧客も、詳細条件から既存の担当先やサービスで検索できます。</p>}
-          <details key={groupFilter} className="mt-2 rounded-xl border border-gray-200 px-3">
-            <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">詳細条件{appliedDetails.length ? `（${appliedDetails.length}件適用中）` : ""}</summary>
-            <div className="grid gap-2 pb-3 sm:grid-cols-2">
-              {groupFilter !== "lilly" && <select aria-label="担当先で絞り込み" value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className={filterClass}><option value="">すべての担当先</option>{locations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}
-              <select aria-label="サービスで絞り込み" value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)} className={filterClass}><option value="">{groupFilter === "lilly" ? "Lillyの全サービス" : "すべてのサービス"}</option>{services.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
-              <select aria-label="既存の会員種別で絞り込み" value={membershipFilter} onChange={(e) => setMembershipFilter(e.target.value)} className={filterClass}><option value="">すべての既存会員種別</option>{["通い放題", "回数券", "月謝", "体験"].map((item) => <option key={item} value={item}>{item}</option>)}</select>
-              {nusOptions.map(([key, label, options]) => (
-                <label key={key} className="text-sm">{label}
-                  <select value={nusFilter[key] || ""} onChange={(event) => setNusFilter({ ...nusFilter, [key]: event.target.value })} className={filterClass}>
-                    <option value="">すべて</option>
-                    {Object.entries(options).map(([value, name]) => <option key={value} value={value}>{name}</option>)}
-                  </select>
-                </label>
-              ))}
+          <fieldset className="mt-3">
+            <legend className="text-sm font-semibold">所属で絞り込み</legend>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {[...Object.entries(groupLabels), ["unassigned", "所属未設定"]].map(([code, label]) =>
+                <button key={code} type="button" aria-pressed={groups.includes(code)} onClick={() => changeGroup(code)}
+                  className={`min-h-11 rounded-xl border px-3 text-sm font-semibold ${groups.includes(code) ? "border-sky-400 bg-sky-100 text-sky-900" : "border-gray-200 text-gray-700"}`}>{label}</button>
+              )}
             </div>
-          </details>
-          {appliedDetails.length > 0 && <p className="mt-2 break-words text-sm text-gray-700">適用中：{appliedDetails.join("・")}</p>}
+          </fieldset>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3">
+            <p className="text-sm text-gray-700" aria-live="polite">{groups.length ? groups.map((code) => groupLabels[code] || "所属未設定").join(" または ") : "全顧客"}</p>
+            <button type="button" onClick={clearFilters} className="min-h-11 text-sm font-semibold text-sky-800">条件をすべて解除</button>
+          </div>
+          {[...Object.entries(groupLabels).filter(([code]) => groups.includes(code)).map(([code, label]) => [code, label + "の条件"]),
+            ["legacy", "旧サービス情報を確認"]].map(([code, label]) => (
+            <section key={code} className="mt-2 rounded-xl border border-gray-200 px-3">
+              <button type="button" aria-expanded={panel === code} aria-controls={`filters-${code}`}
+                onClick={() => setPanel(panel === code ? "" : code)} className="min-h-11 w-full py-2 text-left text-sm font-semibold">
+                {label}{summaries[code].length ? `（${summaries[code].length}件適用中）` : ""}
+              </button>
+              {summaries[code].length > 0 && <p className="break-words pb-2 text-sm text-gray-700">{summaries[code].join("・")}</p>}
+              <div id={`filters-${code}`} hidden={panel !== code}>
+                <div className="grid gap-2 pb-3 sm:grid-cols-2">
+                  {code === "mglitter" && brands.map(({ code: brand, name }) => (
+                    <label key={brand} className="flex min-h-11 items-center gap-2 text-sm">
+                      <input type="checkbox" checked={brandFilter.includes(brand)} onChange={() => setBrandFilter((values) => toggle(values, brand))} />{name}
+                    </label>
+                  ))}
+                  {code === "nus" && nusData && nusOptions.map(([key, label, options]) =>
+                    filterSelect(label, nusFilter[key], (value) => setNusFilter((current) => ({ ...current, [key]: value })), Object.entries(options)))}
+                  {code === "lilly" && <>
+                    {filterSelect("Lillyのサービス", lilly.service, (service) => setLilly((current) => ({ ...current, service })),
+                      serviceOptions.filter(([id]) => lillyServices.has(id) || id === lilly.service))}
+                    {filterSelect("Lillyの旧会員種別", lilly.membership, (membership) => setLilly((current) => ({ ...current, membership })),
+                      lillyMembers.map((name) => [name, name]))}
+                  </>}
+                  {code === "legacy" && <>
+                    <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={legacyLilly} onChange={(event) => setLegacyLilly(event.target.checked)} />旧Lilly情報あり</label>
+                    {filterSelect("担当先で絞り込み", locationFilter, setLocationFilter, locationOptions)}
+                    {filterSelect("サービスで絞り込み", serviceFilter, setServiceFilter, serviceOptions)}
+                    {filterSelect("既存の会員種別で絞り込み", membershipFilter, setMembershipFilter, memberOptions)}
+                  </>}
+                </div>
+              </div>
+            </section>
+          ))}
           <div className="mt-3 flex rounded-2xl bg-gray-100 p-1">
             {[false, true].map((value) => <button key={String(value)} onClick={() => setArchived(value)} className={`flex-1 rounded-xl px-3 py-2 text-sm font-bold ${archived === value ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>{value ? "アーカイブ" : "通常"}</button>)}
           </div>
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="shrink-0 text-xs font-bold text-gray-500">絞り込み</span>
             <button type="button" aria-pressed={favoriteOnly} onClick={() => setFavoriteOnly((value) => !value)} className={`rounded-full border px-3 py-2 text-sm font-bold ${favoriteOnly ? "border-amber-300 bg-amber-50 text-amber-800" : "border-gray-200 bg-white text-gray-500"}`}>⭐️ お気に入り</button>
             <button type="button" aria-pressed={pinnedOnly} onClick={() => setPinnedOnly((value) => !value)} className={`rounded-full border px-3 py-2 text-sm font-bold ${pinnedOnly ? "border-sky-300 bg-sky-50 text-sky-800" : "border-gray-200 bg-white text-gray-500"}`}>📌 ピックアップ</button>
@@ -212,10 +277,13 @@ export default function CustomersPage() {
 
         <button onClick={() => setShowCreate(true)} className="mb-4 w-full rounded-2xl bg-sky-600 px-4 py-3 font-bold text-white shadow-sm">＋ 新規顧客</button>
         {error && <p className="mb-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
-        {groupFilter === "nus" && nusError && <p role="alert" className="mb-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{nusError}</p>}
-        {loading || (groupFilter === "nus" && !nusData && !nusError) ? <p className="py-10 text-center text-gray-500">読み込み中...</p> : (
+        {includeNus && nusError && <p role="alert" className="mb-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700">
+          {nusError}{!nusOnly && " NUSの条件を除いた一部の検索結果を表示しています。"}
+        </p>}
+        {includeNus && !nusData && !nusError && <p role="status" className="mb-4 text-sm text-gray-600">NUS情報を読み込み中…</p>}
+        {loading ? <p className="py-10 text-center text-gray-500">読み込み中...</p> : !(nusOnly && !nusData) && (
           <div className="space-y-3">
-            {filtered.length === 0 && <p className="rounded-3xl bg-white p-8 text-center text-sm text-gray-500 shadow-sm">該当する顧客はいません。</p>}
+            {filtered.length === 0 && !(includeNus && !nusData) && <p className="rounded-3xl bg-white p-8 text-center text-sm text-gray-500 shadow-sm">該当する顧客はいません。</p>}
             {filtered.map((customer) => {
               const activeGroups = Object.entries(groupLabels).filter(([code]) => customer.crm_customer_groups.some((item) => item.group_code === code && !item.archived_at))
               const activeBrands = brands.filter(({ code }) => customer.crm_customer_group_brands.some((item) => item.business_code === code && !item.archived_at))
@@ -229,10 +297,10 @@ export default function CustomersPage() {
                   <button type="button" disabled={updatingFlags[pinnedKey]} onClick={(event) => { event.stopPropagation(); toggleCustomerFlag(customer, "is_pinned") }} aria-label={customer.is_pinned ? "ピックアップから解除" : "ピックアップに追加"} className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full text-xl transition disabled:opacity-50 ${customer.is_pinned ? "bg-sky-100 opacity-100" : "opacity-30 hover:bg-gray-50 hover:opacity-60"}`}>📌</button>
                 </div>
                 <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap items-center gap-2"><PhotoPermissionBadge value={customer.photo_permission} />{customer.care_notes?.trim() && <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800">⚠️ 配慮あり</span>}</div>
-                <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap gap-2">{customer.crm_customer_services?.map((item) => <span key={item.id} className="rounded-2xl bg-sky-50 px-3 py-1.5 text-xs text-sky-800"><span>サービス：{item.crm_locations?.name} × {item.crm_services?.name}</span>{item.membership_type && <span className="ml-2 font-bold text-violet-700">🎫 {item.membership_type}</span>}</span>)}</div>
+                <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap gap-2">{customer.crm_customer_services?.map((item) => <span key={item.id} className="rounded-2xl bg-sky-50 px-3 py-1.5 text-xs text-sky-800"><span>{isLilly(item) ? "旧サービス：" : "サービス："}{item.crm_locations?.name} × {item.crm_services?.name}</span>{item.membership_type && <span className="ml-2 font-bold text-violet-700">🎫 {item.membership_type}</span>}</span>)}</div>
                 <div className="pointer-events-none relative z-10 mt-2 flex flex-wrap gap-2">
                   {activeGroups.length ? activeGroups.map(([code, name]) => (
-                    <span key={code} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">{name}</span>
+                    <span key={code} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">{name}所属</span>
                   )) : <span className="text-xs text-gray-500">所属未設定</span>}
                   {activeBrands.map(({ code, name }) => <span key={code} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">{name}</span>)}
                 </div>
