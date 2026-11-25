@@ -6,6 +6,8 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import CustomerForm from "@/components/crm/CustomerForm"
 import CustomerBusinesses from "@/components/crm/CustomerBusinesses"
+import ContactPreferences from "@/components/crm/ContactPreferences"
+import NusProfile from "@/components/crm/NusProfile"
 import PhotoPermissionBadge from "@/components/crm/PhotoPermissionBadge"
 import RecordForm from "@/components/crm/RecordForm"
 import { formatDate, listCrmBusinesses, relationKey, saveCrmBusinessRelationship, saveCrmRecord } from "@/lib/crm"
@@ -114,6 +116,7 @@ export default function CustomerDetailPage() {
   if (loading) return <main className="min-h-screen bg-sky-50 p-8 text-center text-gray-500">読み込み中...</main>
   if (!customer) return <main className="min-h-screen bg-sky-50 p-6"><div className="mx-auto max-w-3xl"><Link href="/admin/customers" className="text-sky-700">← 顧客一覧</Link><p className="mt-5 rounded-3xl bg-red-50 p-5 text-red-700">{error || "顧客が見つかりません。"}</p></div></main>
   const latest = records[0]
+  const nus = customer.crm_customer_businesses.find((item) => item.business_code === "nus")
   return <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 px-4 py-6 sm:p-8"><div className="mx-auto max-w-3xl">
     <Link href="/admin/customers" className="text-sm text-sky-700">← 顧客一覧</Link>
     {error && <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
@@ -138,6 +141,8 @@ export default function CustomerDetailPage() {
       await saveCrmBusinessRelationship(supabase, id, code, values, existing)
       await load()
     }} />
+    {nus && <NusProfile customerId={id} archived={Boolean(nus.archived_at)} />}
+    <ContactPreferences customerId={id} hasNus={Boolean(nus)} activeNus={Boolean(nus && !nus.archived_at)} />
     <button onClick={() => { setEditingRecord(null); setMode("record") }} className="my-4 w-full rounded-2xl bg-sky-600 px-4 py-4 text-lg font-bold text-white shadow-sm">＋ 今日の記録</button>
     <section className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm"><h2 className="text-lg font-bold">最新記録</h2>{latest ? <RecordBody record={latest} /> : <p className="mt-3 text-sm text-gray-500">まだ記録がありません。</p>}</section>
     <section className="mt-4 rounded-3xl bg-white p-5 shadow-sm"><h2 className="mb-4 text-lg font-bold">過去の記録</h2><div className="space-y-4">{records.map((record) => <article key={record.id} className="rounded-2xl border border-gray-100 p-4"><RecordBody record={record} /><div className="mt-3 flex justify-end gap-3"><button onClick={() => { setEditingRecord(record); setMode("record") }} className="text-sm font-bold text-sky-700">編集</button><button disabled={actionLoading} onClick={() => deleteRecord(record.id)} className="text-sm font-bold text-red-600">削除</button></div></article>)}</div></section>

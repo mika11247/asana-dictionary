@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient"
 import CustomerForm from "@/components/crm/CustomerForm"
 import PhotoPermissionBadge from "@/components/crm/PhotoPermissionBadge"
 import { formatDate, listCrmBusinesses } from "@/lib/crm"
+import { contactRestrictions, interestLabels, listNusRelationshipTypes, progressFields, progressLabels } from "@/lib/crmNus"
 
 export default function CustomersPage() {
   const router = useRouter()
@@ -15,6 +16,9 @@ export default function CustomersPage() {
   const [services, setServices] = useState([])
   const [businesses, setBusinesses] = useState([])
   const [businessFilter, setBusinessFilter] = useState("")
+  const [nusFilter, setNusFilter] = useState({})
+  const [nusData, setNusData] = useState(null)
+  const [nusError, setNusError] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [query, setQuery] = useState("")
@@ -31,7 +35,7 @@ export default function CustomersPage() {
     setLoading(true)
     setError("")
     const [customerResult, locationResult, serviceResult, businessResult] = await Promise.all([
-      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, membership_type, crm_locations(id, name, is_active), crm_services(id, name, is_active)), crm_records(record_date), crm_customer_businesses(business_code, archived_at)").eq("archived", archived).order("name"),
+      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, membership_type, crm_locations(id, name, is_active), crm_services(id, name, is_active)), crm_records(record_date), crm_customer_businesses(business_code, stage, archived_at)").eq("archived", archived).order("name"),
       supabase.from("crm_locations").select("*").order("sort_order").order("name"),
       supabase.from("crm_services").select("*").order("sort_order").order("name"),
       listCrmBusinesses(supabase),
@@ -51,6 +55,22 @@ export default function CustomersPage() {
 
   useEffect(() => { load() }, [archived])
 
+  useEffect(() => {
+    if (businessFilter !== "nus") return
+    let mounted = true
+    Promise.all([
+      supabase.from("crm_nus_profiles").select("customer_id, product_interest, business_interest, disclosure_status, product_proposal_status, business_proposal_status"),
+      supabase.from("crm_nus_customer_relationships").select("customer_id, type_code").is("archived_at", null),
+      supabase.from("crm_contact_preferences_current").select("customer_id, scope, decision, coverage").eq("decision", "refuse"),
+      listNusRelationshipTypes(supabase),
+    ]).then(([profiles, roles, preferences, types]) => {
+      if (!mounted) return
+      if (profiles.error || roles.error || preferences.error || types.error) setNusError("NUS情報を読み込めませんでした。")
+      else setNusData({ profiles: profiles.data, roles: roles.data, preferences: preferences.data, types: types.data })
+    })
+    return () => { mounted = false }
+  }, [businessFilter])
+
   const filtered = useMemo(() => {
     const word = query.trim().toLocaleLowerCase("ja")
     return customers.filter((customer) => {
@@ -64,9 +84,21 @@ export default function CustomersPage() {
       const businessMatch = !businessFilter || (businessFilter === "unassigned"
         ? activeBusinesses.length === 0
         : activeBusinesses.some((item) => item.business_code === businessFilter))
-      return textMatch && locationMatch && serviceMatch && membershipMatch && favoriteMatch && pinnedMatch && businessMatch
+      if (!(textMatch && locationMatch && serviceMatch && membershipMatch && favoriteMatch && pinnedMatch && businessMatch)) return false
+      if (businessFilter !== "nus") return true
+      if (!nusData) return false
+      const profile = nusData.profiles.find((item) => item.customer_id === customer.id)
+      const stage = activeBusinesses.find((item) => item.business_code === "nus").stage
+      const restrictions = contactRestrictions(nusData.preferences.filter((item) => item.customer_id === customer.id))
+      return Object.entries(nusFilter).every(([key, value]) => {
+        if (!value) return true
+        if (key === "stage") return stage === value
+        if (key === "role") return nusData.roles.some((item) => item.customer_id === customer.id && item.type_code === value)
+        if (key === "restriction") return restrictions[value]
+        return (profile?.[key] || "unknown") === value
+      })
     })
-  }, [customers, query, locationFilter, serviceFilter, membershipFilter, favoriteOnly, pinnedOnly, businessFilter])
+  }, [customers, query, locationFilter, serviceFilter, membershipFilter, favoriteOnly, pinnedOnly, businessFilter, nusFilter, nusData])
 
   async function toggleCustomerFlag(customer, field) {
     const key = `${customer.id}:${field}`
@@ -85,7 +117,7 @@ export default function CustomersPage() {
   }
 
   async function createCustomer(values, relations) {
-    const { data: customerId, error } = await supabase.rpc("crm_create_customer", {
+    const { data: customerId, error } = await supabase.rpc(businessFilter === "nus" ? "crm_create_nus_customer" : "crm_create_customer", {
       customer: values,
       relations: relations.map(({ location_id, service_id, membership_type }) => ({
         location_id, service_id, membership_type: membership_type || null,
@@ -107,7 +139,7 @@ export default function CustomersPage() {
         <section className="mb-4 rounded-3xl bg-white p-4 shadow-sm">
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="名前・よみがな・ニックネーム・メモで検索" className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-base outline-none focus:border-sky-400" />
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <select aria-label="事業で絞り込み" value={businessFilter} onChange={(e) => setBusinessFilter(e.target.value)} className="col-span-2 rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm">
+            <select aria-label="事業で絞り込み" value={businessFilter} onChange={(e) => { setNusData(null); setNusError(""); setBusinessFilter(e.target.value) }} className="col-span-2 rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm">
               <option value="">全事業</option>
               <option value="unassigned">事業未設定</option>
               {businesses.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
@@ -126,9 +158,30 @@ export default function CustomersPage() {
           </div>
         </section>
 
-        <button onClick={() => setShowCreate(true)} className="mb-4 w-full rounded-2xl bg-sky-600 px-4 py-3 font-bold text-white shadow-sm">＋ 新規顧客</button>
+        {businessFilter === "nus" && nusData && (
+          <section aria-label="NUS関係者の絞り込み" className="mb-4 grid gap-2 rounded-3xl bg-white p-4 shadow-sm sm:grid-cols-2">
+            {[
+              ["stage", "NUS顧客区分", { prospect: "見込み客", customer: "顧客", unconfirmed: "未確認" }],
+              ["role", "関係性", Object.fromEntries(nusData.types.map(({ code, label }) => [code, label]))],
+              ["product_interest", "商品への関心", interestLabels],
+              ["business_interest", "ビジネスへの関心", interestLabels],
+              ...progressFields.map(([key, label]) => [`${key}_status`, label, progressLabels]),
+              ["restriction", "連絡制限", { business: "ビジネス案内停止", product: "商品案内停止", administrative: "事務連絡も停止" }],
+            ].map(([key, label, options]) => (
+              <label key={key} className="text-sm">{label}
+                <select value={nusFilter[key] || ""} onChange={(event) => setNusFilter({ ...nusFilter, [key]: event.target.value })} className="mt-1 block w-full rounded-xl border border-slate-300 p-2 text-base">
+                  <option value="">すべて</option>
+                  {Object.entries(options).map(([value, name]) => <option key={value} value={value}>{name}</option>)}
+                </select>
+              </label>
+            ))}
+          </section>
+        )}
+        {businessFilter === "nus" && <button type="button" onClick={() => setBusinessFilter("")} className="mb-2 min-h-11 text-sm font-semibold text-sky-800">全事業で既存顧客を探す</button>}
+        <button onClick={() => setShowCreate(true)} className="mb-4 w-full rounded-2xl bg-sky-600 px-4 py-3 font-bold text-white shadow-sm">{businessFilter === "nus" ? "＋ NUSの新規顧客" : "＋ 新規顧客"}</button>
         {error && <p className="mb-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
-        {loading ? <p className="py-10 text-center text-gray-500">読み込み中...</p> : (
+        {businessFilter === "nus" && nusError && <p role="alert" className="mb-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{nusError}</p>}
+        {loading || (businessFilter === "nus" && !nusData && !nusError) ? <p className="py-10 text-center text-gray-500">読み込み中...</p> : (
           <div className="space-y-3">
             {filtered.length === 0 && <p className="rounded-3xl bg-white p-8 text-center text-sm text-gray-500 shadow-sm">該当する顧客はいません。</p>}
             {filtered.map((customer) => {

@@ -10,7 +10,8 @@ const restOrigin = 'http://127.0.0.1:35432'
 const gatewayOrigin = 'http://127.0.0.1:35433'
 const appOrigin = 'http://127.0.0.1:35430'
 const accounts = ['owner', 'test-admin', 'member']
-const withBusinesses = process.argv.includes('--step2a')
+const withNus = process.argv.includes('--step2b')
+const withBusinesses = withNus || process.argv.includes('--step2a')
 const password = 'Local-only-fixture-123!'
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -255,6 +256,39 @@ async function verifyBrowser(sessions) {
           await waitFor(() => evaluate("document.body.innerText.includes('Edited business note') && !document.body.innerText.includes('事業を復元')"), 'restored business relationship')
           console.log('PASS Browser business filters, multi-business add, edit, archive and restore')
         }
+        if (withNus) {
+          await click('＋ 事業を追加')
+          await waitFor(() => hasText('追加する事業'), 'add NUS to an existing customer')
+          await select('section[aria-label="顧客の事業情報"] select', 'nus')
+          await evaluate(`(() => {
+            const field = document.querySelectorAll('section[aria-label="顧客の事業情報"] form select')[1];
+            field.value = 'prospect'; field.dispatchEvent(new Event('change', { bubbles: true }));
+          })()`)
+          await click('事業情報を保存')
+          await waitFor(() => hasText('NUS情報を編集'), 'active NUS panel')
+          await click('NUS情報を編集')
+          await waitFor(() => hasText('アップライン'), 'NUS edit form')
+          await evaluate(`Array.from(document.querySelectorAll('section[aria-label="NUS情報"] label')).find(label =>
+            label.textContent.trim() === 'アップライン').querySelector('input').click()`)
+          await fill('section[aria-label="NUS情報"] textarea', 'Synthetic NUS product note')
+          await click('NUS情報を保存')
+          await waitFor(() => evaluate("document.body.innerText.includes('Synthetic NUS product note') && document.body.innerText.includes('関係性：アップライン')"), 'NUS detail save')
+          await click('連絡意思を記録')
+          await waitFor(() => hasText('本人の意思'), 'contact preference form')
+          await select('section[aria-label="連絡意思"] select', 'global')
+          await evaluate(`document.querySelectorAll('section[aria-label="連絡意思"] select')[2].value = 'all_contact';
+            document.querySelectorAll('section[aria-label="連絡意思"] select')[2].dispatchEvent(new Event('change', { bubbles: true }))`)
+          await evaluate(`document.querySelector('section[aria-label="連絡意思"] input[type=checkbox]').click()`)
+          await click('連絡意思を保存')
+          await waitFor(() => hasText('ビジネス案内・商品案内・事務連絡'), 'global refusal blocks all NUS purposes')
+          await send('Page.navigate', { url: appOrigin + '/admin/customers' })
+          await waitFor(() => hasText('existing fixture'), 'CRM list after NUS edit')
+          await select('select[aria-label="事業で絞り込み"]', 'nus')
+          await waitFor(() => evaluate("!!document.querySelector('section[aria-label=\"NUS関係者の絞り込み\"]') && document.body.innerText.includes('existing fixture') && !document.body.innerText.includes('Unassigned fixture')"), 'NUS filtered list')
+          await select('section[aria-label="NUS関係者の絞り込み"] select', 'prospect')
+          await waitFor(() => hasText('existing fixture'), 'NUS prospect filter')
+          console.log('PASS Browser NUS prospect, relationship, profile, global refusal and filters')
+        }
         await send('Page.navigate', { url: appOrigin + '/admin/customers' })
         await waitFor(() => hasText('＋ 新規顧客'), 'new customer control')
         await click('＋ 新規顧客')
@@ -331,7 +365,8 @@ insert into public.crm_services (name) values ('ピラティス'), ('ネイル')
 insert into public.crm_customer_services (customer_id, location_id, service_id) values (1, 1, 1);
 insert into public.crm_customers (name) values ('Unassigned fixture');
 `
-      const migration = readFileSync(join(__dirname, '../crm-step-2a/01-businesses.sql'), 'utf8')
+      let migration = readFileSync(join(__dirname, '../crm-step-2a/01-businesses.sql'), 'utf8')
+      if (withNus) migration += readFileSync(join(__dirname, '../crm-step-2b/01-nus.sql'), 'utf8')
       dbInput(fixture + migration + "\nnotify pgrst, 'reload schema';\n", 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
     }
   }
@@ -344,6 +379,20 @@ insert into public.crm_customers (name) values ('Unassigned fixture');
   }
   assert.equal(new Set(sessions.map(session => session.user.id)).size, 3)
   await verifyApi(sessions)
+  if (withNus) {
+    for (const session of [null, sessions[1], sessions[2]]) {
+      for (const table of ['crm_nus_profiles', 'crm_nus_customer_relationships', 'crm_contact_preference_events', 'crm_contact_preferences_current']) {
+        const response = await rest(session, `/${table}`)
+        if (session) assert.deepEqual(response, { status: 200, data: [] })
+        else assert.ok([401, 403].includes(response.status))
+      }
+      const write = await rest(session, '/rpc/crm_save_nus_profile', 'POST', {
+        target_customer_id: 1, details: {}, relationship_types: [],
+      })
+      assert.ok([401, 403].includes(write.status))
+    }
+    console.log('PASS Data API NUS rows and write RPC deny unauthorized users')
+  }
   await verifyRevocation(sessions[0])
   if (process.argv.includes('--browser')) await verifyBrowser(sessions)
 }

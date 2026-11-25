@@ -62,7 +62,7 @@ export default function CustomerBusinesses({ businesses, relationships, onSave }
         }}>
           <fieldset disabled={saving} className="space-y-3">
             {!draft.existing && <label className="block text-sm">追加する事業
-              <select required value={draft.code} onChange={(event) => setDraft({ ...draft, code: event.target.value })} className="mt-1 block w-full rounded-xl border border-slate-300 p-2 text-base">
+              <select required value={draft.code} onChange={(event) => setDraft({ ...draft, code: event.target.value, stage: draft.stage === "prospect" ? "unconfirmed" : draft.stage })} className="mt-1 block w-full rounded-xl border border-slate-300 p-2 text-base">
                 <option value="">選択してください</option>
                 {available.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
               </select>
@@ -70,7 +70,7 @@ export default function CustomerBusinesses({ businesses, relationships, onSave }
             {draft.existing && <p className="text-sm font-bold">{businesses.find(({ code }) => code === draft.code)?.name || draft.code}の事業情報</p>}
             <label className="block text-sm">顧客区分
               <select value={draft.stage} onChange={(event) => setDraft({ ...draft, stage: event.target.value })} className="mt-1 block w-full rounded-xl border border-slate-300 p-2 text-base">
-                {Object.entries(stageLabels).filter(([key]) => key !== "prospect" || draft.stage === "prospect").map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                {Object.entries(stageLabels).filter(([key]) => key !== "prospect" || draft.code === "nus").map(([key, label]) => <option key={key} value={key}>{label}</option>)}
               </select>
             </label>
             <label className="block text-sm">事業別メモ
