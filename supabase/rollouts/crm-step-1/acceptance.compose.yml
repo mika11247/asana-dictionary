@@ -1,0 +1,52 @@
+services:
+  db:
+    image: public.ecr.aws/supabase/postgres:17.12.0.002
+    user: postgres
+    entrypoint: [/bin/bash, -ec]
+    command:
+      - |
+        initdb -D /tmp/crm-acceptance-db -A trust
+        pg_ctl -D /tmp/crm-acceptance-db -w start
+        psql -v ON_ERROR_STOP=1 -c "create role anon; create role authenticated; create role service_role; create schema auth;"
+        pg_ctl -D /tmp/crm-acceptance-db -m fast stop
+        printf 'host all all samenet trust\n' >> /tmp/crm-acceptance-db/pg_hba.conf
+        exec postgres -D /tmp/crm-acceptance-db -h 0.0.0.0
+    healthcheck:
+      test: [CMD, pg_isready, -h, db]
+      interval: 1s
+      retries: 30
+    volumes:
+      - .:/crm-test:ro
+  auth:
+    image: public.ecr.aws/supabase/gotrue:v2.198.0
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      API_EXTERNAL_URL: http://127.0.0.1:35431
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://postgres@db:5432/postgres?sslmode=disable&search_path=auth,public
+      GOTRUE_DB_NAMESPACE: auth
+      GOTRUE_SITE_URL: http://127.0.0.1:35430
+      GOTRUE_JWT_SECRET: crm-acceptance-local-only-signing-secret
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+    ports:
+      - 127.0.0.1:35431:9999
+  rest:
+    image: public.ecr.aws/supabase/postgrest:v16.6
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://postgres@db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: crm-acceptance-local-only-signing-secret
+      PGRST_SERVER_PORT: 3000
+    ports:
+      - 127.0.0.1:35432:3000

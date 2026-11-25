@@ -37,6 +37,8 @@ export default function ProtectedRoute({ children }) {
 
   const [accessChecking, setAccessChecking] = useState(true)
   const [accessAllowed, setAccessAllowed] = useState(false)
+  const [crmAccess, setCrmAccess] = useState(null)
+  const isCrmPath = pathname === '/admin/customers' || pathname.startsWith('/admin/customers/')
 
   useEffect(() => {
     let cancelled = false
@@ -48,6 +50,7 @@ export default function ProtectedRoute({ children }) {
 
       setAccessChecking(true)
       setAccessAllowed(false)
+      setCrmAccess(null)
 
       // ========================================
       // 未ログイン
@@ -140,6 +143,17 @@ export default function ProtectedRoute({ children }) {
         return
       }
 
+      if (isCrmPath) {
+        const { data: allowed, error: crmError } = await supabase.rpc('is_crm_admin')
+        if (cancelled) return
+        if (crmError || allowed !== true) {
+          setAccessChecking(false)
+          router.replace('/admin')
+          return
+        }
+        setCrmAccess({ pathname, user })
+      }
+
       // ========================================
       // 表示OK
       // ========================================
@@ -153,7 +167,7 @@ export default function ProtectedRoute({ children }) {
     return () => {
       cancelled = true
     }
-  }, [loading, user, pathname, router])
+  }, [loading, user, pathname, router, isCrmPath])
 
   // ========================================
   // Auth 読み込み中
@@ -199,7 +213,7 @@ export default function ProtectedRoute({ children }) {
   // 元ページを一瞬表示しない
   // ========================================
 
-  if (!accessAllowed) {
+  if (!accessAllowed || (isCrmPath && (crmAccess?.pathname !== pathname || crmAccess?.user !== user))) {
     return null
   }
 

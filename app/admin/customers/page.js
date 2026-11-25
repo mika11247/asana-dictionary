@@ -77,24 +77,15 @@ export default function CustomersPage() {
   }
 
   async function createCustomer(values, relations) {
-    const { data, error: customerError } = await supabase.from("crm_customers").insert(values).select().single()
-    if (customerError) throw new Error("顧客を登録できませんでした。")
-    if (relations.length) {
-      const rows = relations.map((item) => ({
-        customer_id: data.id,
-        location_id: item.location_id,
-        service_id: item.service_id,
-        membership_type: item.membership_type || null,
-      }))
-      const { error: relationError } = await supabase.from("crm_customer_services").insert(rows)
-      if (relationError) {
-        const { error: rollbackError } = await supabase.from("crm_customers").delete().eq("id", data.id)
-        console.error("担当先・サービスの登録に失敗しました", relationError, rollbackError)
-        throw new Error(rollbackError ? "顧客は登録されましたが、担当先・サービスを登録できませんでした。カルテから修正してください。" : "担当先・サービスを登録できなかったため、顧客登録を取り消しました。")
-      }
-    }
+    const { data: customerId, error } = await supabase.rpc("crm_create_customer", {
+      customer: values,
+      relations: relations.map(({ location_id, service_id, membership_type }) => ({
+        location_id, service_id, membership_type: membership_type || null,
+      })),
+    })
+    if (error || customerId == null) throw new Error("顧客を登録できませんでした。入力内容を確認してください。")
     setShowCreate(false)
-    router.push(`/admin/customers/${data.id}`)
+    router.push(`/admin/customers/${customerId}`)
   }
 
   return (
