@@ -4,13 +4,14 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabaseClient"
+import LillyFields from "@/components/crm/LillyFields"
+import { isLegacyLilly as isLilly, lillyDisplayName, lillyMemberships, lillyServices, usesLillyDisplay } from "@/lib/crmLilly"
 import CustomerForm from "@/components/crm/CustomerForm"
 import PhotoPermissionBadge from "@/components/crm/PhotoPermissionBadge"
 import { formatDate, listCrmBusinesses } from "@/lib/crm"
 import { findCrmCustomerCandidates, groupLabels, saveCrmCustomerMemberships } from "@/lib/crmMemberships"
 import { contactRestrictions, interestLabels, listNusRelationshipTypes, progressFields, progressLabels } from "@/lib/crmNus"
 
-const isLilly = ({ location_id }) => String(location_id) === "1"
 const toggle = (values, key) => values.includes(key) ? values.filter((value) => value !== key) : [...values, key]
 const isDenied = ({ status, error }) => [401, 403].includes(status) || ["42501", "PGRST301", "PGRST303"].includes(error?.code)
 
@@ -45,7 +46,7 @@ export default function CustomersPage() {
     setLoading(true)
     setError("")
     const [customerResult, locationResult, serviceResult, businessResult] = await Promise.all([
-      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, membership_type, crm_locations(id, name, is_active), crm_services(id, name, is_active)), crm_records(record_date), crm_customer_businesses(business_code, stage, archived_at), crm_customer_groups(group_code, archived_at), crm_customer_group_brands(business_code, archived_at)").eq("archived", archived).order("name"),
+      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, membership_type, crm_locations(id, name, is_active), crm_services(id, name, is_active)), crm_records(record_date), crm_customer_businesses(business_code, stage, archived_at), crm_customer_groups(group_code, archived_at), crm_customer_group_brands(business_code, archived_at), crm_lilly_profiles(membership, service_codes)").eq("archived", archived).order("name"),
       supabase.from("crm_locations").select("*").order("sort_order").order("name"),
       supabase.from("crm_services").select("*").order("sort_order").order("name"),
       listCrmBusinesses(supabase),
@@ -130,14 +131,11 @@ export default function CustomersPage() {
   const locationOptions = locations.map(({ id, name }) => [String(id), name])
   const serviceOptions = services.map(({ id, name }) => [String(id), name])
   const memberOptions = ["通い放題", "回数券", "月謝", "体験"].map((name) => [name, name])
-  const lillyLinks = customers.flatMap((customer) => customer.crm_customer_services.filter(isLilly))
-  const lillyServices = new Set(lillyLinks.map(({ service_id }) => String(service_id)))
-  const lillyMembers = [...new Set([...lillyLinks.map(({ membership_type }) => membership_type), lilly.membership].filter(Boolean))]
   const labelFor = (options, value) => options.find(([key]) => key === value)?.[1] || value
   const summaries = {
     mglitter: brands.filter(({ code }) => brandFilter.includes(code)).map(({ name }) => name),
     nus: nusOptions.flatMap(([key, label, options]) => nusFilter[key] ? [label + "：" + (options[nusFilter[key]] || "選択済み")] : []),
-    lilly: [labelFor(serviceOptions, lilly.service), lilly.membership].filter(Boolean),
+    lilly: [lillyMemberships[lilly.membership], ...(lilly.services || []).map((code) => lillyServices[code])].filter(Boolean),
     legacy: [legacyLilly && "旧Lilly情報あり", labelFor(locationOptions, locationFilter), labelFor(serviceOptions, serviceFilter), membershipFilter].filter(Boolean),
   }
 
@@ -147,8 +145,11 @@ export default function CustomersPage() {
     if (!active.some(({ group_code }) => group_code === code)) return false
     if (code === "mglitter") return !brandFilter.length || customer.crm_customer_group_brands.some((item) =>
       !item.archived_at && brandFilter.includes(item.business_code))
-    if (code === "lilly") return !(lilly.service || lilly.membership) || customer.crm_customer_services.some((item) =>
-      isLilly(item) && (!lilly.service || String(item.service_id) === lilly.service) && (!lilly.membership || item.membership_type === lilly.membership))
+    if (code === "lilly") {
+      const profile = customer.crm_lilly_profiles
+      return (!lilly.membership || (profile?.membership || "unknown") === lilly.membership) &&
+        (!(lilly.services?.length) || lilly.services.some((code) => profile?.service_codes.includes(code)))
+    }
     if (!nusData) return false
     const profile = nusData.profiles.find((item) => item.customer_id === customer.id)
     const stage = customer.crm_customer_businesses.find((item) => item.business_code === "nus" && !item.archived_at)?.stage || "unconfirmed"
@@ -162,10 +163,16 @@ export default function CustomersPage() {
     })
   }
 
+  function lillyView(customer) {
+    return usesLillyDisplay(customer) ||
+      (groups.includes("lilly") && customer.crm_customer_groups.some(({ group_code, archived_at }) => group_code === "lilly" && !archived_at))
+  }
+
   const word = query.trim().toLocaleLowerCase("ja")
   const filtered = customers.filter((customer) => {
     const links = customer.crm_customer_services
-    const textMatch = !word || [customer.name, customer.nickname, customer.name_yomi, customer.private_note]
+    const searchValues = lillyView(customer) ? [customer.nickname] : [customer.name, customer.nickname, customer.name_yomi, customer.private_note]
+    const textMatch = !word || searchValues
       .some((value) => (value || "").toLocaleLowerCase("ja").includes(word))
     return textMatch && (!favoriteOnly || customer.is_favorite) && (!pinnedOnly || customer.is_pinned) &&
       (!legacyLilly || links.some(isLilly)) &&
@@ -249,12 +256,7 @@ export default function CustomersPage() {
                   ))}
                   {code === "nus" && nusData && nusOptions.map(([key, label, options]) =>
                     filterSelect(label, nusFilter[key], (value) => setNusFilter((current) => ({ ...current, [key]: value })), Object.entries(options)))}
-                  {code === "lilly" && <>
-                    {filterSelect("Lillyのサービス", lilly.service, (service) => setLilly((current) => ({ ...current, service })),
-                      serviceOptions.filter(([id]) => lillyServices.has(id) || id === lilly.service))}
-                    {filterSelect("Lillyの旧会員種別", lilly.membership, (membership) => setLilly((current) => ({ ...current, membership })),
-                      lillyMembers.map((name) => [name, name]))}
-                  </>}
+                  {code === "lilly" && <LillyFields search value={lilly} onChange={setLilly} />}
                   {code === "legacy" && <>
                     <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={legacyLilly} onChange={(event) => setLegacyLilly(event.target.checked)} />旧Lilly情報あり</label>
                     {filterSelect("担当先で絞り込み", locationFilter, setLocationFilter, locationOptions)}
@@ -288,12 +290,14 @@ export default function CustomersPage() {
               const activeGroups = Object.entries(groupLabels).filter(([code]) => customer.crm_customer_groups.some((item) => item.group_code === code && !item.archived_at))
               const activeBrands = brands.filter(({ code }) => customer.crm_customer_group_brands.some((item) => item.business_code === code && !item.archived_at))
               const lastDate = (customer.crm_records || []).reduce((max, item) => !max || item.record_date > max ? item.record_date : max, null)
+              const nicknameView = lillyView(customer)
+              const displayName = nicknameView ? lillyDisplayName(customer) : customer.name || lillyDisplayName(customer)
               const favoriteKey = `${customer.id}:is_favorite`; const pinnedKey = `${customer.id}:is_pinned`
               return <article key={customer.id} className="group relative rounded-3xl border border-transparent bg-white p-5 shadow-sm transition hover:border-sky-200 hover:shadow-md">
-                <Link href={`/admin/customers/${customer.id}`} aria-label={`${customer.name}様の個人カルテを開く`} className="absolute inset-0 z-0 rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2" />
+                <Link href={`/admin/customers/${customer.id}${nicknameView ? "?view=lilly" : ""}`} aria-label={`${displayName}の個人カルテを開く`} className="absolute inset-0 z-0 rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2" />
                 <div className="pointer-events-none relative z-10 grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-start gap-1">
                   <button type="button" disabled={updatingFlags[favoriteKey]} onClick={(event) => { event.stopPropagation(); toggleCustomerFlag(customer, "is_favorite") }} aria-label={customer.is_favorite ? "お気に入りから解除" : "お気に入りに追加"} className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full text-xl transition disabled:opacity-50 ${customer.is_favorite ? "bg-amber-50" : "text-gray-400 hover:bg-gray-50"}`}>{customer.is_favorite ? "⭐️" : "☆"}</button>
-                  <div className="min-w-0 px-1"><h2 className="break-words text-lg font-bold leading-snug text-gray-900"><span>{customer.name}</span><span className="whitespace-nowrap"> 様</span></h2>{customer.name_yomi && <p className="mt-1 text-sm font-medium text-gray-600">{customer.name_yomi}</p>}{customer.nickname && <p className="mt-0.5 text-sm text-gray-500">{customer.nickname}</p>}</div>
+                  <div className="min-w-0 px-1"><h2 className="break-words text-lg font-bold leading-snug text-gray-900"><span>{displayName}</span>{!nicknameView && <span className="whitespace-nowrap"> 様</span>}</h2>{!nicknameView && customer.name_yomi && <p className="mt-1 text-sm font-medium text-gray-600">{customer.name_yomi}</p>}{!nicknameView && customer.nickname && <p className="mt-0.5 text-sm text-gray-500">{customer.nickname}</p>}</div>
                   <button type="button" disabled={updatingFlags[pinnedKey]} onClick={(event) => { event.stopPropagation(); toggleCustomerFlag(customer, "is_pinned") }} aria-label={customer.is_pinned ? "ピックアップから解除" : "ピックアップに追加"} className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full text-xl transition disabled:opacity-50 ${customer.is_pinned ? "bg-sky-100 opacity-100" : "opacity-30 hover:bg-gray-50 hover:opacity-60"}`}>📌</button>
                 </div>
                 <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap items-center gap-2"><PhotoPermissionBadge value={customer.photo_permission} />{customer.care_notes?.trim() && <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800">⚠️ 配慮あり</span>}</div>
@@ -310,7 +314,7 @@ export default function CustomersPage() {
           </div>
         )}
       </div>
-      {showCreate && <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">新規顧客</h2><CustomerForm locations={locations} services={services} businesses={businesses} findCandidates={(form) => findCrmCustomerCandidates(supabase, form)} onSave={createCustomer} onCancel={() => setShowCreate(false)} submitLabel="顧客を登録" /></div></div>}
+      {showCreate && <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">新規顧客</h2><CustomerForm locations={locations} services={services} businesses={businesses} findCandidates={(form, lillyOnly) => findCrmCustomerCandidates(supabase, form, lillyOnly)} onSave={createCustomer} onCancel={() => setShowCreate(false)} submitLabel="顧客を登録" /></div></div>}
     </main>
   )
 }

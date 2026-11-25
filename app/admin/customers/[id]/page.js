@@ -4,6 +4,8 @@ import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
+import LillyProfile from "@/components/crm/LillyProfile"
+import { isLegacyLilly, lillyDisplayName, usesLillyDisplay } from "@/lib/crmLilly"
 import CustomerForm from "@/components/crm/CustomerForm"
 import CustomerBusinesses from "@/components/crm/CustomerBusinesses"
 import ContactPreferences from "@/components/crm/ContactPreferences"
@@ -31,7 +33,7 @@ export default function CustomerDetailPage() {
   async function load() {
     setLoading(true); setError("")
     const [customerResult, recordResult, locationResult, serviceResult, businessResult] = await Promise.all([
-      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, membership_type, crm_locations(id, name, is_active), crm_services(id, name, is_active)), crm_customer_businesses(business_code, stage, business_note, archived_at), crm_customer_groups(group_code, archived_at), crm_customer_group_brands(business_code, archived_at)").eq("id", id).maybeSingle(),
+      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, membership_type, crm_locations(id, name, is_active), crm_services(id, name, is_active)), crm_customer_businesses(business_code, stage, business_note, archived_at), crm_customer_groups(group_code, archived_at), crm_customer_group_brands(business_code, archived_at), crm_lilly_profiles(membership, service_codes)").eq("id", id).maybeSingle(),
       supabase.from("crm_records").select("*, crm_locations(id, name, is_active), crm_services(id, name, is_active)").eq("customer_id", id).order("record_date", { ascending: false }).order("created_at", { ascending: false }),
       supabase.from("crm_locations").select("*").order("sort_order").order("name"),
       supabase.from("crm_services").select("*").order("sort_order").order("name"),
@@ -95,6 +97,8 @@ export default function CustomerDetailPage() {
   const groups = Object.keys(groupLabels).filter((code) =>
     customer.crm_customer_groups.some((item) => item.group_code === code && !item.archived_at)
     || (code === "nus" && nus && !nus.archived_at))
+  const lillyView = usesLillyDisplay(customer) || new URLSearchParams(window.location.search).get("view") === "lilly"
+  const displayName = lillyView ? lillyDisplayName(customer) : customer.name || lillyDisplayName(customer)
   const brands = customer.crm_customer_group_brands.filter((item) => !item.archived_at).map((item) => item.business_code)
   return <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 px-4 py-6 sm:p-8"><div className="mx-auto max-w-3xl">
     <Link href="/admin/customers" className="text-sm text-sky-700">← 顧客一覧</Link>
@@ -102,7 +106,7 @@ export default function CustomerDetailPage() {
     <section className="mt-4 rounded-3xl bg-white p-5 shadow-sm sm:p-7">
       <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-start gap-1">
         <button type="button" disabled={Boolean(flagLoading)} onClick={() => toggleCustomerFlag("is_favorite")} aria-label={customer.is_favorite ? "お気に入りから解除" : "お気に入りに追加"} className={`flex h-11 w-11 items-center justify-center rounded-full text-2xl transition disabled:opacity-50 ${customer.is_favorite ? "bg-amber-50" : "text-gray-400 hover:bg-gray-50"}`}>{customer.is_favorite ? "⭐️" : "☆"}</button>
-        <div className="min-w-0 px-2"><h1 className="break-words text-2xl font-bold leading-snug text-gray-900"><span>{customer.name}</span><span className="whitespace-nowrap"> 様</span></h1>{customer.name_yomi && <p className="mt-1 text-base font-medium text-gray-600">{customer.name_yomi}</p>}{customer.nickname && <p className="mt-0.5 text-sm text-gray-500">{customer.nickname}</p>}</div>
+        <div className="min-w-0 px-2"><h1 className="break-words text-2xl font-bold leading-snug text-gray-900"><span>{displayName}</span>{!lillyView && <span className="whitespace-nowrap"> 様</span>}</h1>{!lillyView && customer.name_yomi && <p className="mt-1 text-base font-medium text-gray-600">{customer.name_yomi}</p>}{!lillyView && customer.nickname && <p className="mt-0.5 text-sm text-gray-500">{customer.nickname}</p>}</div>
         <button type="button" disabled={Boolean(flagLoading)} onClick={() => toggleCustomerFlag("is_pinned")} aria-label={customer.is_pinned ? "ピックアップから解除" : "ピックアップに追加"} className={`flex h-11 w-11 items-center justify-center rounded-full text-2xl transition disabled:opacity-50 ${customer.is_pinned ? "bg-sky-100 opacity-100" : "opacity-30 hover:bg-gray-50 hover:opacity-60"}`}>📌</button>
       </div>
       <div className="mt-2 flex justify-end"><button onClick={() => setMode("customer")} className="rounded-xl bg-gray-100 px-3 py-2 text-sm font-bold text-gray-600">編集</button></div>
@@ -117,8 +121,9 @@ export default function CustomerDetailPage() {
         <div className="rounded-2xl bg-sky-50 p-4"><h2 className="text-sm font-bold text-sky-900">💬 本人から聞いている悩み・希望</h2><p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{customer.customer_request || "記載なし"}</p></div>
         <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-4"><h2 className="text-sm font-bold text-amber-900">⚠️ 継続的な配慮事項</h2><p className="mt-2 whitespace-pre-wrap font-medium text-gray-900">{customer.care_notes || "記載なし"}</p></div>
       </div>
-      {customer.private_note?.trim() && <div className="mt-3 rounded-2xl bg-violet-50 p-4"><h2 className="text-sm font-bold text-violet-900">📝 自分用メモ</h2><p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{customer.private_note}</p></div>}
-      <div className="mt-5 flex flex-wrap gap-2">{customer.crm_customer_services?.length ? customer.crm_customer_services.map((item) => <span key={item.id} className="rounded-2xl bg-violet-50 px-3 py-2 text-sm text-violet-800"><span>{item.crm_locations?.name} × {item.crm_services?.name}</span>{item.membership_type && <span className="ml-2 font-bold">🎫 {item.membership_type}</span>}</span>) : <span className="text-sm text-gray-500">担当先・サービス未登録</span>}</div>
+      {groups.includes("lilly") && <LillyProfile key={customer.id} customer={customer} onSaved={load} />}
+      {!lillyView && customer.private_note?.trim() && <div className="mt-3 rounded-2xl bg-violet-50 p-4"><h2 className="text-sm font-bold text-violet-900">📝 自分用メモ</h2><p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{customer.private_note}</p></div>}
+      <div className="mt-5 flex flex-wrap gap-2">{customer.crm_customer_services?.length ? customer.crm_customer_services.map((item) => <span key={item.id} className="rounded-2xl bg-violet-50 px-3 py-2 text-sm text-violet-800"><span>{isLegacyLilly(item) && "旧サービス："}{item.crm_locations?.name} × {item.crm_services?.name}</span>{item.membership_type && <span className="ml-2 font-bold">🎫 {item.membership_type}</span>}</span>) : <span className="text-sm text-gray-500">担当先・サービス未登録</span>}</div>
       <p className="mt-5 text-sm text-gray-500">最終参加日：<strong className="text-gray-900">{formatDate(latest?.record_date)}</strong></p>
     </section>
 
@@ -133,7 +138,7 @@ export default function CustomerDetailPage() {
     <section className="mt-4 rounded-3xl bg-white p-5 shadow-sm"><h2 className="mb-4 text-lg font-bold">過去の記録</h2><div className="space-y-4">{records.map((record) => <article key={record.id} className="rounded-2xl border border-gray-100 p-4"><RecordBody record={record} /><div className="mt-3 flex justify-end gap-3"><button onClick={() => { setEditingRecord(record); setMode("record") }} className="text-sm font-bold text-sky-700">編集</button><button disabled={actionLoading} onClick={() => deleteRecord(record.id)} className="text-sm font-bold text-red-600">削除</button></div></article>)}</div></section>
     <button disabled={actionLoading} onClick={toggleArchive} className={`mt-6 w-full rounded-2xl border px-4 py-3 text-sm font-bold ${customer.archived ? "border-emerald-200 text-emerald-700" : "border-gray-200 text-gray-500"}`}>{customer.archived ? "アーカイブから復元" : "この顧客をアーカイブ"}</button>
   </div>
-  {mode && <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">{mode === "customer" ? "顧客情報と所属を編集" : editingRecord ? "記録を編集" : "記録を追加"}</h2>{mode === "customer" ? <CustomerForm initialCustomer={customer} initialRelations={customer.crm_customer_services} initialGroups={groups} initialBrands={brands} locations={locations} services={services} businesses={businesses} onSave={saveCustomer} onCancel={() => setMode(null)} /> : <RecordForm initialRecord={editingRecord || undefined} locations={locations} services={services} onSave={saveRecord} onCancel={() => { setMode(null); setEditingRecord(null) }} />}</div></div>}
+  {mode && <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">{mode === "customer" ? "顧客情報と所属を編集" : editingRecord ? "記録を編集" : "記録を追加"}</h2>{mode === "customer" ? <CustomerForm initialCustomer={customer} initialRelations={customer.crm_customer_services} initialGroups={groups} initialBrands={brands} lillyView={lillyView} locations={locations} services={services} businesses={businesses} onSave={saveCustomer} onCancel={() => setMode(null)} /> : <RecordForm initialRecord={editingRecord || undefined} locations={locations} services={services} onSave={saveRecord} onCancel={() => { setMode(null); setEditingRecord(null) }} />}</div></div>}
   </main>
 }
 

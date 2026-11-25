@@ -11,6 +11,7 @@ const gatewayOrigin = 'http://127.0.0.1:35433'
 const appOrigin = 'http://127.0.0.1:35430'
 const accounts = ['owner', 'test-admin', 'member']
 const withMemberships = process.argv.includes('--membership-a')
+const legacyAppDir = process.env.CRM_ACCEPTANCE_LEGACY_APP_DIR
 const withNus = withMemberships || process.argv.includes('--step2b')
 const withBusinesses = withNus || process.argv.includes('--step2a')
 const password = 'Local-only-fixture-123!'
@@ -159,7 +160,7 @@ async function verifyBrowser(sessions) {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: 'crm-acceptance-local-only',
   }
   const app = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '-H', '127.0.0.1', '-p', '35430'],
-    { env, stdio: 'inherit', windowsHide: true })
+    { env, cwd: legacyAppDir || process.cwd(), stdio: 'inherit', windowsHide: true })
   const browser = spawn('C:/Program Files/Google/Chrome/Application/chrome.exe', [
     '--headless=new', '--disable-background-networking', '--no-first-run',
     '--remote-debugging-port=35434', `--user-data-dir=${chromeProfile}`, 'about:blank',
@@ -228,6 +229,23 @@ async function verifyBrowser(sessions) {
           !document.body.innerText.includes('読み込み中...')`), `${accounts[index]} ${path}`)
       }
       console.log(`PASS Browser CRM list, record and settings access: ${accounts[index]}`)
+      if (legacyAppDir) {
+        if (index !== 0) continue
+        await send('Page.navigate', { url: appOrigin + '/admin/customers' })
+        await waitFor(() => hasText('＋ 新規顧客'), 'legacy application customer list')
+        await click('＋ 新規顧客')
+        await waitFor(() => hasText('顧客を登録'), 'legacy customer form')
+        await fill('input[name=name]', 'Legacy UI fixture')
+        await click('顧客を登録')
+        await waitFor(() => hasText('Legacy UI fixture'), 'old app registers after new schema')
+        await click('編集')
+        await waitFor(() => hasText('顧客情報と所属を編集'), 'legacy edit form')
+        await fill('input[name=name]', 'Legacy UI edited')
+        await click('保存')
+        await waitFor(() => hasText('Legacy UI edited'), 'old app edits after new schema')
+        console.log('PASS Production 969dbd9 browser list, record, create and edit with the new DB schema')
+        continue
+      }
       if (index === 0) {
         if (withBusinesses && !withMemberships) {
           await send('Page.navigate', { url: appOrigin + '/admin/customers' })
@@ -264,6 +282,7 @@ async function verifyBrowser(sessions) {
         const chooseMembership = label => evaluate(`[...document.querySelectorAll('form label')].find(item =>
           item.textContent.trim() === ${JSON.stringify(label)})?.querySelector('input[type=checkbox]')?.click()`)
         if (withMemberships) {
+          const legacyBefore = await rest(sessions[0], '/crm_customer_services?customer_id=eq.1&location_id=eq.1&order=id')
           await send('Page.navigate', { url: appOrigin + '/admin/customers' })
           await waitFor(() => hasText('existing fixture'), 'customer list loaded')
           await click('所属未設定')
@@ -287,6 +306,12 @@ async function verifyBrowser(sessions) {
           assert.ok(await evaluate("(() => {const f=document.querySelector('form');return f && f.scrollWidth<=f.clientWidth})()"))
           await click('保存')
           await waitFor(() => evaluate("document.querySelector('section[aria-label=\"現在の所属\"]')?.innerText.includes('M.glitter・NUS・Lilly') && document.body.innerText.includes('M.glitterのブランド：moments')"), 'save three groups and brand on same customer')
+          await click('Lilly情報を編集')
+          await select('section[aria-label="Lilly専用情報"] select', 'monthly')
+          await evaluate("document.querySelectorAll('section[aria-label=\"Lilly専用情報\"] input[type=checkbox]')[1].click()")
+          await click('Lilly情報を保存')
+          await waitFor(() => hasText('月謝（通い放題）'), 'Lilly membership save')
+          assert.deepEqual(await rest(sessions[0], '/crm_customer_services?customer_id=eq.1&location_id=eq.1&order=id'), legacyBefore)
           await send('Page.navigate', { url: appOrigin + '/admin/customers' })
           await waitFor(() => hasText('existing fixture'), 'membership list loaded')
           await click('M.glitter')
@@ -301,11 +326,11 @@ async function verifyBrowser(sessions) {
           assert.equal(await evaluate("document.querySelectorAll('article').length"), 1)
           assert.equal(await evaluate("document.querySelector('#filters-mglitter').hidden"), true)
           await click('M.glitter')
-          await select('#filters-lilly select', '1')
-          await evaluate("const selects = document.querySelectorAll('#filters-lilly select'); selects[1].value = '月謝'; selects[1].dispatchEvent(new Event('change', { bubbles: true }))")
-          await waitFor(() => hasText('該当する顧客はいません。'), 'Lilly service and membership must share a row')
-          await select('#filters-lilly select', '2')
-          await waitFor(() => hasText('existing fixture'), 'Lilly matching service and membership row')
+          await select('#filters-lilly select', 'monthly')
+          await evaluate("document.querySelectorAll('#filters-lilly input')[0].click()")
+          await waitFor(() => hasText('該当する顧客はいません。'), 'Lilly profile does not infer services from legacy rows')
+          await evaluate("document.querySelectorAll('#filters-lilly input')[1].click()")
+          await waitFor(() => hasText('existing fixture'), 'Lilly service OR and membership AND')
           await click('所属未設定')
           await waitFor(() => hasText('Unassigned fixture'), 'unassigned OR group')
           await click('M.glitter')
@@ -376,6 +401,24 @@ async function verifyBrowser(sessions) {
           await fill('input[name=name]', 'existing fixture')
           await click('顧客を登録')
           await waitFor(() => hasText('既存のカルテを開いてください'), 'duplicate candidate instead of creating')
+          await chooseMembership('Lilly')
+          assert.equal(await evaluate("document.querySelector('input[name=name]')"), null)
+          await fill('input[name=nickname]', 'existing fixture')
+          await click('顧客を登録')
+          await waitFor(() => hasText('既存のカルテを開いてください'), 'Lilly nickname candidate')
+          await fill('input[name=nickname]', 'Nickname-only fixture')
+          await select('form select', 'ticket')
+          await evaluate("const choices = document.querySelectorAll('form fieldset input[type=checkbox]'); choices[choices.length - 3].click(); choices[choices.length - 1].click()")
+          await click('顧客を登録')
+          await waitFor(() => hasText('Lilly情報を編集'), 'nickname-only Lilly registration')
+          const nickId = await evaluate("location.pathname.split('/').pop()")
+          const nick = await rest(sessions[0], `/crm_customers?id=eq.${nickId}&select=name,name_yomi,nickname,crm_lilly_profiles(membership,service_codes)`)
+          assert.deepEqual(nick.data, [{ name: null, name_yomi: null, nickname: 'Nickname-only fixture',
+            crm_lilly_profiles: { membership: 'ticket', service_codes: ['yoga', 'machine'] } }])
+          await send('Page.navigate', { url: appOrigin + '/admin/customers' })
+          await waitFor(() => hasText('＋ 新規顧客'), 'return to list from Lilly-only record')
+          await click('＋ 新規顧客')
+          await waitFor(() => hasText('顧客を登録'), 'reopen customer form')
         }
         await fill('input[name=name]', 'Browser customer')
         if (withMemberships) {
@@ -405,6 +448,66 @@ async function verifyBrowser(sessions) {
         await click('アーカイブから復元')
         await waitFor(() => hasText('この顧客をアーカイブ'), 'browser restore')
         console.log('PASS Browser customer registration, edit, archive and restore')
+        if (withMemberships) {
+          const owner = sessions[0]
+          const create = (customer, groups, relations = []) => rest(owner, '/rpc/crm_save_customer_memberships', 'POST', {
+            target_customer_id: null, customer, relations, selected_groups: groups, selected_brands: [],
+          })
+          const legacy = await create({ name: 'Formal Lilly only', name_yomi: 'Formal reading' }, ['lilly'],
+            [{ location_id: 1, service_id: 1, membership_type: '回数券' }])
+          assert.equal(legacy.status, 200)
+          const path = `/crm_customer_services?customer_id=eq.${legacy.data}&location_id=eq.1`
+          const legacyServices = await rest(owner, path)
+          assert.equal(legacyServices.data.length, 1, 'old app payload retains newly registered Lilly link')
+          const details = { name: 'Formal Lilly only', name_yomi: 'Formal reading' }
+          const oldEdit = (groups, relations) => rest(owner, '/rpc/crm_save_customer_memberships', 'POST', {
+            target_customer_id: legacy.data, customer: details, relations, selected_groups: groups, selected_brands: [],
+          })
+          assert.equal((await oldEdit(['lilly'], [{ location_id: 1, service_id: 1, membership_type: '月謝' }])).status, 200)
+          assert.deepEqual(await rest(owner, path), legacyServices)
+          await send('Page.navigate', { url: appOrigin + `/admin/customers/${legacy.data}` })
+          await waitFor(() => hasText(`呼び名未登録 #${legacy.data}`), 'formal name without nickname uses ID fallback')
+          assert.equal(await hasText('Formal Lilly only'), false)
+          assert.equal(await hasText('Formal reading'), false)
+          await click('所属を編集')
+          await waitFor(() => hasText('顧客情報と所属を編集'), 'Lilly shared edit')
+          assert.equal(await evaluate("!!document.querySelector('input[name=name]')"), false)
+          await click('保存')
+          await waitFor(() => evaluate("!document.querySelector('input[name=nickname]')"), 'shared edit saved')
+          assert.deepEqual(await rest(owner, path), legacyServices)
+          for (const group of ['mglitter', 'nus']) {
+            assert.equal((await oldEdit(['lilly', group], [])).status, 200)
+            assert.deepEqual(await rest(owner, path), legacyServices)
+            await send('Page.navigate', { url: appOrigin + `/admin/customers/${legacy.data}?view=lilly` })
+            await waitFor(() => hasText(`呼び名未登録 #${legacy.data}`), 'joint membership Lilly view')
+            await click('所属を編集')
+            await waitFor(() => hasText('顧客情報と所属を編集'), 'joint shared edit')
+            assert.equal(await evaluate("!!document.querySelector('input[name=name], input[name=name_yomi]')"), false)
+            await click('キャンセル')
+          }
+          await click('Lilly情報を編集')
+          await fill('section[aria-label="Lilly専用情報"] input:not([type=checkbox])', 'Nickname-only fixture')
+          await click('Lilly情報を保存')
+          await waitFor(() => hasText('Nickname-only fixture'), 'Lilly nickname update')
+          const sameNames = await rest(owner, '/crm_customers?nickname=eq.Nickname-only%20fixture&select=id,name,name_yomi')
+          assert.equal(sameNames.data.length, 2)
+          assert.ok(sameNames.data.some(({ name, name_yomi }) => name === details.name && name_yomi === details.name_yomi))
+          await send('Page.navigate', { url: appOrigin + '/admin/customers' })
+          await waitFor(() => hasText('＋ 新規顧客'), 'list loaded for Lilly search')
+          await click('Lilly')
+          await fill('input[placeholder^="名前"]', 'Nickname-only fixture')
+          await waitFor(() => evaluate("document.querySelectorAll('article').length === 2"), 'duplicate nicknames remain searchable as distinct IDs')
+          assert.equal(await hasText('Formal Lilly only'), false)
+          await fill('input[placeholder^="名前"]', 'Formal Lilly only')
+          await waitFor(() => hasText('該当する顧客はいません。'), 'Lilly search does not match hidden formal name')
+          for (const group of ['mglitter', 'nus']) {
+            assert.ok((await create({ nickname: 'Missing required name' }, [group])).status >= 400)
+          }
+          assert.ok((await rest(owner, '/rpc/crm_create_customer', 'POST', {
+            customer: { nickname: 'Missing required name' }, relations: [],
+          })).status >= 400)
+          console.log('PASS Lilly nickname privacy, distinct IDs, old app payloads, legacy rows and required shared names')
+        }
       } else if (index === 1) {
         await send('Page.navigate', { url: appOrigin + '/admin/thai' })
         await waitFor(() => evaluate("location.pathname === '/admin/thai' && !!document.querySelector('h1')"), 'existing admin route')
@@ -457,6 +560,7 @@ async function main() {
     dbInput(fixtureScript, 'bash')
     if (withBusinesses) {
       const fixture = `
+alter table public.crm_customers add constraint crm_customers_name_not_blank check (length(trim(name)) > 0);
 update public.crm_services set name = 'ヨガ' where id = 1;
 insert into public.crm_services (name) values ('ピラティス'), ('ネイル'), ('ヒプノ'), ('占い');
 insert into public.crm_customer_services (customer_id, location_id, service_id) values (1, 1, 1);
@@ -464,7 +568,9 @@ insert into public.crm_customers (name) values ('Unassigned fixture');
 `
       let migration = readFileSync(join(__dirname, '../crm-step-2a/01-businesses.sql'), 'utf8')
       if (withNus) migration += readFileSync(join(__dirname, '../crm-step-2b/01-nus.sql'), 'utf8')
-      if (withMemberships) migration += readFileSync(join(__dirname, '../crm-membership-a/01-memberships.sql'), 'utf8') + `
+      if (withMemberships) migration += readFileSync(join(__dirname, '../crm-membership-a/01-memberships.sql'), 'utf8') +
+        readFileSync(join(__dirname, '../crm-lilly/01-lilly.sql'), 'utf8') + `
+update public.crm_customers set nickname='existing fixture' where id=1;
 update public.crm_customer_services set membership_type='回数券' where customer_id=1 and location_id=1 and service_id=1;
 insert into public.crm_customer_services (customer_id, location_id, service_id, membership_type)
 values (1, 1, 2, '月謝');
@@ -482,7 +588,7 @@ values (1, 1, 2, '月謝');
   assert.equal(new Set(sessions.map(session => session.user.id)).size, 3)
   await verifyApi(sessions)
   if (withMemberships) {
-    const tables = ['crm_groups', 'crm_customer_groups', 'crm_customer_group_brands']
+    const tables = ['crm_groups', 'crm_customer_groups', 'crm_customer_group_brands', 'crm_lilly_profiles']
     for (const session of [null, sessions[1], sessions[2]]) {
       for (const table of tables) {
         const response = await rest(session, `/${table}`)
@@ -493,7 +599,17 @@ values (1, 1, 2, '月謝');
         target_customer_id: null, customer: { name: 'Denied' }, relations: [], selected_groups: ['nus'], selected_brands: [],
       })
       assert.ok([401, 403].includes(write.status))
+      const lillyWrite = await rest(session, '/rpc/crm_save_lilly_profile', 'POST', {
+        target_customer_id: 1, membership_code: 'trial', selected_services: [], nickname_value: 'Denied',
+      })
+      assert.ok([401, 403].includes(lillyWrite.status))
     }
+    const invalidLilly = await rest(sessions[0], '/rpc/crm_create_customer_with_lilly', 'POST', {
+      customer: { nickname: 'Atomic failure fixture' }, relations: [], selected_groups: ['lilly'], selected_brands: [],
+      membership_code: 'trial', selected_services: ['yoga', 'invalid'],
+    })
+    assert.ok(invalidLilly.status >= 400)
+    assert.deepEqual((await rest(sessions[0], '/crm_customers?nickname=eq.Atomic%20failure%20fixture')).data, [])
     console.log('PASS Data API membership rows and atomic save deny unauthorized users')
   }
   if (withNus) {
