@@ -456,6 +456,7 @@ async function verifyBrowser(sessions) {
             if (brand) await select('form select[name=record_brand_code]', brand)
             if (group === 'lilly') await select('form select[name=service_label]', label)
             else await fill('form input[name=service_label]', label)
+            if (group === 'nus') await fill('form input[name=location_label]', '合成活動先')
             await fill('textarea[name=observation_note]', 'Synthetic original note')
             assert.equal(await evaluate("getComputedStyle(document.querySelector('[role=dialog]')).colorScheme"), scheme)
             assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'))
@@ -466,6 +467,13 @@ async function verifyBrowser(sessions) {
             assert.equal(saved.service_label, label)
             assert.equal(saved.location_id, null)
             assert.equal(saved.service_id, null)
+            if (group === 'lilly') {
+              assert.equal(saved.location_label, 'yoga&pilates Lilly')
+              assert.equal(await evaluate("[...document.querySelectorAll('main span')].filter(x => x.textContent === 'Lilly・マットピラティス').length"), 2)
+            }
+            if (group === 'nus') {
+              assert.equal(await evaluate("[...document.querySelectorAll('main span')].filter(x => x.textContent === 'NUS・合成活動先・合成NUS活動').length"), 2)
+            }
             const savedDate = new Intl.DateTimeFormat('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
               .format(new Date(saved.record_date + 'T00:00:00Z'))
             assert.ok(await hasText('最終記録日：' + savedDate))
@@ -485,6 +493,10 @@ async function verifyBrowser(sessions) {
           assert.deepEqual(await rest(owner, consentPath), oldConsent)
           await send('Page.navigate', { url: appOrigin + '/admin/customers/1' })
           await waitFor(() => hasText('合成旧記録'), 'migrated record displayed')
+          const historicalLabels = await evaluate("[...document.querySelectorAll('article span')].map(x=>x.textContent)")
+          assert.equal(historicalLabels.filter(label => label === 'Lilly・ヨガ').length, 3)
+          assert.equal(historicalLabels.filter(label => label === 'M.glitter・3rd place・ヨガ').length, 1)
+          assert.equal(historicalLabels.some(label => label.includes('yoga&pilates Lilly')), false)
           await evaluate("[...document.querySelectorAll('article button')].find(button=>button.textContent.trim()==='編集').click()")
           await waitFor(() => hasText('記録を編集'), 'legacy record note editing')
           assert.equal(await evaluate("document.querySelector('[role=dialog] select')"), null)
@@ -554,6 +566,22 @@ async function verifyBrowser(sessions) {
           await waitFor(() => evaluate(`[...document.querySelectorAll('article')].some(card =>
             [...card.querySelectorAll('a')].some(link => link.pathname === '/admin/customers/${lillyId}') &&
             card.textContent.includes('最終記録日：2020年2月3日'))`), 'list uses latest record date across groups')
+          for (const [date, service] of [['2020-02-04', 'ヨガ'], ['2020-02-05', 'マシンピラティス']]) {
+            assert.equal((await rest(owner, '/crm_records', 'POST', {
+              customer_id: Number(lillyId), record_date: date, record_group_code: 'lilly',
+              location_label: 'yoga&pilates Lilly', service_label: service,
+            })).status, 201)
+          }
+          for (const theme of ['light','dark']) {
+            await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: theme }] })
+            await checkThirdPlace(lillyId, true)
+            const savedLabels = await evaluate("[...document.querySelectorAll('main section > div span')].map(x=>x.textContent)")
+            assert.ok(savedLabels.includes('Lilly・ヨガ'))
+            assert.ok(savedLabels.includes('Lilly・マットピラティス'))
+            assert.equal(savedLabels.filter(label => label === 'Lilly・マシンピラティス').length, 2)
+            assert.equal(savedLabels.some(label => label.includes('yoga&pilates Lilly')), false)
+          }
+          console.log('PASS Shared record labels for migrated and new Lilly, M.glitter, and NUS records')
           assert.equal((await rest(owner, '/crm_customer_businesses', 'POST', {
             customer_id: Number(ids[0]), business_code: 'third_place', source: 'manual', stage: 'unconfirmed',
           })).status, 201)
