@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabaseClient"
 import LillyFields from "@/components/crm/LillyFields"
-import { isLegacyLilly as isLilly, customerDisplayName, customerFormalName, lillyMemberships, lillyServices, usesLillyDisplay } from "@/lib/crmLilly"
+import { customerDisplayName, customerFormalName, lillyMemberships, lillyServices, usesLillyDisplay } from "@/lib/crmLilly"
 import CustomerForm from "@/components/crm/CustomerForm"
 import PhotoPermissionBadge from "@/components/crm/PhotoPermissionBadge"
 import { formatDate, listCrmBusinesses } from "@/lib/crm"
@@ -18,12 +18,9 @@ const isDenied = ({ status, error }) => [401, 403].includes(status) || ["42501",
 export default function CustomersPage() {
   const router = useRouter()
   const [customers, setCustomers] = useState([])
-  const [locations, setLocations] = useState([])
-  const [services, setServices] = useState([])
   const [businesses, setBusinesses] = useState([])
   const [groups, setGroups] = useState([])
   const [panel, setPanel] = useState("")
-  const [legacyLilly, setLegacyLilly] = useState(false)
   const [lilly, setLilly] = useState({})
   const [denied, setDenied] = useState(false)
   const [brandFilter, setBrandFilter] = useState([])
@@ -33,9 +30,6 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [query, setQuery] = useState("")
-  const [locationFilter, setLocationFilter] = useState("")
-  const [serviceFilter, setServiceFilter] = useState("")
-  const [membershipFilter, setMembershipFilter] = useState("")
   const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [pinnedOnly, setPinnedOnly] = useState(false)
   const [archived, setArchived] = useState(false)
@@ -45,22 +39,18 @@ export default function CustomersPage() {
   async function load() {
     setLoading(true)
     setError("")
-    const [customerResult, locationResult, serviceResult, businessResult] = await Promise.all([
-      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, membership_type, crm_locations(id, name, is_active), crm_services(id, name, is_active)), crm_records(record_date), crm_customer_businesses(business_code, stage, archived_at), crm_customer_groups(group_code, archived_at), crm_customer_group_brands(business_code, archived_at), crm_lilly_profiles(membership, service_codes)").eq("archived", archived).order("name"),
-      supabase.from("crm_locations").select("*").order("sort_order").order("name"),
-      supabase.from("crm_services").select("*").order("sort_order").order("name"),
+    const [customerResult, businessResult] = await Promise.all([
+      supabase.from("crm_customers").select("*, crm_records(record_date, record_group_code), crm_customer_businesses(business_code, stage, archived_at), crm_customer_groups(group_code, archived_at), crm_customer_group_brands(business_code, archived_at), crm_lilly_profiles(membership, service_codes)").eq("archived", archived).order("name"),
       listCrmBusinesses(supabase),
     ])
-    const firstError = customerResult.error || locationResult.error || serviceResult.error || businessResult.error
+    const firstError = customerResult.error || businessResult.error
     if (firstError) {
       setCustomers([])
-      if ([customerResult, locationResult, serviceResult, businessResult].some(isDenied)) setDenied(true)
+      if ([customerResult, businessResult].some(isDenied)) setDenied(true)
       console.error("CRM一覧の取得に失敗しました", firstError)
       setError("顧客情報を読み込めませんでした。時間をおいて再度お試しください。")
     } else {
       setCustomers(customerResult.data || [])
-      setLocations(locationResult.data || [])
-      setServices(serviceResult.data || [])
       setBusinesses(businessResult.data || [])
     }
     setLoading(false)
@@ -107,10 +97,6 @@ export default function CustomersPage() {
     setBrandFilter([])
     setNusFilter({})
     setLilly({})
-    setLegacyLilly(false)
-    setLocationFilter("")
-    setServiceFilter("")
-    setMembershipFilter("")
     setQuery("")
     setFavoriteOnly(false)
     setPinnedOnly(false)
@@ -126,15 +112,10 @@ export default function CustomersPage() {
     ...progressFields.map(([key, label]) => [`${key}_status`, label, progressLabels]),
     ["restriction", "連絡制限", { business: "ビジネス案内停止", product: "商品案内停止", administrative: "事務連絡も停止" }],
   ]
-  const locationOptions = locations.map(({ id, name }) => [String(id), name])
-  const serviceOptions = services.map(({ id, name }) => [String(id), name])
-  const memberOptions = ["通い放題", "回数券", "月謝", "体験"].map((name) => [name, name])
-  const labelFor = (options, value) => options.find(([key]) => key === value)?.[1] || value
   const summaries = {
     mglitter: brands.filter(({ code }) => brandFilter.includes(code)).map(({ name }) => name),
     nus: nusOptions.flatMap(([key, label, options]) => nusFilter[key] ? [label + "：" + (options[nusFilter[key]] || "選択済み")] : []),
     lilly: [lillyMemberships[lilly.membership], ...(lilly.services || []).map((code) => lillyServices[code])].filter(Boolean),
-    legacy: [legacyLilly && "旧Lilly情報あり", labelFor(locationOptions, locationFilter), labelFor(serviceOptions, serviceFilter), membershipFilter].filter(Boolean),
   }
 
   function matchesGroup(customer, code) {
@@ -167,15 +148,10 @@ export default function CustomersPage() {
 
   const word = query.trim().toLocaleLowerCase("ja")
   const filtered = customers.filter((customer) => {
-    const links = customer.crm_customer_services
     const searchValues = [customer.nickname, customer.name, customer.name_yomi, lillyView(customer) ? null : customer.private_note]
     const textMatch = !word || searchValues
       .some((value) => (value || "").toLocaleLowerCase("ja").includes(word))
     return textMatch && (!favoriteOnly || customer.is_favorite) && (!pinnedOnly || customer.is_pinned) &&
-      (!legacyLilly || links.some(isLilly)) &&
-      (!locationFilter || links.some((item) => String(item.location_id) === locationFilter)) &&
-      (!serviceFilter || links.some((item) => String(item.service_id) === serviceFilter)) &&
-      (!membershipFilter || links.some((item) => item.membership_type === membershipFilter)) &&
       (!groups.length || groups.some((code) => matchesGroup(customer, code)))
   })
   const visibleNameCounts = new Map()
@@ -200,8 +176,8 @@ export default function CustomersPage() {
     setUpdatingFlags((current) => ({ ...current, [key]: false }))
   }
 
-  async function createCustomer(values, relations, selection) {
-    const customerId = await saveCrmCustomerMemberships(supabase, null, values, relations, selection)
+  async function createCustomer(values, selection) {
+    const customerId = await saveCrmCustomerMemberships(supabase, null, values, selection)
     setShowCreate(false)
     router.push(`/admin/customers/${customerId}`)
   }
@@ -223,7 +199,6 @@ export default function CustomersPage() {
       <div className="mx-auto max-w-3xl">
         <div className="mb-5 flex items-start justify-between gap-3">
           <div><Link href="/admin" className="text-sm text-sky-700">← 管理メニュー</Link><h1 className="mt-2 text-2xl font-bold text-gray-900">👥 顧客管理</h1></div>
-          <Link href="/admin/customers/settings" className="rounded-2xl bg-white px-4 py-2 text-sm font-bold text-gray-600 shadow-sm">設定</Link>
         </div>
 
         <section className="mb-4 rounded-3xl bg-white p-4 shadow-sm">
@@ -241,12 +216,11 @@ export default function CustomersPage() {
             <p className="text-sm text-gray-700" aria-live="polite">{groups.length ? groups.map((code) => groupLabels[code] || "所属未設定").join(" または ") : "全顧客"}</p>
             <button type="button" onClick={clearFilters} className="min-h-11 text-sm font-semibold text-sky-800">条件をすべて解除</button>
           </div>
-          {[...Object.entries(groupLabels).filter(([code]) => groups.includes(code)).map(([code, label]) => [code, label + "の条件"]),
-            ["legacy", "旧サービス情報を確認"]].map(([code, label]) => (
+          {Object.entries(groupLabels).filter(([code]) => groups.includes(code)).map(([code, label]) => (
             <section key={code} className="mt-2 rounded-xl border border-gray-200 px-3">
               <button type="button" aria-expanded={panel === code} aria-controls={`filters-${code}`}
                 onClick={() => setPanel(panel === code ? "" : code)} className="min-h-11 w-full py-2 text-left text-sm font-semibold">
-                {label}{summaries[code].length ? `（${summaries[code].length}件適用中）` : ""}
+                {label}の条件{summaries[code].length ? `（${summaries[code].length}件適用中）` : ""}
               </button>
               {summaries[code].length > 0 && <p className="break-words pb-2 text-sm text-gray-700">{summaries[code].join("・")}</p>}
               <div id={`filters-${code}`} hidden={panel !== code}>
@@ -259,12 +233,6 @@ export default function CustomersPage() {
                   {code === "nus" && nusData && nusOptions.map(([key, label, options]) =>
                     filterSelect(label, nusFilter[key], (value) => setNusFilter((current) => ({ ...current, [key]: value })), Object.entries(options)))}
                   {code === "lilly" && <LillyFields search value={lilly} onChange={setLilly} />}
-                  {code === "legacy" && <>
-                    <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={legacyLilly} onChange={(event) => setLegacyLilly(event.target.checked)} />旧Lilly情報あり</label>
-                    {filterSelect("担当先で絞り込み", locationFilter, setLocationFilter, locationOptions)}
-                    {filterSelect("サービスで絞り込み", serviceFilter, setServiceFilter, serviceOptions)}
-                    {filterSelect("既存の会員種別で絞り込み", membershipFilter, setMembershipFilter, memberOptions)}
-                  </>}
                 </div>
               </div>
             </section>
@@ -291,7 +259,7 @@ export default function CustomersPage() {
             {filtered.map((customer) => {
               const activeGroups = Object.entries(groupLabels).filter(([code]) => customer.crm_customer_groups.some((item) => item.group_code === code && !item.archived_at))
               const activeBrands = brands.filter(({ code }) => customer.crm_customer_group_brands.some((item) => item.business_code === code && !item.archived_at))
-              const lastDate = (customer.crm_records || []).reduce((max, item) => !max || item.record_date > max ? item.record_date : max, null)
+              const lastDate = (customer.crm_records || []).filter(({ record_group_code }) => record_group_code !== "nus").reduce((max, item) => !max || item.record_date > max ? item.record_date : max, null)
               const nicknameView = lillyView(customer)
               const displayName = customerDisplayName(customer)
               const formalName = customerFormalName(customer)
@@ -304,7 +272,6 @@ export default function CustomersPage() {
                   <button type="button" disabled={updatingFlags[pinnedKey]} onClick={(event) => { event.stopPropagation(); toggleCustomerFlag(customer, "is_pinned") }} aria-label={customer.is_pinned ? "ピックアップから解除" : "ピックアップに追加"} className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full text-xl transition disabled:opacity-50 ${customer.is_pinned ? "bg-sky-100 opacity-100" : "opacity-30 hover:bg-gray-50 hover:opacity-60"}`}>📌</button>
                 </div>
                 <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap items-center gap-2"><PhotoPermissionBadge value={customer.photo_permission} />{customer.care_notes?.trim() && <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800">⚠️ 配慮あり</span>}</div>
-                <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap gap-2">{customer.crm_customer_services?.map((item) => <span key={item.id} className="rounded-2xl bg-sky-50 px-3 py-1.5 text-xs text-sky-800"><span>{isLilly(item) ? "旧サービス：" : "サービス："}{item.crm_locations?.name} × {item.crm_services?.name}</span>{item.membership_type && <span className="ml-2 font-bold text-violet-700">🎫 {item.membership_type}</span>}</span>)}</div>
                 <div className="pointer-events-none relative z-10 mt-2 flex flex-wrap gap-2">
                   {activeGroups.length ? activeGroups.map(([code, name]) => (
                     <span key={code} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">{name}所属</span>
@@ -317,7 +284,7 @@ export default function CustomersPage() {
           </div>
         )}
       </div>
-      {showCreate && <div role="dialog" aria-modal="true" aria-label={"新規顧客"} className="crm-overlay fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">新規顧客</h2><CustomerForm locations={locations} services={services} businesses={businesses} findCandidates={(form, lillyOnly) => findCrmCustomerCandidates(supabase, form, lillyOnly)} onSave={createCustomer} onCancel={() => setShowCreate(false)} submitLabel="顧客を登録" /></div></div>}
+      {showCreate && <div role="dialog" aria-modal="true" aria-label={"新規顧客"} className="crm-overlay fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">新規顧客</h2><CustomerForm businesses={businesses} findCandidates={(form, lillyOnly) => findCrmCustomerCandidates(supabase, form, lillyOnly)} onSave={createCustomer} onCancel={() => setShowCreate(false)} submitLabel="顧客を登録" /></div></div>}
     </main>
   )
 }

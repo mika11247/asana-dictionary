@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import LillyProfile from "@/components/crm/LillyProfile"
-import { isLegacyLilly, customerDisplayName, customerFormalName, usesLillyDisplay } from "@/lib/crmLilly"
+import { customerDisplayName, customerFormalName, usesLillyDisplay } from "@/lib/crmLilly"
 import CustomerForm from "@/components/crm/CustomerForm"
 import CustomerBusinesses from "@/components/crm/CustomerBusinesses"
 import ContactPreferences from "@/components/crm/ContactPreferences"
@@ -21,8 +21,6 @@ export default function CustomerDetailPage() {
   const router = useRouter()
   const [customer, setCustomer] = useState(null)
   const [records, setRecords] = useState([])
-  const [locations, setLocations] = useState([])
-  const [services, setServices] = useState([])
   const [businesses, setBusinesses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -35,17 +33,15 @@ export default function CustomerDetailPage() {
 
   async function load() {
     setLoading(true); setError("")
-    const [customerResult, recordResult, locationResult, serviceResult, businessResult] = await Promise.all([
-      supabase.from("crm_customers").select("*, crm_customer_services(id, location_id, service_id, membership_type, crm_locations(id, name, is_active), crm_services(id, name, is_active)), crm_customer_businesses(business_code, stage, business_note, archived_at), crm_customer_groups(group_code, archived_at), crm_customer_group_brands(business_code, archived_at), crm_lilly_profiles(membership, service_codes)").eq("id", id).maybeSingle(),
-      supabase.from("crm_records").select("*, crm_locations(id, name, is_active), crm_services(id, name, is_active)").eq("customer_id", id).order("record_date", { ascending: false }).order("created_at", { ascending: false }),
-      supabase.from("crm_locations").select("*").order("sort_order").order("name"),
-      supabase.from("crm_services").select("*").order("sort_order").order("name"),
+    const [customerResult, recordResult, businessResult] = await Promise.all([
+      supabase.from("crm_customers").select("*, crm_customer_businesses(business_code, stage, business_note, archived_at), crm_customer_groups(group_code, archived_at), crm_customer_group_brands(business_code, archived_at), crm_lilly_profiles(membership, service_codes)").eq("id", id).maybeSingle(),
+      supabase.from("crm_records").select("*").eq("customer_id", id).order("record_date", { ascending: false }).order("created_at", { ascending: false }),
       listCrmBusinesses(supabase),
     ])
-    const firstError = customerResult.error || recordResult.error || locationResult.error || serviceResult.error || businessResult.error
+    const firstError = customerResult.error || recordResult.error || businessResult.error
     if (firstError) { console.error("カルテの取得に失敗しました", firstError); setError("カルテを読み込めませんでした。") }
     else if (!customerResult.data) setError("顧客が見つかりません。")
-    else { setCustomer(customerResult.data); setRecords(recordResult.data || []); setLocations(locationResult.data || []); setServices(serviceResult.data || []); setBusinesses(businessResult.data || []) }
+    else { setCustomer(customerResult.data); setRecords(recordResult.data || []); setBusinesses(businessResult.data || []) }
     setLoading(false)
   }
   useEffect(() => { if (id) load() }, [id])
@@ -69,8 +65,8 @@ export default function CustomerDetailPage() {
     }
   }
 
-  async function saveCustomer(values, nextRelations, selection) {
-    await saveCrmCustomerMemberships(supabase, id, values, nextRelations, selection)
+  async function saveCustomer(values, selection) {
+    await saveCrmCustomerMemberships(supabase, id, values, selection)
     setMode(null); await load()
   }
 
@@ -146,8 +142,7 @@ export default function CustomerDetailPage() {
       </div>
       {groups.includes("lilly") && <LillyProfile key={customer.id} customer={customer} onSaved={load} />}
       {!lillyView && customer.private_note?.trim() && <div className="mt-3 rounded-2xl bg-violet-50 p-4"><h2 className="text-sm font-bold text-violet-900">📝 自分用メモ</h2><p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{customer.private_note}</p></div>}
-      <div className="mt-5 flex flex-wrap gap-2">{customer.crm_customer_services?.length ? customer.crm_customer_services.map((item) => <span key={item.id} className="rounded-2xl bg-violet-50 px-3 py-2 text-sm text-violet-800"><span>{isLegacyLilly(item) && "旧サービス："}{item.crm_locations?.name} × {item.crm_services?.name}</span>{item.membership_type && <span className="ml-2 font-bold">🎫 {item.membership_type}</span>}</span>) : <span className="text-sm text-gray-500">担当先・サービス未登録</span>}</div>
-      <p className="mt-5 text-sm text-gray-500">最終参加日：<strong className="text-gray-900">{formatDate(latest?.record_date)}</strong></p>
+      <p className="mt-5 text-sm text-gray-500">最終参加日：<strong className="text-gray-900">{formatDate(records.find(({ record_group_code }) => record_group_code !== "nus")?.record_date)}</strong></p>
     </section>
 
     <CustomerBusinesses businesses={businesses} relationships={customer.crm_customer_businesses} onSave={async (code, values, existing) => {
@@ -157,14 +152,15 @@ export default function CustomerDetailPage() {
     {nus && <NusProfile customerId={id} archived={Boolean(nus.archived_at)} legacyStage={nus.stage} />}
     <ContactPreferences customerId={id} hasNus={Boolean(nus)} activeNus={Boolean(nus && !nus.archived_at)} />
     <button onClick={() => { setEditingRecord(null); setMode("record") }} className="my-4 w-full rounded-2xl bg-sky-600 px-4 py-4 text-lg font-bold text-white shadow-sm">＋ 今日の記録</button>
-    <section className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm"><h2 className="text-lg font-bold">最新記録</h2>{latest ? <RecordBody record={latest} /> : <p className="mt-3 text-sm text-gray-500">まだ記録がありません。</p>}</section>
-    <section className="mt-4 rounded-3xl bg-white p-5 shadow-sm"><h2 className="mb-4 text-lg font-bold">過去の記録</h2><div className="space-y-4">{records.map((record) => <article key={record.id} className="rounded-2xl border border-gray-100 p-4"><RecordBody record={record} /><div className="mt-3 flex justify-end gap-3"><button onClick={() => { setEditingRecord(record); setMode("record") }} className="text-sm font-bold text-sky-700">編集</button><button disabled={actionLoading} onClick={() => deleteRecord(record.id)} className="text-sm font-bold text-red-600">削除</button></div></article>)}</div></section>
+    <section className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm"><h2 className="text-lg font-bold">最新記録</h2>{latest ? <RecordBody record={latest} businesses={businesses} /> : <p className="mt-3 text-sm text-gray-500">まだ記録がありません。</p>}</section>
+    <section className="mt-4 rounded-3xl bg-white p-5 shadow-sm"><h2 className="mb-4 text-lg font-bold">過去の記録</h2><div className="space-y-4">{records.map((record) => <article key={record.id} className="rounded-2xl border border-gray-100 p-4"><RecordBody record={record} businesses={businesses} /><div className="mt-3 flex justify-end gap-3"><button onClick={() => { setEditingRecord(record); setMode("record") }} className="text-sm font-bold text-sky-700">編集</button><button disabled={actionLoading} onClick={() => deleteRecord(record.id)} className="text-sm font-bold text-red-600">削除</button></div></article>)}</div></section>
     <button disabled={actionLoading} onClick={toggleArchive} className={`mt-6 w-full rounded-2xl border px-4 py-3 text-sm font-bold ${customer.archived ? "border-emerald-200 text-emerald-700" : "border-gray-200 text-gray-500"}`}>{customer.archived ? "アーカイブから復元" : "この顧客をアーカイブ"}</button>
   </div>
-  {mode && <div role="dialog" aria-modal="true" aria-label={mode === "customer" ? "顧客情報と所属を編集" : "カルテの記録"} className="crm-overlay fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">{mode === "customer" ? "顧客情報と所属を編集" : editingRecord ? "記録を編集" : "記録を追加"}</h2>{mode === "customer" ? <CustomerForm initialCustomer={customer} initialDedicated={dedicated} initialRelations={customer.crm_customer_services} initialGroups={groups} initialBrands={brands} lillyView={lillyView} locations={locations} services={services} businesses={businesses} onSave={saveCustomer} onCancel={() => setMode(null)} /> : <RecordForm initialRecord={editingRecord || undefined} locations={locations} services={services} onSave={saveRecord} onCancel={() => { setMode(null); setEditingRecord(null) }} />}</div></div>}
+  {mode && <div role="dialog" aria-modal="true" aria-label={mode === "customer" ? "顧客情報と所属を編集" : "カルテの記録"} className="crm-overlay fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">{mode === "customer" ? "顧客情報と所属を編集" : editingRecord ? "記録を編集" : "記録を追加"}</h2>{mode === "customer" ? <CustomerForm initialCustomer={customer} initialDedicated={dedicated} initialGroups={groups} initialBrands={brands} lillyView={lillyView} businesses={businesses} onSave={saveCustomer} onCancel={() => setMode(null)} /> : <RecordForm initialRecord={editingRecord || undefined} groups={groups} businesses={businesses} onSave={saveRecord} onCancel={() => { setMode(null); setEditingRecord(null) }} />}</div></div>}
   </main>
 }
 
-function RecordBody({ record }) {
-  return <div className="mt-3"><div className="flex flex-wrap items-center gap-2"><strong className="text-gray-900">{formatDate(record.record_date)}</strong><span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">{record.crm_locations?.name || "不明"} × {record.crm_services?.name || "不明"}</span></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-sky-50 p-3"><p className="text-xs font-bold text-sky-900">💬 本人から聞いたこと</p><p className="mt-1 whitespace-pre-wrap text-sm">{record.customer_note || "記載なし"}</p></div><div className="rounded-xl bg-slate-50 p-3"><p className="text-xs font-bold text-slate-800">📝 観察・指導・施術・会話メモ</p><p className="mt-1 whitespace-pre-wrap text-sm">{record.observation_note || "記載なし"}</p></div></div></div>
+function RecordBody({ record, businesses }) {
+  const brand = businesses.find(({ code }) => code === record.record_brand_code)?.name
+  return <div className="mt-3"><div className="flex flex-wrap items-center gap-2"><strong className="text-gray-900">{formatDate(record.record_date)}</strong><span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">{[groupLabels[record.record_group_code], brand, record.location_label === brand ? null : record.location_label, record.service_label].filter(Boolean).join("・") || "実施内容未移行"}</span></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-sky-50 p-3"><p className="text-xs font-bold text-sky-900">💬 本人から聞いたこと</p><p className="mt-1 whitespace-pre-wrap text-sm">{record.customer_note || "記載なし"}</p></div><div className="rounded-xl bg-slate-50 p-3"><p className="text-xs font-bold text-slate-800">📝 観察・指導・施術・会話メモ</p><p className="mt-1 whitespace-pre-wrap text-sm">{record.observation_note || "記載なし"}</p></div></div></div>
 }

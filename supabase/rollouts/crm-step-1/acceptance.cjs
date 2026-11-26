@@ -12,6 +12,7 @@ const appOrigin = 'http://127.0.0.1:35430'
 const accounts = ['owner', 'test-admin', 'member']
 const withMemberships = process.argv.includes('--membership-a')
 const withCommonName = process.argv.includes('--common-name')
+const withRecordContext = process.argv.includes('--record-context')
 const legacyAppDir = process.env.CRM_ACCEPTANCE_LEGACY_APP_DIR
 const withNus = withMemberships || process.argv.includes('--step2b')
 const withBusinesses = withNus || process.argv.includes('--step2a')
@@ -51,6 +52,28 @@ function dbInput(input, ...args) {
   { encoding: 'utf8', input })
 }
 
+function verifyRecordMigration() {
+  const query = (input) => dbInput(input, 'psql', '-X', '-Atq', '-v', 'ON_ERROR_STOP=1').trim()
+  const fingerprint = `select md5(jsonb_agg(to_jsonb(r)-'record_group_code'-'record_brand_code'-'location_label'-'service_label' order by r.id)::text)
+    from public.crm_records r where r.location_id is not null or r.service_id is not null;`
+  const oldHash = query(fingerprint)
+  const migration = readFileSync(join(__dirname, '../crm-records/02-import-record-context.sql'), 'utf8')
+  const apply = (prefix = '') => query("begin;\n" + prefix + "set local crm.records_source_hash='" + oldHash + "';\n" + migration + "\ncommit;")
+  assert.throws(() => apply("alter table crm_records disable trigger crm_validate_record_context;\nupdate crm_records set service_id=2 where id=1;\n"),
+    /Unapproved legacy record source/)
+  assert.equal(query(fingerprint), oldHash)
+  apply()
+  assert.equal(query("select count(*) from crm_records where service_label='ヨガ' and record_group_code is not null;"), '4')
+  assert.equal(query(fingerprint), oldHash)
+  const resultHash = query('select md5(jsonb_agg(to_jsonb(r) order by id)::text) from crm_records r;')
+  apply()
+  assert.equal(query('select md5(jsonb_agg(to_jsonb(r) order by id)::text) from crm_records r;'), resultHash)
+  assert.throws(() => apply("alter table crm_records disable trigger crm_validate_record_context;\nalter table crm_records disable trigger set_crm_records_updated_at;\nupdate crm_records set location_label='Synthetic conflicting location' where id=1;\n"),
+    /Existing record context conflicts/)
+  assert.equal(query('select md5(jsonb_agg(to_jsonb(r) order by id)::text) from crm_records r;'), resultHash)
+  console.log('PASS Four historical records, original fields, zero-change replay, invalid source and conflict rollback')
+}
+
 async function rest(session, path, method = 'GET', body) {
   const headers = { 'content-type': 'application/json', prefer: 'return=representation' }
   if (session) headers.authorization = `Bearer ${session.access_token}`
@@ -82,18 +105,20 @@ async function verifyApi(sessions) {
   assert.equal(created.status, 200)
   const path = `/crm_customers?id=eq.${created.data}`
   const joined = await rest(owner, path + '&select=id,crm_customer_services(location_id,service_id)')
-  assert.deepEqual(joined.data[0].crm_customer_services, [{ location_id: 1, service_id: 1 }])
+  assert.deepEqual(joined.data[0].crm_customer_services, withRecordContext ? [] : [{ location_id: 1, service_id: 1 }])
   for (const edit of [{ nickname: 'Edited fixture' }, { archived: true }, { archived: false }]) {
     const response = await rest(owner, path, 'PATCH', edit)
     assert.deepEqual(Object.fromEntries(Object.keys(edit).map(key => [key, response.data[0][key]])), edit)
   }
   assert.equal((await rest(owner, path, 'DELETE')).status, 403)
-  const rolledBack = await rest(owner, '/rpc/crm_create_customer', 'POST', {
-    customer: { name: 'Must roll back', nickname: 'Must roll back' }, relations: [{ location_id: 1, service_id: 99999 }],
-  })
-  assert.equal(rolledBack.data.code, '23503')
-  assert.deepEqual((await rest(owner, '/crm_customers?name=eq.Must%20roll%20back')).data, [])
-  console.log('PASS Auth JWTs and Data API CRM authorization, create, edit, archive, restore, rollback, delete denial')
+  if (!withRecordContext) {
+    const rolledBack = await rest(owner, '/rpc/crm_create_customer', 'POST', {
+      customer: { name: 'Must roll back', nickname: 'Must roll back' }, relations: [{ location_id: 1, service_id: 99999 }],
+    })
+    assert.equal(rolledBack.data.code, '23503')
+    assert.deepEqual((await rest(owner, '/crm_customers?name=eq.Must%20roll%20back')).data, [])
+  }
+  console.log('PASS Auth JWTs and Data API CRM authorization, create, edit, archive, restore and delete denial')
 }
 
 async function verifyRevocation(owner) {
@@ -219,7 +244,7 @@ async function verifyBrowser(sessions) {
     await send('Page.navigate', { url: appOrigin + '/login' })
     await waitFor(() => evaluate(`location.origin === '${appOrigin}' && document.readyState === 'complete'`), 'login origin')
     const routes = [['/admin/customers', '顧客管理'], ['/admin/customers/1', 'existing fixture'],
-      ['/admin/customers/settings', '担当先・サービス設定']]
+      ...(withRecordContext ? [] : [['/admin/customers/settings', '担当先・サービス設定']])]
     for (let index = 0; index < sessions.length; index++) {
       await evaluate(`localStorage.setItem('sb-127-auth-token', ${JSON.stringify(JSON.stringify(sessions[index]))})`)
       for (const [path, expected] of routes) {
@@ -410,6 +435,61 @@ async function verifyBrowser(sessions) {
         }
         console.log('PASS CRM 390px light and dark form, dialog and search contrast')
         await send('Emulation.setEmulatedMedia', { features: [] })
+        if (withRecordContext) {
+          await send('Page.navigate', { url: appOrigin + '/admin/customers/settings' })
+          await waitFor(() => evaluate("location.pathname === '/admin/customers'"), 'retired settings redirects')
+          assert.equal(await hasText('旧サービス情報を確認'), false)
+          const contexts = [
+            ['mglitter', ids[0], '合成サービス', 'overture'],
+            ['lilly', ids[1], 'マットピラティス', null],
+            ['nus', ids[2], '合成NUS活動', null],
+          ]
+          for (const [group, recordCustomer, label, brand] of contexts) {
+            const scheme = group === 'lilly' ? 'dark' : 'light'
+            await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: scheme }] })
+            await send('Page.navigate', { url: appOrigin + '/admin/customers/' + recordCustomer })
+            await waitFor(() => hasText('＋ 今日の記録'), 'open customer record')
+            await click('＋ 今日の記録')
+            await waitFor(() => hasText('記録先の所属'), 'record context fields')
+            await select('form select', group)
+            if (brand) await select('form select[name=record_brand_code]', brand)
+            if (group === 'lilly') await select('form select[name=service_label]', label)
+            else await fill('form input[name=service_label]', label)
+            await fill('textarea[name=observation_note]', 'Synthetic original note')
+            assert.equal(await evaluate("getComputedStyle(document.querySelector('[role=dialog]')).colorScheme"), scheme)
+            assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'))
+            await click('保存')
+            await waitFor(() => evaluate(`!document.querySelector('[role=dialog]') && document.body.innerText.includes(${JSON.stringify(label)})`), 'new record displayed')
+            const recordPath = '/crm_records?customer_id=eq.' + recordCustomer + '&record_group_code=eq.' + group
+            const saved = (await rest(owner, recordPath)).data[0]
+            assert.equal(saved.service_label, label)
+            assert.equal(saved.location_id, null)
+            assert.equal(saved.service_id, null)
+            if (group === 'nus') assert.ok(await hasText('最終参加日：記録なし'))
+            await evaluate("[...document.querySelectorAll('article button')].find(button=>button.textContent.trim()==='編集').click()")
+            await waitFor(() => hasText('記録を編集'), 'record editing')
+            await fill('textarea[name=observation_note]', 'Synthetic updated note')
+            await click('保存')
+            await waitFor(() => hasText('Synthetic updated note'), 'record edit saved')
+            const edited = (await rest(owner, recordPath)).data[0]
+            assert.equal(edited.service_label, saved.service_label)
+            assert.equal(edited.record_brand_code, saved.record_brand_code)
+            assert.equal(edited.record_date, saved.record_date)
+          }
+          await send('Emulation.setEmulatedMedia', { features: [] })
+          assert.deepEqual(await rest(owner, relationshipPath), oldRelations)
+          assert.deepEqual(await rest(owner, businessPath), oldBusiness)
+          assert.deepEqual(await rest(owner, consentPath), oldConsent)
+          await send('Page.navigate', { url: appOrigin + '/admin/customers/1' })
+          await waitFor(() => hasText('合成旧記録'), 'migrated record displayed')
+          await evaluate("[...document.querySelectorAll('article button')].find(button=>button.textContent.trim()==='編集').click()")
+          await waitFor(() => hasText('記録を編集'), 'legacy record note editing')
+          assert.equal(await evaluate("document.querySelector('[role=dialog] select')"), null)
+          await fill('textarea[name=observation_note]', 'Synthetic historical note edit')
+          await click('保存')
+          await waitFor(() => hasText('Synthetic historical note edit'), 'old record edited without remapping')
+          console.log('PASS Three-group records, multiple affiliations, legacy rendering and NUS participation exclusion')
+        }
         continue
       }
       if (legacyAppDir) {
@@ -762,7 +842,21 @@ values (1, 1, 2, '月謝');
         readFileSync(join(__dirname, '../crm-common-name/01-common-name.sql'), 'utf8') +
         readFileSync(join(__dirname, '../crm-nus-category/01-category.sql'), 'utf8') +
         readFileSync(join(__dirname, '../crm-membership-form/01-save-details.sql'), 'utf8')
+      if (withRecordContext) migration += `
+update public.crm_locations set name='yoga&pilates Lilly' where id=1;
+insert into public.crm_locations(name) values('3rd place');
+alter table public.crm_records add column customer_note text, add column observation_note text,
+  add column updated_at timestamptz not null default now();
+create function public.set_crm_updated_at() returns trigger language plpgsql as $fixture$
+begin new.updated_at=now(); return new; end $fixture$;
+create trigger set_crm_records_updated_at before update on public.crm_records
+for each row execute function public.set_crm_updated_at();
+update public.crm_records set location_id=1,service_id=1,customer_note='合成旧記録';
+insert into public.crm_records(customer_id,location_id,service_id,customer_note)
+values(1,1,1,'合成旧記録'),(1,1,1,'合成旧記録'),(1,2,1,'合成旧記録');
+` + readFileSync(join(__dirname, '../crm-records/01-record-context.sql'), 'utf8')
       dbInput(fixture + migration + "\nnotify pgrst, 'reload schema';\n", 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
+      if (withRecordContext) verifyRecordMigration()
     }
   }
   const sessions = await Promise.all(accounts.map(account => auth('/token?grant_type=password', account)))
@@ -774,6 +868,16 @@ values (1, 1, 2, '月謝');
   }
   assert.equal(new Set(sessions.map(session => session.user.id)).size, 3)
   await verifyApi(sessions)
+  if (withRecordContext) {
+    const payload = { customer_id: 1, record_date: '2020-01-01', record_group_code: 'nus', service_label: 'Synthetic activity' }
+    assert.equal((await rest(sessions[0], '/crm_records', 'POST', payload)).data.code, '23514')
+    const denied = await rest(sessions[0], '/crm_customer_services?customer_id=eq.1', 'DELETE')
+    assert.equal(denied.status, 403)
+    for (const session of [null, sessions[1], sessions[2]]) {
+      assert.ok([401, 403].includes((await rest(session, '/crm_records', 'POST', payload)).status))
+    }
+    console.log('PASS Direct record writes enforce active affiliation and owner RLS; legacy rows are read-only')
+  }
   if (withCommonName) {
     for (const [path, args] of [
       ['/rpc/crm_create_customer', { customer: { name: 'Formal only rejected' }, relations: [] }],
