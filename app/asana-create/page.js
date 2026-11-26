@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
+import { privateUploads, uploadPrivateAsanaImage } from '@/lib/asana-images'
 import {
   ASANA_TYPES,
   TYPE_LABELS,
@@ -78,9 +79,12 @@ export default function AsanaCreatePage() {
   }
 
   async function compressImage(file) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const img = new Image()
       const reader = new FileReader()
+      const fail = () => reject(new Error('画像をWebPに変換できませんでした。'))
+      img.onerror = fail
+      reader.onerror = fail
 
       reader.readAsDataURL(file)
 
@@ -104,7 +108,7 @@ export default function AsanaCreatePage() {
 
         canvas.toBlob(
           (blob) => {
-            if (!blob) return
+            if (blob?.type !== 'image/webp') return fail()
 
             const compressedFile = new File(
               [blob],
@@ -127,6 +131,7 @@ export default function AsanaCreatePage() {
     if (!imageFile) return null
 
     const compressedFile = await compressImage(imageFile)
+    if (privateUploads) return uploadPrivateAsanaImage(compressedFile)
 
     const fileExt = compressedFile.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random()
@@ -215,7 +220,8 @@ export default function AsanaCreatePage() {
           caution,
           variation,
           note,
-          image_url: uploadedImageUrl,
+          image_url: privateUploads ? null : uploadedImageUrl,
+          ...(privateUploads && uploadedImageUrl ? { private_image_path: uploadedImageUrl } : {}),
           strength,
           flexibility,
           adjustment,

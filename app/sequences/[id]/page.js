@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
+import { waitForAsanaPrintImages } from '@/lib/asana-images'
+import AsanaImage from '@/components/AsanaImage'
 
 import {
   DndContext,
@@ -371,9 +373,9 @@ function SortableSequenceItem({
             ☰
           </button>
 
-          {item.asanas?.image_url ? (
-            <img
-              src={item.asanas.image_url}
+          {(item.asanas?.image_url || item.asanas?.private_image_path) ? (
+            <AsanaImage
+              asana={item.asanas}
               alt={item.asanas.title}
               className="h-14 w-14 shrink-0 rounded-2xl bg-gray-50 object-contain p-1.5 shadow-sm"
             />
@@ -427,9 +429,9 @@ function SortableSequenceItem({
 
       {open && (
         <div className="mt-4 space-y-4 rounded-2xl bg-gray-50 p-4">
-          {item.asanas?.image_url && (
-            <img
-              src={item.asanas.image_url}
+          {(item.asanas?.image_url || item.asanas?.private_image_path) && (
+            <AsanaImage
+              asana={item.asanas}
               alt={item.asanas.title}
               className="h-64 w-full rounded-3xl bg-white object-contain p-4 shadow-sm"
             />
@@ -564,13 +566,14 @@ const [loading, setLoading] = useState(true)
     }
   }
 
-  function handleSequencePrint() {
+  async function handleSequencePrint() {
     if (isIosStandalone()) {
       setPrintHelpOpen(true)
       return
     }
 
-    window.print()
+    if (await waitForAsanaPrintImages(document.querySelector('main'))) window.print()
+    else alert('画像を読み込めませんでした。時間をおいて再度お試しください。')
   }
 
   const sensors = useSensors(
@@ -685,6 +688,7 @@ const [loading, setLoading] = useState(true)
             alias,
             sanskrit,
             image_url,
+            private_image_path,
             types,
             chakras,
             howto,

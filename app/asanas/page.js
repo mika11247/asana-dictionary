@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { supabase } from '@/lib/supabaseClient'
+import { waitForAsanaPrintImages } from '@/lib/asana-images'
+import AsanaImage from '@/components/AsanaImage'
 import NativePrintHelpDialog, {
   isIosStandalone,
 } from '@/components/NativePrintHelpDialog'
@@ -95,39 +97,6 @@ const [selectedTypes, setSelectedTypes] = useState([])
     afterPrintHandlerRef.current = null
   }
 
-  function waitForPrintImages(printRoot, timeoutMs = 2000) {
-    const pendingImages = Array.from(printRoot?.querySelectorAll('img') || []).filter(
-      (image) => !image.complete
-    )
-
-    if (pendingImages.length === 0) return null
-
-    return new Promise((resolve) => {
-      let remaining = pendingImages.length
-      let timeoutId
-
-      const finish = () => {
-        window.clearTimeout(timeoutId)
-        pendingImages.forEach((image) => {
-          image.removeEventListener('load', handleImageSettled)
-          image.removeEventListener('error', handleImageSettled)
-        })
-        resolve()
-      }
-
-      const handleImageSettled = () => {
-        remaining -= 1
-        if (remaining === 0) finish()
-      }
-
-      timeoutId = window.setTimeout(finish, timeoutMs)
-      pendingImages.forEach((image) => {
-        image.addEventListener('load', handleImageSettled)
-        image.addEventListener('error', handleImageSettled)
-      })
-    })
-  }
-
   async function handleAsanaPrint(asanaId) {
     if (isIosStandalone()) {
       setPrintHelpOpen(true)
@@ -148,8 +117,11 @@ const [selectedTypes, setSelectedTypes] = useState([])
     const printRoot = document.querySelector('[data-asana-print-content]')
 
     try {
-      const imageLoadPromise = waitForPrintImages(printRoot)
-      if (imageLoadPromise) await imageLoadPromise
+      if (!(await waitForAsanaPrintImages(printRoot))) {
+        handleAfterPrint()
+        alert('画像を読み込めませんでした。時間をおいて再度お試しください。')
+        return
+      }
       window.print()
     } catch (error) {
       console.error('印刷画面を開けませんでした。', error)
@@ -682,10 +654,11 @@ selectedMainCategories.length === 0 &&
         </p>
       </div>
 
-{printingAsana.image_url && (
+{(printingAsana.image_url || printingAsana.private_image_path) && (
   <div className="mb-6 rounded-2xl bg-gray-50 p-4">
-    <img
-      src={printingAsana.image_url}
+    <AsanaImage
+      asana={printingAsana}
+      force
       alt={printingAsana.title}
       className="mx-auto max-h-72 w-full object-contain"
     />
@@ -1042,9 +1015,9 @@ selectedMainCategories.length === 0 &&
 >
   <div className="flex min-w-0 flex-1 items-start gap-3">
     
-    {asana.image_url ? (
-      <img
-        src={asana.image_url}
+    {(asana.image_url || asana.private_image_path) ? (
+      <AsanaImage
+        asana={asana}
         alt={asana.title}
         className="h-16 w-16 shrink-0 rounded-2xl bg-gray-50 object-contain p-1.5 shadow-sm sm:h-20 sm:w-20 sm:p-2"
       />
@@ -1201,9 +1174,9 @@ selectedMainCategories.length === 0 &&
   </div>
 )}
 
-{asana.image_url && (
-  <img
-    src={asana.image_url}
+{(asana.image_url || asana.private_image_path) && (
+    <AsanaImage
+      asana={asana}
     alt={asana.title}
     className="h-56 w-full rounded-3xl bg-gray-50 object-contain p-3 shadow-sm"
   />

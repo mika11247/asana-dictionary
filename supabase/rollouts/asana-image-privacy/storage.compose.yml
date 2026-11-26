@@ -1,0 +1,20 @@
+services:
+  storage:
+    image: public.ecr.aws/supabase/storage-api:v1.98.5
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres@db:5432/postgres
+      DB_INSTALL_ROLES: "true"
+      AUTH_JWT_SECRET: crm-acceptance-local-only-signing-secret
+      PGRST_JWT_SECRET: crm-acceptance-local-only-signing-secret
+      POSTGREST_URL: http://rest:3000
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /tmp/fixture-images
+      TENANT_ID: image-acceptance
+      REGION: local
+      GLOBAL_S3_BUCKET: local
+    ports:
+      - 127.0.0.1:35435:5000

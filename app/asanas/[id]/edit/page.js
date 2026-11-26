@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
+import { privateUploads, uploadPrivateAsanaImage } from '@/lib/asana-images'
+import AsanaImage from '@/components/AsanaImage'
 import {
   ASANA_TYPES,
   CHAKRAS,
@@ -53,6 +55,7 @@ export default function AsanaEditPage() {
 
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
+  const [privateImagePath, setPrivateImagePath] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -93,6 +96,7 @@ export default function AsanaEditPage() {
     setNote(data.note || '')
     setImageUrl(data.image_url || '')
     setImagePreview(data.image_url || '')
+    setPrivateImagePath(data.private_image_path ?? null)
     setStrength(data.strength || '')
     setFlexibility(data.flexibility || '')
     setModification(data.modification || '')
@@ -143,9 +147,12 @@ export default function AsanaEditPage() {
   }
 
   async function compressImage(file) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const img = new Image()
       const reader = new FileReader()
+      const fail = () => reject(new Error('画像をWebPに変換できませんでした。'))
+      img.onerror = fail
+      reader.onerror = fail
 
       reader.readAsDataURL(file)
 
@@ -166,7 +173,7 @@ export default function AsanaEditPage() {
 
         canvas.toBlob(
           (blob) => {
-            if (!blob) return
+            if (blob?.type !== 'image/webp') return fail()
 
             const compressedFile = new File(
               [blob],
@@ -188,29 +195,21 @@ export default function AsanaEditPage() {
     setSaving(true)
 
     let uploadedImageUrl = imageUrl
+    let uploadedPrivatePath
 
     try {
       if (imageFile) {
         const compressedFile = await compressImage(imageFile)
-        const fileExt = compressedFile.name.split('.').pop()
-
-        const fileName = `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2)}.${fileExt}`
-
-        const { error: uploadError } = await supabase.storage
-          .from('asana-images')
-          .upload(fileName, compressedFile)
-
-        if (uploadError) throw uploadError
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage
-          .from('asana-images')
-          .getPublicUrl(fileName)
-
-        uploadedImageUrl = publicUrl
+        if (privateUploads || privateImagePath) {
+          uploadedPrivatePath = await uploadPrivateAsanaImage(compressedFile)
+        } else {
+          const fileExt = compressedFile.name.split('.').pop()
+          const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
+          const legacy = supabase.storage.from('asana-images')
+          const { error: uploadError } = await legacy.upload(fileName, compressedFile)
+          if (uploadError) throw uploadError
+          uploadedImageUrl = legacy.getPublicUrl(fileName).data.publicUrl
+        }
       }
 
       const { error } = await supabase
@@ -226,7 +225,8 @@ export default function AsanaEditPage() {
           variation,
           adjustment,
           note,
-          image_url: uploadedImageUrl || null,
+          ...(uploadedPrivatePath ? { private_image_path: uploadedPrivatePath } :
+            imageFile ? { image_url: uploadedImageUrl || null } : {}),
           strength,
           flexibility,
           modification,
@@ -678,10 +678,10 @@ export default function AsanaEditPage() {
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
               />
 
-              {imagePreview && (
+              {(imagePreview || privateImagePath) && (
                 <div className="mt-4 rounded-3xl bg-gray-50 p-4">
-                  <img
-                    src={imagePreview}
+                  <AsanaImage
+                    asana={{ image_url: imagePreview, private_image_path: imageFile ? null : privateImagePath }}
                     alt="プレビュー"
                     className="h-56 w-full rounded-2xl object-contain"
                   />

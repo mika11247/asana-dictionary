@@ -5,6 +5,7 @@ import Link from 'next/link'
 
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/components/AuthProvider'
+import AsanaImage from '@/components/AsanaImage'
 import { TYPE_LABELS } from '@/lib/categories'
 
 const messages = [
@@ -201,10 +202,10 @@ export default function TodayAsanaPage() {
               )}
             </div>
 
-            {selectedAsana.image_url && (
+            {(selectedAsana.image_url || selectedAsana.private_image_path) && (
               <div className="bg-violet-50 p-4">
-                <img
-                  src={selectedAsana.image_url}
+                <AsanaImage
+                  asana={selectedAsana}
                   alt={selectedAsana.title}
                   className="mx-auto max-h-80 rounded-3xl object-contain shadow-sm"
                 />

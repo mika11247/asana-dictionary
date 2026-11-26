@@ -13,6 +13,7 @@ const accounts = ['owner', 'test-admin', 'member']
 const withMemberships = process.argv.includes('--membership-a')
 const withCommonName = process.argv.includes('--common-name')
 const withRecordContext = process.argv.includes('--record-context')
+const withPrivateImages = process.argv.includes('--private-images')
 const legacyAppDir = process.env.CRM_ACCEPTANCE_LEGACY_APP_DIR
 const withNus = withMemberships || process.argv.includes('--step2b')
 const withBusinesses = withNus || process.argv.includes('--step2a')
@@ -152,17 +153,22 @@ function startGateway(nusFailure = () => 0) {
     response.setHeader('access-control-allow-methods', 'GET,HEAD,POST,PATCH,DELETE,OPTIONS')
     response.setHeader('access-control-expose-headers', 'content-range')
     if (request.method === 'OPTIONS') return response.writeHead(204).end()
-    const match = request.url.match(/^\/(auth|rest)\/v1(\/.*)$/)
+    const match = request.url.match(/^\/(auth|rest|storage)\/v1(\/.*)$/)
     if (!match) return response.writeHead(404).end()
     const failure = request.url.startsWith('/rest/v1/crm_nus_profiles?') && nusFailure()
     if (failure) return response.writeHead(failure, { 'content-type': 'application/json' }).end('{}')
-    const origin = match[1] === 'auth' ? authOrigin : restOrigin
+    const origin = { auth: authOrigin, rest: restOrigin, storage: 'http://127.0.0.1:35435' }[match[1]]
     const headers = { ...request.headers }
     delete headers.host
     try {
+      const chunks = []
+      if (!['GET', 'HEAD'].includes(request.method)) {
+        for await (const chunk of request) chunks.push(chunk)
+      }
       const upstream = await fetch(origin + match[2], {
         method: request.method, headers, redirect: 'manual',
-        ...(['GET', 'HEAD'].includes(request.method) ? {} : { body: request, duplex: 'half' }),
+        ...(['GET', 'HEAD'].includes(request.method) ? {} : { body: Buffer.concat(chunks) }),
+        signal: AbortSignal.timeout(15000),
       })
       for (const name of ['content-type', 'content-range']) {
         if (upstream.headers.has(name)) response.setHeader(name, upstream.headers.get(name))
@@ -179,12 +185,15 @@ function startGateway(nusFailure = () => 0) {
 }
 
 async function verifyBrowser(sessions) {
+  const imageFixture = withPrivateImages ? await import('../asana-image-privacy/acceptance.mjs') : null
   let nusFailure = 0
   const gateway = await startGateway(() => nusFailure)
   const chromeProfile = mkdtempSync(join(tmpdir(), 'crm-step1-chrome-'))
   const env = {
     ...process.env, NEXT_PUBLIC_SUPABASE_URL: gatewayOrigin,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: 'crm-acceptance-local-only',
+    SUPABASE_SERVICE_ROLE_KEY: imageFixture?.serviceToken ?? '',
+    NEXT_PUBLIC_PRIVATE_ASANA_UPLOADS: imageFixture ? 'true' : 'false',
   }
   const app = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '-H', '127.0.0.1', '-p', '35430'],
     { env, cwd: legacyAppDir || process.cwd(), stdio: 'inherit', windowsHide: true })
@@ -196,6 +205,7 @@ async function verifyBrowser(sessions) {
   let readBrowserState
   try {
     await waitFor(async () => (await fetch(appOrigin + '/login')).ok, 'loopback app')
+    if (imageFixture) await imageFixture.verifyImages({ sessions, appOrigin, gatewayOrigin })
     const targets = await waitFor(async () => (await fetch('http://127.0.0.1:35434/json/list')).json(), 'Chrome')
     socket = new WebSocket(targets.find(target => target.type === 'page').webSocketDebuggerUrl)
     await new Promise((resolve, reject) => {
@@ -245,6 +255,42 @@ async function verifyBrowser(sessions) {
     await waitFor(() => evaluate(`location.origin === '${appOrigin}' && document.readyState === 'complete'`), 'login origin')
     const routes = [['/admin/customers', '顧客管理'], ['/admin/customers/1', 'existing fixture'],
       ...(withRecordContext ? [] : [['/admin/customers/settings', '担当先・サービス設定']])]
+    if (withPrivateImages) {
+      const openCategory = async () => {
+        await waitFor(() => evaluate("[...document.querySelectorAll('button')].some(b => b.textContent.includes('アーサナ') && b.textContent.includes('▶'))"), 'dictionary category')
+        await evaluate("[...document.querySelectorAll('button')].find(b => b.textContent.includes('アーサナ') && b.textContent.includes('▶')).click()")
+      }
+      const verifySignedImage = async () => {
+        await waitFor(() => evaluate("[...document.images].some(i => i.alt === 'Synthetic pose')"), 'image mounted')
+        await evaluate("[...document.images].find(i => i.alt === 'Synthetic pose').scrollIntoView()")
+        await waitFor(() => evaluate("[...document.images].some(i => i.alt === 'Synthetic pose' && i.naturalWidth > 0 && i.src.includes('/object/sign/'))"), 'signed image')
+      }
+      await evaluate(`localStorage.setItem('sb-127-auth-token', ${JSON.stringify(JSON.stringify(sessions[0]))})`)
+      await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true })
+      for (const theme of ['light', 'dark']) {
+        await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: theme }] })
+        await send('Page.navigate', { url: appOrigin + '/asanas' })
+        await openCategory()
+        await verifySignedImage()
+        assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'))
+      }
+      await evaluate("window.print = () => { window.printImageReady = Boolean(document.querySelector('[data-asana-print-content] img')?.naturalWidth); window.dispatchEvent(new Event('afterprint')) }")
+      await evaluate("[...document.querySelectorAll('span')].find(span => span.textContent.trim() === '詳細')?.click()")
+      await waitFor(() => evaluate("[...document.querySelectorAll('button')].some(b => b.textContent.trim() === '📄')"), 'dictionary print button')
+      await click('📄')
+      await waitFor(() => evaluate('window.printImageReady === true'), 'dictionary print waits for signed image')
+      await send('Page.navigate', { url: appOrigin + '/today-asana' })
+      await verifySignedImage()
+      const sequence = await rest(sessions[0], '/sequences?select=id')
+      await send('Page.navigate', { url: appOrigin + '/sequences/' + sequence.data[0].id })
+      await verifySignedImage()
+      await evaluate(`localStorage.setItem('sb-127-auth-token', ${JSON.stringify(JSON.stringify(sessions[1]))})`)
+      await send('Page.navigate', { url: appOrigin + '/asanas' })
+      await openCategory()
+      await waitFor(() => hasText('Synthetic pose'), 'second account dictionary')
+      assert.equal(await evaluate("[...document.images].some(i => i.src.includes('/object/sign/'))"), false)
+      console.log('PASS Dictionary private image at 390px in light and dark mode; account switch clears visible image')
+    }
     for (let index = 0; index < sessions.length; index++) {
       await evaluate(`localStorage.setItem('sb-127-auth-token', ${JSON.stringify(JSON.stringify(sessions[index]))})`)
       for (const [path, expected] of routes) {
@@ -952,6 +998,11 @@ async function main() {
     for (const account of accounts) await auth('/signup', account)
     const fixtureScript = readFileSync(join(__dirname, 'acceptance-fixture.sh'), 'utf8').replaceAll('\r\n', '\n')
     dbInput(fixtureScript, 'bash')
+    if (withPrivateImages) {
+      const setup = readFileSync(join(__dirname, '../asana-image-privacy/fixture.sql'), 'utf8')
+      const migration = readFileSync(join(__dirname, '../asana-image-privacy/01-private-images.sql'), 'utf8')
+      dbInput(setup + '\n' + migration + "\nnotify pgrst, 'reload schema';", 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
+    }
     if (withBusinesses) {
       const fixture = `
 alter table public.crm_customers add constraint crm_customers_name_not_blank check (length(trim(name)) > 0);
