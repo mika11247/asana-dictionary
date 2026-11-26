@@ -7,12 +7,21 @@ import { groupLabels } from "@/lib/crmMemberships"
 import { isLegacyLilly, customerDisplayName, customerFormalName, usesLillyDisplay } from "@/lib/crmLilly"
 import LillyFields from "@/components/crm/LillyFields"
 import NusCategoryFields from "@/components/crm/NusCategoryFields"
+import NusDetailFields from "@/components/crm/NusDetailFields"
+import { emptyNusProfile } from "@/lib/crmNus"
 
 const emptyCustomer = {
   name: "", nickname: "", name_yomi: "", photo_permission: "unknown", customer_request: "", care_notes: "", private_note: "",
 }
 
 const membershipOptions = ["通い放題", "回数券", "月謝", "体験"]
+const defaultLilly = { membership: "unknown", services: [] }
+const defaultCategory = { category: "", other_label: "" }
+
+function changedFields(current, initial) {
+  const changes = Object.entries(current).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(initial[key]))
+  return changes.length ? Object.fromEntries(changes) : null
+}
 
 function editableCustomerValues(customer = {}) {
   return {
@@ -26,7 +35,7 @@ function editableCustomerValues(customer = {}) {
   }
 }
 
-export default function CustomerForm({ initialCustomer, initialRelations = [], locations, services, businesses, initialGroups = [], initialBrands = [], lillyView = false, findCandidates, onSave, onCancel, submitLabel = "保存" }) {
+export default function CustomerForm({ initialCustomer, initialRelations = [], locations, services, businesses, initialGroups = [], initialBrands = [], initialDedicated, lillyView = false, findCandidates, onSave, onCancel, submitLabel = "保存" }) {
   const [form, setForm] = useState({ ...emptyCustomer, ...editableCustomerValues(initialCustomer) })
   const [relations, setRelations] = useState(initialRelations.filter((item) => !isLegacyLilly(item)).map((item) => ({ id: item.id, location_id: item.location_id, service_id: item.service_id, membership_type: item.membership_type || null })))
   const [locationId, setLocationId] = useState("")
@@ -35,8 +44,14 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [groups, setGroups] = useState(initialGroups)
-  const [lilly, setLilly] = useState({ membership: "unknown", services: [] })
-  const [nusCategory, setNusCategory] = useState({})
+  const initialLilly = initialCustomer?.crm_lilly_profiles
+    ? { membership: initialCustomer.crm_lilly_profiles.membership, services: initialCustomer.crm_lilly_profiles.service_codes }
+    : defaultLilly
+  const initialCategory = initialDedicated?.category || defaultCategory
+  const initialNus = initialDedicated?.profile || emptyNusProfile
+  const [lilly, setLilly] = useState(initialLilly)
+  const [nusCategory, setNusCategory] = useState(initialCategory)
+  const [nusProfile, setNusProfile] = useState(initialNus)
   const [brands, setBrands] = useState(initialBrands)
   const [candidates, setCandidates] = useState(null)
   const [differentPerson, setDifferentPerson] = useState(false)
@@ -90,8 +105,13 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
         customer_request: form.customer_request,
         care_notes: form.care_notes,
         private_note: form.private_note,
-      }, relations, { groups, brands: groups.includes("mglitter") ? brands : [], lilly: groups.includes("lilly") ? lilly : null,
-        nusCategory: !initialCustomer && groups.includes("nus") ? nusCategory : null })
+      }, relations, {
+        groups,
+        brands: groups.includes("mglitter") ? brands : [],
+        lilly: groups.includes("lilly") ? (initialCustomer ? changedFields(lilly, initialLilly) : lilly) : null,
+        nusCategory: groups.includes("nus") && (!initialCustomer || changedFields(nusCategory, initialCategory)) ? nusCategory : null,
+        nusProfile: groups.includes("nus") ? changedFields(nusProfile, initialNus) : null,
+      })
     } catch (err) {
       setError(err.message || "保存できませんでした。")
     } finally {
@@ -158,8 +178,19 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
           </fieldset>
         )}
       </fieldset>
-      {!initialCustomer && groups.includes("lilly") && <LillyFields value={lilly} onChange={setLilly} />}
-      {!initialCustomer && groups.includes("nus") && <NusCategoryFields value={nusCategory} onChange={setNusCategory} />}
+      {groups.includes("lilly") && <fieldset className="space-y-3 rounded-2xl border border-slate-300 p-4">
+        <legend className="px-1 text-sm font-bold">Lilly専用情報</legend>
+        <LillyFields value={lilly} onChange={setLilly} />
+      </fieldset>}
+      {groups.includes("nus") && <fieldset className="space-y-3 rounded-2xl border border-slate-300 p-4">
+        <legend className="px-1 text-sm font-bold">NUS専用情報</legend>
+        <NusCategoryFields value={nusCategory} onChange={setNusCategory} />
+        <details>
+          <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">関心・看板出し・提案</summary>
+          <div className="space-y-4"><NusDetailFields value={nusProfile} onChange={setNusProfile} /></div>
+        </details>
+        <p className="text-sm">連絡意思は保存後に個人カルテから記録できます。</p>
+      </fieldset>}
       <fieldset className="rounded-2xl bg-slate-50 p-4">
         <legend className="px-1 text-sm font-bold text-gray-800">担当先 × サービス</legend>
         <p className="mb-2 text-sm text-gray-600">利用サービスを担当先と組み合わせて登録します。会員種別は組み合わせごとに任意で記録します。</p>

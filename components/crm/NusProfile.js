@@ -2,14 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
+import NusDetailFields from "@/components/crm/NusDetailFields"
 import NusCategoryFields from "@/components/crm/NusCategoryFields"
-import { nusCategoryLabels, emptyNusProfile, interestLabels, listNusRelationshipTypes, progressFields, progressLabels, tokyoDatetime } from "@/lib/crmNus"
-
-const inputClass = "mt-1 block w-full rounded-xl border border-slate-300 p-2 text-base"
-
-function Options({ labels }) {
-  return Object.entries(labels).map(([key, label]) => <option key={key} value={key}>{label}</option>)
-}
+import { nusCategoryLabels, emptyNusProfile, interestLabels, listNusRelationshipTypes, progressFields, progressLabels } from "@/lib/crmNus"
 
 export default function NusProfile({ customerId, archived, legacyStage }) {
   const [state, setState] = useState(null)
@@ -89,28 +84,7 @@ export default function NusProfile({ customerId, archived, legacyStage }) {
           <fieldset disabled={saving} className="space-y-4">
             <NusCategoryFields value={state.category}
               onChange={(category) => setState((current) => ({ ...current, category }))} />
-            {[["product", "商品"], ["business", "ビジネス"]].map(([key, label]) => <div className="space-y-2" key={key}>
-              <label className="block text-sm">{label}への関心
-                <select className={inputClass} value={state.profile[`${key}_interest`]} onChange={(event) => updateProfile({ [`${key}_interest`]: event.target.value })}>
-                  <Options labels={interestLabels} />
-                </select>
-              </label>
-              <label className="block text-sm">{label}への関心メモ（任意）
-                <textarea className={inputClass} rows={2} value={state.profile[`${key}_note`] || ""} onChange={(event) => updateProfile({ [`${key}_note`]: event.target.value })} />
-              </label>
-            </div>)}
-            {progressFields.map(([key, label]) => <div className="space-y-2" key={key}>
-              <label className="block text-sm">{label}
-                <select className={inputClass} value={state.profile[`${key}_status`]} onChange={(event) => updateProfile({
-                  [`${key}_status`]: event.target.value,
-                  [`${key}_on`]: event.target.value === "done" ? state.profile[`${key}_on`] : null,
-                })}><Options labels={progressLabels} /></select>
-              </label>
-              {state.profile[`${key}_status`] === "done" && <label className="block text-sm">{label}の初回実施日（任意）
-                <input className={inputClass} type="date" max={tokyoDatetime(new Date()).slice(0, 10)} value={state.profile[`${key}_on`] || ""}
-                  onChange={(event) => updateProfile({ [`${key}_on`]: event.target.value || null })} />
-              </label>}
-            </div>)}
+            <NusDetailFields value={state.profile} onChange={updateProfile} />
             <div className="flex gap-3">
               <button type="submit" className="min-h-11 rounded-xl bg-sky-700 px-4 font-bold text-white">NUS情報を保存</button>
               <button type="button" className="min-h-11 px-3" onClick={() => { setState(snapshot); setEditing(false); setError("") }}>キャンセル</button>

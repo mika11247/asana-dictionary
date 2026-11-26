@@ -317,7 +317,7 @@ export default function CustomersPage() {
           </div>
         )}
       </div>
-      {showCreate && <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">新規顧客</h2><CustomerForm locations={locations} services={services} businesses={businesses} findCandidates={(form, lillyOnly) => findCrmCustomerCandidates(supabase, form, lillyOnly)} onSave={createCustomer} onCancel={() => setShowCreate(false)} submitLabel="顧客を登録" /></div></div>}
+      {showCreate && <div role="dialog" aria-modal="true" aria-label={"新規顧客"} className="crm-overlay fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">新規顧客</h2><CustomerForm locations={locations} services={services} businesses={businesses} findCandidates={(form, lillyOnly) => findCrmCustomerCandidates(supabase, form, lillyOnly)} onSave={createCustomer} onCancel={() => setShowCreate(false)} submitLabel="顧客を登録" /></div></div>}
     </main>
   )
 }

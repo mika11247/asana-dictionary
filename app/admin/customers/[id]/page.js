@@ -14,6 +14,7 @@ import PhotoPermissionBadge from "@/components/crm/PhotoPermissionBadge"
 import RecordForm from "@/components/crm/RecordForm"
 import { formatDate, listCrmBusinesses, saveCrmBusinessRelationship, saveCrmRecord } from "@/lib/crm"
 import { groupLabels, saveCrmCustomerMemberships } from "@/lib/crmMemberships"
+import { emptyNusProfile } from "@/lib/crmNus"
 
 export default function CustomerDetailPage() {
   const { id } = useParams()
@@ -26,6 +27,8 @@ export default function CustomerDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [mode, setMode] = useState(null)
+  const [dedicated, setDedicated] = useState(null)
+  const [openingCustomer, setOpeningCustomer] = useState(false)
   const [editingRecord, setEditingRecord] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [flagLoading, setFlagLoading] = useState(null)
@@ -46,6 +49,25 @@ export default function CustomerDetailPage() {
     setLoading(false)
   }
   useEffect(() => { if (id) load() }, [id])
+
+  async function openCustomerForm() {
+    if (openingCustomer) return
+    setOpeningCustomer(true)
+    setError("")
+    try {
+      const [profile, category] = await Promise.all([
+        supabase.from("crm_nus_profiles").select(Object.keys(emptyNusProfile).join(",")).eq("customer_id", id).maybeSingle(),
+        supabase.from("crm_nus_categories").select("category, other_label").eq("customer_id", id).maybeSingle(),
+      ])
+      if (profile.error || category.error) throw new Error()
+      setDedicated({ profile: { ...emptyNusProfile, ...profile.data }, category: category.data })
+      setMode("customer")
+    } catch {
+      setError("所属別の情報を読み込めませんでした。再度お試しください。")
+    } finally {
+      setOpeningCustomer(false)
+    }
+  }
 
   async function saveCustomer(values, nextRelations, selection) {
     await saveCrmCustomerMemberships(supabase, id, values, nextRelations, selection)
@@ -110,12 +132,12 @@ export default function CustomerDetailPage() {
         <div className="min-w-0 px-2"><h1 className="break-words text-2xl font-bold leading-snug text-gray-900"><span>{displayName}</span></h1>{formalName && <p className="mt-1 break-words text-sm text-gray-600">{formalName}</p>}</div>
         <button type="button" disabled={Boolean(flagLoading)} onClick={() => toggleCustomerFlag("is_pinned")} aria-label={customer.is_pinned ? "ピックアップから解除" : "ピックアップに追加"} className={`flex h-11 w-11 items-center justify-center rounded-full text-2xl transition disabled:opacity-50 ${customer.is_pinned ? "bg-sky-100 opacity-100" : "opacity-30 hover:bg-gray-50 hover:opacity-60"}`}>📌</button>
       </div>
-      <div className="mt-2 flex justify-end"><button onClick={() => setMode("customer")} className="rounded-xl bg-gray-100 px-3 py-2 text-sm font-bold text-gray-600">編集</button></div>
+      <div className="mt-2 flex justify-end"><button disabled={openingCustomer} onClick={openCustomerForm} className="rounded-xl bg-gray-100 px-3 py-2 text-sm font-bold text-gray-600">編集</button></div>
       <section className="mt-4 rounded-2xl bg-sky-50 p-4" aria-label="現在の所属">
         <h2 className="font-bold">所属</h2>
         <p className="mt-1 text-sm">{groups.map((code) => groupLabels[code]).join("・") || "所属未設定"}</p>
         {brands.length > 0 && <p className="mt-1 text-sm">M.glitterのブランド：{businesses.filter(({ code }) => brands.includes(code)).map(({ name }) => name).join("・")}</p>}
-        <button type="button" onClick={() => setMode("customer")} className="mt-1 min-h-11 text-sm font-bold text-sky-800">所属を編集</button>
+        <button type="button" disabled={openingCustomer} onClick={openCustomerForm} className="mt-1 min-h-11 text-sm font-bold text-sky-800">所属を編集</button>
       </section>
       <div className="mt-5"><p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">写真掲載可否</p><PhotoPermissionBadge value={customer.photo_permission} prominent /></div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -139,7 +161,7 @@ export default function CustomerDetailPage() {
     <section className="mt-4 rounded-3xl bg-white p-5 shadow-sm"><h2 className="mb-4 text-lg font-bold">過去の記録</h2><div className="space-y-4">{records.map((record) => <article key={record.id} className="rounded-2xl border border-gray-100 p-4"><RecordBody record={record} /><div className="mt-3 flex justify-end gap-3"><button onClick={() => { setEditingRecord(record); setMode("record") }} className="text-sm font-bold text-sky-700">編集</button><button disabled={actionLoading} onClick={() => deleteRecord(record.id)} className="text-sm font-bold text-red-600">削除</button></div></article>)}</div></section>
     <button disabled={actionLoading} onClick={toggleArchive} className={`mt-6 w-full rounded-2xl border px-4 py-3 text-sm font-bold ${customer.archived ? "border-emerald-200 text-emerald-700" : "border-gray-200 text-gray-500"}`}>{customer.archived ? "アーカイブから復元" : "この顧客をアーカイブ"}</button>
   </div>
-  {mode && <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">{mode === "customer" ? "顧客情報と所属を編集" : editingRecord ? "記録を編集" : "記録を追加"}</h2>{mode === "customer" ? <CustomerForm initialCustomer={customer} initialRelations={customer.crm_customer_services} initialGroups={groups} initialBrands={brands} lillyView={lillyView} locations={locations} services={services} businesses={businesses} onSave={saveCustomer} onCancel={() => setMode(null)} /> : <RecordForm initialRecord={editingRecord || undefined} locations={locations} services={services} onSave={saveRecord} onCancel={() => { setMode(null); setEditingRecord(null) }} />}</div></div>}
+  {mode && <div role="dialog" aria-modal="true" aria-label={mode === "customer" ? "顧客情報と所属を編集" : "カルテの記録"} className="crm-overlay fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4"><div className="mx-auto my-4 max-w-xl rounded-3xl bg-white p-5 shadow-xl"><h2 className="mb-5 text-xl font-bold">{mode === "customer" ? "顧客情報と所属を編集" : editingRecord ? "記録を編集" : "記録を追加"}</h2>{mode === "customer" ? <CustomerForm initialCustomer={customer} initialDedicated={dedicated} initialRelations={customer.crm_customer_services} initialGroups={groups} initialBrands={brands} lillyView={lillyView} locations={locations} services={services} businesses={businesses} onSave={saveCustomer} onCancel={() => setMode(null)} /> : <RecordForm initialRecord={editingRecord || undefined} locations={locations} services={services} onSave={saveRecord} onCancel={() => { setMode(null); setEditingRecord(null) }} />}</div></div>}
   </main>
 }
 

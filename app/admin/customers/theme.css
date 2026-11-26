@@ -1,0 +1,69 @@
+/* The CRM uses its own surfaces and form colors inside the shared app theme. */
+.crm-theme {
+  --crm-text: #172033;
+  --crm-input: #fff;
+  --crm-border: #64748b;
+  --crm-placeholder: #475569;
+  color: var(--crm-text);
+  color-scheme: light;
+  accent-color: #0369a1;
+}
+
+.crm-theme :is(input:not([type=checkbox]):not([type=radio]), select, textarea) {
+  color: var(--crm-text);
+  background-color: var(--crm-input);
+  border-color: var(--crm-border);
+}
+
+.crm-theme :is(input, textarea)::placeholder {
+  color: var(--crm-placeholder);
+  opacity: 1;
+}
+
+.crm-theme :is(button, a, summary, input, select, textarea):focus-visible {
+  outline: 2px solid #0369a1;
+  outline-offset: 2px;
+}
+
+.crm-theme :is(button.bg-sky-600, a.bg-sky-600) {
+  background-color: #0369a1;
+}
+
+@media (prefers-color-scheme: dark) {
+  .crm-theme {
+    --crm-text: #f1f5f9;
+    --crm-input: #0f172a;
+    --crm-border: #94a3b8;
+    --crm-placeholder: #cbd5e1;
+    color-scheme: dark;
+    accent-color: #7dd3fc;
+  }
+
+  .crm-theme main {
+    background: #0f172a;
+  }
+
+  .crm-theme :is(.bg-white, .bg-slate-50, .bg-slate-100, .bg-gray-50, .bg-gray-100, .bg-gray-200) {
+    background-color: #1e293b;
+  }
+
+  .crm-theme :is(.bg-sky-50, .bg-sky-100) { background-color: #16364b; }
+  .crm-theme :is(.bg-violet-50, .bg-violet-100) { background-color: #352650; }
+  .crm-theme :is(.bg-amber-50, .bg-amber-100) { background-color: #483519; }
+  .crm-theme :is(.bg-red-50, .bg-red-100) { background-color: #4c242d; }
+  .crm-theme :is(.bg-green-50, .bg-emerald-50) { background-color: #173c32; }
+  .crm-theme .crm-overlay { background-color: rgb(2 6 23 / 75%); }
+
+  .crm-theme :is(.text-gray-900,.text-gray-800,.text-gray-700,.text-gray-600,.text-gray-500,.text-gray-400,
+    .text-slate-900,.text-slate-800,.text-slate-700,.text-slate-600,.text-slate-500,.text-slate-400) {
+    color: #e2e8f0;
+  }
+
+  .crm-theme :is(.text-sky-900,.text-sky-800,.text-sky-700,.text-sky-600) { color: #bae6fd; }
+  .crm-theme :is(.text-violet-900,.text-violet-800,.text-violet-700,.text-violet-600) { color: #e9d5ff; }
+  .crm-theme :is(.text-amber-900,.text-amber-800,.text-amber-700,.text-amber-600) { color: #fde68a; }
+  .crm-theme :is(.text-red-900,.text-red-800,.text-red-700,.text-red-600) { color: #fecdd3; }
+  .crm-theme :is(.text-green-800,.text-green-700,.text-emerald-800,.text-emerald-700) { color: #bbf7d0; }
+  .crm-theme :is(.border-gray-100,.border-gray-200,.border-slate-200,.border-slate-300,.border-sky-100) { border-color: #64748b; }
+  .crm-theme :is(button, a, summary, input, select, textarea):focus-visible { outline-color: #7dd3fc; }
+}

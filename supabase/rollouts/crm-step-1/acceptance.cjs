@@ -256,8 +256,15 @@ async function verifyBrowser(sessions) {
           assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('form input[name]')).slice(0,3).map(input => input.name)"), ['nickname', 'name', 'name_yomi'])
           assert.equal(await evaluate("document.querySelector('input[name=nickname]').required"), true)
           await chooseGroup(group)
+          if (group === 'M.glitter') assert.equal(await evaluate("!!document.querySelector('form label:has(select option[value=candidate])')"), false)
+          if (group === 'Lilly') {
+            await select('form select', 'ticket')
+            await evaluate("[...document.querySelectorAll('form label')].find(label => label.textContent.trim()==='ヨガ')?.querySelector('input').click()")
+          }
           if (group === 'NUS') {
             await select('form label:has(select option[value="candidate"]) select', 'candidate')
+            await evaluate("document.querySelector('form details').open = true")
+            await fill('form details textarea', 'Registration NUS note')
           }
           await fill('input[name=nickname]', '共通テスト名')
           await click('顧客を登録')
@@ -309,6 +316,8 @@ async function verifyBrowser(sessions) {
         const businessPath = '/crm_customer_businesses?customer_id=eq.' + id + '&business_code=eq.nus'
         const consentPath = '/crm_contact_preference_events?customer_id=eq.' + id
         assert.deepEqual((await rest(owner, categoryPath)).data, [{ category: 'candidate', other_label: null }])
+        assert.deepEqual((await rest(owner, '/crm_nus_profiles?customer_id=eq.' + id + '&select=product_note')).data,
+          [{ product_note: 'Registration NUS note' }])
         assert.equal((await rest(owner, businessPath, 'PATCH', { stage: 'prospect' })).status, 200)
         const details = {
           product_interest: 'interested', product_note: 'Synthetic product note', business_interest: 'considering',
@@ -327,6 +336,26 @@ async function verifyBrowser(sessions) {
         await click('連絡意思を保存')
         await waitFor(async () => (await rest(owner, consentPath)).data.length === 1, 'global refusal saved')
         const [oldRelations, oldBusiness, oldConsent] = await Promise.all([relationshipPath, businessPath, consentPath].map(path => rest(owner, path)))
+        const lillyId = ids[1]
+        await send('Page.navigate', { url: appOrigin + '/admin/customers/' + lillyId })
+        await waitFor(() => hasText('Lilly情報を編集'), 'Lilly dedicated information')
+        await click('所属を編集')
+        await waitFor(() => hasText('Lillyの会員種別'), 'common edit loads Lilly fields')
+        assert.equal(await evaluate("document.querySelector('form select').value"), 'ticket')
+        await evaluate("[...document.querySelectorAll('form label')].find(label => label.textContent.trim()==='マシンピラティス').querySelector('input').click()")
+        await click('保存')
+        await waitFor(() => evaluate("!document.querySelector('input[name=nickname]')"), 'Lilly edit saved')
+        assert.deepEqual((await rest(owner, '/crm_lilly_profiles?customer_id=eq.' + lillyId + '&select=membership,service_codes')).data,
+          [{ membership: 'ticket', service_codes: ['yoga', 'machine'] }])
+        await send('Page.navigate', { url: appOrigin + '/admin/customers/' + id })
+        await waitFor(() => hasText('NUS情報を編集'), 'NUS detail for common edit')
+        await click('所属を編集')
+        await waitFor(() => hasText('NUS専用情報'), 'common edit loads NUS fields')
+        assert.equal(await evaluate("document.querySelector('form label:has(select option[value=candidate]) select').value"), 'candidate')
+        await evaluate("document.querySelector('form details').open=true")
+        assert.equal(await evaluate("document.querySelector('form details textarea').value"), 'Synthetic product note')
+        await click('保存')
+        await waitFor(() => evaluate("!document.querySelector('input[name=nickname]')"), 'untouched dedicated fields saved safely')
         for (const [code, label, memo] of [
           ['user','愛用者'], ['downline','ダウンライン'], ['upline','アップライン'],
           ['other','その他','合成メモ'], ['other','その他','編集後の合成メモ'], ['candidate','候補'], ['', '未設定'],
@@ -354,6 +383,33 @@ async function verifyBrowser(sessions) {
         assert.ok(await hasText('2020-01-01'))
         assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'))
         console.log('PASS NUS single category, legacy conflicts preserved, refusal preservation and 390px filters')
+        for (const theme of ['light','dark']) {
+          await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: theme }] })
+          await send('Page.navigate', { url: appOrigin + '/admin/customers' })
+          await waitFor(() => hasText('＋ 新規顧客'), 'CRM list theme')
+          await click('＋ 新規顧客')
+          await waitFor(() => hasText('顧客を登録'), 'CRM dialog theme')
+          const metrics = await evaluate(`(() => {
+            const surface = document.querySelector('[role=dialog] > div')
+            const input = surface.querySelector('input[name=nickname]')
+            const ctx = document.createElement('canvas').getContext('2d')
+            function luminance(color) {
+              ctx.clearRect(0,0,1,1); ctx.fillStyle=color; ctx.fillRect(0,0,1,1)
+              const rgb=[...ctx.getImageData(0,0,1,1).data].slice(0,3).map(x=>x/255).map(x=>x<=0.04045?x/12.92:((x+0.055)/1.055)**2.4)
+              return rgb[0]*0.2126+rgb[1]*0.7152+rgb[2]*0.0722
+            }
+            function ratio(a,b) { const values=[luminance(a),luminance(b)].sort((x,y)=>y-x); return (values[0]+0.05)/(values[1]+0.05) }
+            const frame=getComputedStyle(surface), field=getComputedStyle(input)
+            const search=document.querySelector('input[placeholder^="名前"]')
+            return [ratio(frame.color,frame.backgroundColor), ratio(field.color,field.backgroundColor),
+              ratio(getComputedStyle(search,'::placeholder').color,getComputedStyle(search).backgroundColor),
+              document.documentElement.scrollWidth<=innerWidth]
+          })()`)
+          assert.ok(metrics.slice(0,3).every(value => value >= 4.5), theme + ' contrast ' + metrics)
+          assert.equal(metrics[3], true)
+        }
+        console.log('PASS CRM 390px light and dark form, dialog and search contrast')
+        await send('Emulation.setEmulatedMedia', { features: [] })
         continue
       }
       if (legacyAppDir) {
@@ -704,7 +760,8 @@ values (1, 1, 2, '月謝');
 `
       if (withCommonName) migration += "update public.crm_customers set nickname=null where id=1;\n" +
         readFileSync(join(__dirname, '../crm-common-name/01-common-name.sql'), 'utf8') +
-        readFileSync(join(__dirname, '../crm-nus-category/01-category.sql'), 'utf8')
+        readFileSync(join(__dirname, '../crm-nus-category/01-category.sql'), 'utf8') +
+        readFileSync(join(__dirname, '../crm-membership-form/01-save-details.sql'), 'utf8')
       dbInput(fixture + migration + "\nnotify pgrst, 'reload schema';\n", 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
     }
   }
@@ -733,6 +790,12 @@ values (1, 1, 2, '月謝');
       selected_brands: [], lilly_details: null, category_code: 'other', other_value: '  ' }
     assert.equal((await rest(sessions[0], '/rpc/crm_create_customer_with_nus_category', 'POST', input)).data.code, '23514')
     assert.deepEqual((await rest(sessions[0], '/crm_customers?nickname=eq.NUS%20atomic%20rollback')).data, [])
+    const combinedFailure = await rest(sessions[0], '/rpc/crm_save_customer_membership_details', 'POST', {
+      target_customer_id: null, customer: { nickname: 'Combined rollback fixture' }, relations: [], selected_groups: ['lilly','nus'], selected_brands: [],
+      lilly_patch: { membership: 'ticket', services: ['yoga'] }, nus_category_patch: { category: 'other' }, nus_profile_patch: null,
+    })
+    assert.equal(combinedFailure.data.code, '23514')
+    assert.deepEqual((await rest(sessions[0], '/crm_customers?nickname=eq.Combined%20rollback%20fixture')).data, [])
     const mixed = await rest(sessions[0], '/rpc/crm_create_customer_with_nus_category', 'POST', {
       ...input, customer: { nickname: 'NUS mixed membership fixture' }, selected_groups: ['mglitter', 'nus', 'lilly'],
       selected_brands: ['moments'], lilly_details: { membership: 'ticket', services: ['yoga'] },
@@ -751,6 +814,7 @@ values (1, 1, 2, '月謝');
       for (const [name, args] of [
         ['crm_create_customer_with_nus_category', { ...input, category_code: 'candidate', other_value: null }],
         ['crm_save_nus_profile_and_category', { target_customer_id: 1, details: {}, category_code: 'candidate', other_value: null }],
+        ['crm_save_customer_membership_details', { target_customer_id: null, customer: { nickname: 'Denied' }, relations: [], selected_groups: ['nus'], selected_brands: [], lilly_patch: null, nus_category_patch: { category: 'candidate' }, nus_profile_patch: null }],
       ]) {
         assert.ok([401, 403].includes((await rest(session, '/rpc/' + name, 'POST', args)).status))
       }
