@@ -449,6 +449,7 @@ async function verifyBrowser(sessions) {
             await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: scheme }] })
             await send('Page.navigate', { url: appOrigin + '/admin/customers/' + recordCustomer })
             await waitFor(() => hasText('＋ 今日の記録'), 'open customer record')
+            assert.ok(await hasText('最終記録日：記録なし'))
             await click('＋ 今日の記録')
             await waitFor(() => hasText('記録先の所属'), 'record context fields')
             await select('form select', group)
@@ -465,7 +466,9 @@ async function verifyBrowser(sessions) {
             assert.equal(saved.service_label, label)
             assert.equal(saved.location_id, null)
             assert.equal(saved.service_id, null)
-            if (group === 'nus') assert.ok(await hasText('最終参加日：記録なし'))
+            const savedDate = new Intl.DateTimeFormat('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
+              .format(new Date(saved.record_date + 'T00:00:00Z'))
+            assert.ok(await hasText('最終記録日：' + savedDate))
             await evaluate("[...document.querySelectorAll('article button')].find(button=>button.textContent.trim()==='編集').click()")
             await waitFor(() => hasText('記録を編集'), 'record editing')
             await fill('textarea[name=observation_note]', 'Synthetic updated note')
@@ -488,7 +491,7 @@ async function verifyBrowser(sessions) {
           await fill('textarea[name=observation_note]', 'Synthetic historical note edit')
           await click('保存')
           await waitFor(() => hasText('Synthetic historical note edit'), 'old record edited without remapping')
-          console.log('PASS Three-group records, multiple affiliations, legacy rendering and NUS participation exclusion')
+          console.log('PASS Three-group records, last record date and legacy rendering')
           const lillyBusinessPath = '/crm_customer_businesses?customer_id=eq.' + lillyId + '&business_code=eq.third_place'
           assert.equal((await rest(owner, '/crm_customer_businesses', 'POST', {
             customer_id: Number(lillyId), business_code: 'third_place', source: 'service', stage: 'unconfirmed',
@@ -516,14 +519,41 @@ async function verifyBrowser(sessions) {
           const setAffiliations = (groups, brands) => rest(owner, '/rpc/crm_save_customer_memberships', 'POST', {
             target_customer_id: Number(lillyId), customer: { nickname: '共通テスト名' }, relations: [], selected_groups: groups, selected_brands: brands,
           })
+          const affiliationBlock = () => evaluate("Array.from(document.querySelectorAll('section[aria-label=\"現在の所属\"] p'),p=>p.textContent)")
+          assert.equal((await setAffiliations(['mglitter', 'lilly', 'nus'], [])).status, 200)
+          await checkThirdPlace(lillyId, false)
+          assert.deepEqual(await affiliationBlock(), ['M.glitter', 'NUS・Lilly'])
           assert.equal((await setAffiliations(['mglitter', 'lilly', 'nus'], ['third_place'])).status, 200)
           await checkThirdPlace(lillyId, true)
+          assert.deepEqual(await affiliationBlock(), ['M.glitter：3rd place', 'NUS・Lilly'])
+          assert.equal((await setAffiliations(['mglitter', 'lilly', 'nus'], ['third_place', 'moments'])).status, 200)
+          await checkThirdPlace(lillyId, true)
+          assert.deepEqual(await affiliationBlock(), ['M.glitter：3rd place、moments', 'NUS・Lilly'])
+          assert.ok(await hasText('Lilly専用情報'))
+          assert.ok(await hasText('NUS情報'))
+          assert.equal((await setAffiliations(['mglitter', 'lilly', 'nus'], ['third_place'])).status, 200)
+          await checkThirdPlace(lillyId, true)
+          assert.deepEqual(await affiliationBlock(), ['M.glitter：3rd place', 'NUS・Lilly'])
+          assert.equal((await rest(owner, '/crm_records?customer_id=eq.' + lillyId + '&record_group_code=eq.lilly', 'PATCH', {
+            record_date: '2020-02-01',
+          })).status, 200)
           assert.equal((await rest(owner, '/crm_records', 'POST', {
             customer_id: Number(lillyId), record_date: '2020-02-02', record_group_code: 'mglitter',
             record_brand_code: 'third_place', service_label: 'ヨガ',
           })).status, 201)
+          for (const recordDate of ['2020-02-03', '2020-01-31']) {
+            assert.equal((await rest(owner, '/crm_records', 'POST', {
+              customer_id: Number(lillyId), record_date: recordDate, record_group_code: 'nus', service_label: 'Synthetic activity',
+            })).status, 201)
+          }
           assert.equal((await setAffiliations(['lilly', 'nus'], [])).status, 200)
           await checkThirdPlace(lillyId, true)
+          assert.deepEqual(await affiliationBlock(), ['NUS・Lilly'])
+          assert.ok(await hasText('最終記録日：2020年2月3日'))
+          await send('Page.navigate', { url: appOrigin + '/admin/customers' })
+          await waitFor(() => evaluate(`[...document.querySelectorAll('article')].some(card =>
+            [...card.querySelectorAll('a')].some(link => link.pathname === '/admin/customers/${lillyId}') &&
+            card.textContent.includes('最終記録日：2020年2月3日'))`), 'list uses latest record date across groups')
           assert.equal((await rest(owner, '/crm_customer_businesses', 'POST', {
             customer_id: Number(ids[0]), business_code: 'third_place', source: 'manual', stage: 'unconfirmed',
           })).status, 201)
@@ -537,6 +567,7 @@ async function verifyBrowser(sessions) {
           await checkThirdPlace(ids[2], true)
           await send('Emulation.setEmulatedMedia', { features: [] })
           console.log('PASS Legacy Lilly display filter, explicit affiliation, notes, status, own attendance/service and 390px themes')
+          console.log('PASS M.glitter summaries and last record date, including a subsequently created older NUS record')
         }
         continue
       }
@@ -616,7 +647,7 @@ async function verifyBrowser(sessions) {
           await chooseMembership('NUS')
           assert.ok(await evaluate("(() => {const f=document.querySelector('form');return f && f.scrollWidth<=f.clientWidth})()"))
           await click('保存')
-          await waitFor(() => evaluate("document.querySelector('section[aria-label=\"現在の所属\"]')?.innerText.includes('M.glitter・NUS・Lilly') && document.body.innerText.includes('M.glitterのブランド：moments')"), 'save three groups and brand on same customer')
+          await waitFor(() => evaluate("document.querySelector('section[aria-label=\"現在の所属\"]')?.innerText.includes('M.glitter：moments') && document.querySelector('section[aria-label=\"現在の所属\"]')?.innerText.includes('NUS・Lilly')"), 'save three groups and brand on same customer')
           await click('Lilly情報を編集')
           await select('section[aria-label="Lilly専用情報"] select', 'monthly')
           await evaluate("document.querySelectorAll('section[aria-label=\"Lilly専用情報\"] input[type=checkbox]')[1].click()")
@@ -741,7 +772,7 @@ async function verifyBrowser(sessions) {
         const detail = await waitFor(() => evaluate("location.pathname.match(/^\\/admin\\/customers\\/\\d+$/) && document.body.innerText.includes('Browser customer') && location.pathname"), 'browser registration')
         if (withMemberships) {
           assert.ok(await hasText('M.glitter・Lilly'))
-          assert.ok(await hasText('M.glitterのブランド：unite'))
+          assert.ok(await hasText('M.glitter：unite'))
           const id = detail.split('/').pop()
           for (const table of ['crm_customer_services', 'crm_records']) {
             assert.deepEqual(await rest(sessions[0], `/${table}?customer_id=eq.${id}`), { status: 200, data: [] })

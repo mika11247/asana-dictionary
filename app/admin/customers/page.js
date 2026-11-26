@@ -8,7 +8,7 @@ import LillyFields from "@/components/crm/LillyFields"
 import { customerDisplayName, customerFormalName, lillyMemberships, lillyServices, usesLillyDisplay } from "@/lib/crmLilly"
 import CustomerForm from "@/components/crm/CustomerForm"
 import PhotoPermissionBadge from "@/components/crm/PhotoPermissionBadge"
-import { formatDate, listCrmBusinesses } from "@/lib/crm"
+import { formatDate, latestRecordDate, listCrmBusinesses } from "@/lib/crm"
 import { findCrmCustomerCandidates, groupLabels, saveCrmCustomerMemberships } from "@/lib/crmMemberships"
 import { contactRestrictions, interestLabels, nusCategoryLabels, progressFields, progressLabels } from "@/lib/crmNus"
 
@@ -40,7 +40,7 @@ export default function CustomersPage() {
     setLoading(true)
     setError("")
     const [customerResult, businessResult] = await Promise.all([
-      supabase.from("crm_customers").select("*, crm_records(record_date, record_group_code), crm_customer_businesses(business_code, stage, archived_at), crm_customer_groups(group_code, archived_at), crm_customer_group_brands(business_code, archived_at), crm_lilly_profiles(membership, service_codes)").eq("archived", archived).order("name"),
+      supabase.from("crm_customers").select("*, crm_records(record_date), crm_customer_businesses(business_code, stage, archived_at), crm_customer_groups(group_code, archived_at), crm_customer_group_brands(business_code, archived_at), crm_lilly_profiles(membership, service_codes)").eq("archived", archived).order("name"),
       listCrmBusinesses(supabase),
     ])
     const firstError = customerResult.error || businessResult.error
@@ -259,7 +259,7 @@ export default function CustomersPage() {
             {filtered.map((customer) => {
               const activeGroups = Object.entries(groupLabels).filter(([code]) => customer.crm_customer_groups.some((item) => item.group_code === code && !item.archived_at))
               const activeBrands = brands.filter(({ code }) => customer.crm_customer_group_brands.some((item) => item.business_code === code && !item.archived_at))
-              const lastDate = (customer.crm_records || []).filter(({ record_group_code }) => record_group_code !== "nus").reduce((max, item) => !max || item.record_date > max ? item.record_date : max, null)
+              const lastDate = latestRecordDate(customer.crm_records || [])
               const nicknameView = lillyView(customer)
               const displayName = customerDisplayName(customer)
               const formalName = customerFormalName(customer)
@@ -278,7 +278,7 @@ export default function CustomersPage() {
                   )) : <span className="text-xs text-gray-500">所属未設定</span>}
                   {activeBrands.map(({ code, name }) => <span key={code} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">{name}</span>)}
                 </div>
-                <p className="pointer-events-none relative z-10 mt-3 text-sm text-gray-500">最終参加日：<span className="font-semibold text-gray-700">{formatDate(lastDate)}</span></p>
+                <p className="pointer-events-none relative z-10 mt-3 text-sm text-gray-500">最終記録日：<span className="font-semibold text-gray-700">{formatDate(lastDate)}</span></p>
               </article>
             })}
           </div>

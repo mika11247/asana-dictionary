@@ -12,7 +12,7 @@ import ContactPreferences from "@/components/crm/ContactPreferences"
 import NusProfile from "@/components/crm/NusProfile"
 import PhotoPermissionBadge from "@/components/crm/PhotoPermissionBadge"
 import RecordForm from "@/components/crm/RecordForm"
-import { formatDate, listCrmBusinesses, saveCrmBusinessRelationship, saveCrmRecord } from "@/lib/crm"
+import { formatDate, latestRecordDate, listCrmBusinesses, saveCrmBusinessRelationship, saveCrmRecord } from "@/lib/crm"
 import { groupLabels, saveCrmCustomerMemberships } from "@/lib/crmMemberships"
 import { emptyNusProfile } from "@/lib/crmNus"
 import { visibleCustomerBusinesses } from "@/lib/crmBusinessDisplay"
@@ -127,6 +127,8 @@ export default function CustomerDetailPage() {
   const displayName = customerDisplayName(customer)
   const formalName = customerFormalName(customer)
   const brands = customer.crm_customer_group_brands.filter((item) => !item.archived_at).map((item) => item.business_code)
+  const brandNames = businesses.filter(({ code }) => brands.includes(code)).map(({ name }) => name)
+  const otherGroups = groups.filter((code) => code !== "mglitter")
   return <main className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-violet-50 px-4 py-6 sm:p-8"><div className="mx-auto max-w-3xl">
     <Link href="/admin/customers" className="text-sm text-sky-700">← 顧客一覧</Link>
     {error && <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
@@ -139,8 +141,9 @@ export default function CustomerDetailPage() {
       <div className="mt-2 flex justify-end"><button disabled={openingCustomer} onClick={openCustomerForm} className="rounded-xl bg-gray-100 px-3 py-2 text-sm font-bold text-gray-600">編集</button></div>
       <section className="mt-4 rounded-2xl bg-sky-50 p-4" aria-label="現在の所属">
         <h2 className="font-bold">所属</h2>
-        <p className="mt-1 text-sm">{groups.map((code) => groupLabels[code]).join("・") || "所属未設定"}</p>
-        {brands.length > 0 && <p className="mt-1 text-sm">M.glitterのブランド：{businesses.filter(({ code }) => brands.includes(code)).map(({ name }) => name).join("・")}</p>}
+        {groups.includes("mglitter") && <p className="mt-1 break-words text-sm">M.glitter{brandNames.length > 0 && `：${brandNames.join("、")}`}</p>}
+        {otherGroups.length > 0 && <p className="mt-1 text-sm">{otherGroups.map((code) => groupLabels[code]).join("・")}</p>}
+        {groups.length === 0 && <p className="mt-1 text-sm">所属未設定</p>}
         <button type="button" disabled={openingCustomer} onClick={openCustomerForm} className="mt-1 min-h-11 text-sm font-bold text-sky-800">所属を編集</button>
       </section>
       <div className="mt-5"><p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">写真掲載可否</p><PhotoPermissionBadge value={customer.photo_permission} prominent /></div>
@@ -150,7 +153,7 @@ export default function CustomerDetailPage() {
       </div>
       {groups.includes("lilly") && <LillyProfile key={customer.id} customer={customer} onSaved={load} />}
       {!lillyView && customer.private_note?.trim() && <div className="mt-3 rounded-2xl bg-violet-50 p-4"><h2 className="text-sm font-bold text-violet-900">📝 自分用メモ</h2><p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{customer.private_note}</p></div>}
-      <p className="mt-5 text-sm text-gray-500">最終参加日：<strong className="text-gray-900">{formatDate(records.find(({ record_group_code }) => record_group_code !== "nus")?.record_date)}</strong></p>
+      <p className="mt-5 text-sm text-gray-500">最終記録日：<strong className="text-gray-900">{formatDate(latestRecordDate(records))}</strong></p>
     </section>
 
     <CustomerBusinesses businesses={businesses} relationships={visibleCustomerBusinesses(customer, records, hasOwnService)} onSave={async (code, values, existing) => {
