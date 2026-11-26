@@ -132,7 +132,7 @@ export default function CustomerDetailPage() {
       await saveCrmBusinessRelationship(supabase, id, code, values, existing)
       await load()
     }} />
-    {nus && <NusProfile customerId={id} archived={Boolean(nus.archived_at)} />}
+    {nus && <NusProfile customerId={id} archived={Boolean(nus.archived_at)} legacyStage={nus.stage} />}
     <ContactPreferences customerId={id} hasNus={Boolean(nus)} activeNus={Boolean(nus && !nus.archived_at)} />
     <button onClick={() => { setEditingRecord(null); setMode("record") }} className="my-4 w-full rounded-2xl bg-sky-600 px-4 py-4 text-lg font-bold text-white shadow-sm">＋ 今日の記録</button>
     <section className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm"><h2 className="text-lg font-bold">最新記録</h2>{latest ? <RecordBody record={latest} /> : <p className="mt-3 text-sm text-gray-500">まだ記録がありません。</p>}</section>

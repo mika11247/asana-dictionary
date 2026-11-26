@@ -6,6 +6,7 @@ import { PHOTO_PERMISSION_OPTIONS, relationKey } from "@/lib/crm"
 import { groupLabels } from "@/lib/crmMemberships"
 import { isLegacyLilly, customerDisplayName, customerFormalName, usesLillyDisplay } from "@/lib/crmLilly"
 import LillyFields from "@/components/crm/LillyFields"
+import NusCategoryFields from "@/components/crm/NusCategoryFields"
 
 const emptyCustomer = {
   name: "", nickname: "", name_yomi: "", photo_permission: "unknown", customer_request: "", care_notes: "", private_note: "",
@@ -35,6 +36,7 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
   const [error, setError] = useState("")
   const [groups, setGroups] = useState(initialGroups)
   const [lilly, setLilly] = useState({ membership: "unknown", services: [] })
+  const [nusCategory, setNusCategory] = useState({})
   const [brands, setBrands] = useState(initialBrands)
   const [candidates, setCandidates] = useState(null)
   const [differentPerson, setDifferentPerson] = useState(false)
@@ -88,7 +90,8 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
         customer_request: form.customer_request,
         care_notes: form.care_notes,
         private_note: form.private_note,
-      }, relations, { groups, brands: groups.includes("mglitter") ? brands : [], lilly: groups.includes("lilly") ? lilly : null })
+      }, relations, { groups, brands: groups.includes("mglitter") ? brands : [], lilly: groups.includes("lilly") ? lilly : null,
+        nusCategory: !initialCustomer && groups.includes("nus") ? nusCategory : null })
     } catch (err) {
       setError(err.message || "保存できませんでした。")
     } finally {
@@ -156,6 +159,7 @@ export default function CustomerForm({ initialCustomer, initialRelations = [], l
         )}
       </fieldset>
       {!initialCustomer && groups.includes("lilly") && <LillyFields value={lilly} onChange={setLilly} />}
+      {!initialCustomer && groups.includes("nus") && <NusCategoryFields value={nusCategory} onChange={setNusCategory} />}
       <fieldset className="rounded-2xl bg-slate-50 p-4">
         <legend className="px-1 text-sm font-bold text-gray-800">担当先 × サービス</legend>
         <p className="mb-2 text-sm text-gray-600">利用サービスを担当先と組み合わせて登録します。会員種別は組み合わせごとに任意で記録します。</p>

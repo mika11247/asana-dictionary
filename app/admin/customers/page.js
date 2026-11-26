@@ -10,7 +10,7 @@ import CustomerForm from "@/components/crm/CustomerForm"
 import PhotoPermissionBadge from "@/components/crm/PhotoPermissionBadge"
 import { formatDate, listCrmBusinesses } from "@/lib/crm"
 import { findCrmCustomerCandidates, groupLabels, saveCrmCustomerMemberships } from "@/lib/crmMemberships"
-import { contactRestrictions, interestLabels, listNusRelationshipTypes, progressFields, progressLabels } from "@/lib/crmNus"
+import { contactRestrictions, interestLabels, nusCategoryLabels, progressFields, progressLabels } from "@/lib/crmNus"
 
 const toggle = (values, key) => values.includes(key) ? values.filter((value) => value !== key) : [...values, key]
 const isDenied = ({ status, error }) => [401, 403].includes(status) || ["42501", "PGRST301", "PGRST303"].includes(error?.code)
@@ -76,15 +76,14 @@ export default function CustomersPage() {
     let mounted = true
     Promise.all([
       supabase.from("crm_nus_profiles").select("customer_id, product_interest, business_interest, disclosure_status, product_proposal_status, business_proposal_status"),
-      supabase.from("crm_nus_customer_relationships").select("customer_id, type_code").is("archived_at", null),
+      supabase.from("crm_nus_categories").select("customer_id, category"),
       supabase.from("crm_contact_preferences_current").select("customer_id, scope, decision, coverage").eq("decision", "refuse"),
-      listNusRelationshipTypes(supabase),
       supabase.rpc("is_crm_admin"),
-    ]).then(([profiles, roles, preferences, types, access]) => {
+    ]).then(([profiles, categories, preferences, access]) => {
       if (!mounted) return
-      if (access.data === false || [profiles, roles, preferences, types, access].some(isDenied)) setDenied(true)
-      else if (profiles.error || roles.error || preferences.error || types.error || access.data !== true) setNusError("NUS情報を読み込めませんでした。")
-      else setNusData({ profiles: profiles.data, roles: roles.data, preferences: preferences.data, types: types.data })
+      if (access.data === false || [profiles, categories, preferences, access].some(isDenied)) setDenied(true)
+      else if (profiles.error || categories.error || preferences.error || access.data !== true) setNusError("NUS情報を読み込めませんでした。")
+      else setNusData({ profiles: profiles.data, categories: categories.data, preferences: preferences.data })
     }).catch(() => {
       if (mounted) setNusError("NUS情報を読み込めませんでした。")
     })
@@ -121,8 +120,7 @@ export default function CustomersPage() {
 
   const brands = businesses.filter(({ code }) => code !== "nus")
   const nusOptions = [
-    ["stage", "NUS顧客区分", { prospect: "見込み客", customer: "顧客", unconfirmed: "未確認" }],
-    ["role", "関係性", Object.fromEntries((nusData?.types || []).map(({ code, label }) => [code, label]))],
+    ["category", "NUS区分", { ...nusCategoryLabels, unset: "未設定" }],
     ["product_interest", "商品への関心", interestLabels],
     ["business_interest", "ビジネスへの関心", interestLabels],
     ...progressFields.map(([key, label]) => [`${key}_status`, label, progressLabels]),
@@ -152,12 +150,11 @@ export default function CustomersPage() {
     }
     if (!nusData) return false
     const profile = nusData.profiles.find((item) => item.customer_id === customer.id)
-    const stage = customer.crm_customer_businesses.find((item) => item.business_code === "nus" && !item.archived_at)?.stage || "unconfirmed"
+    const category = nusData.categories.find((item) => item.customer_id === customer.id)?.category || "unset"
     const restrictions = contactRestrictions(nusData.preferences.filter((item) => item.customer_id === customer.id))
     return Object.entries(nusFilter).every(([key, value]) => {
       if (!value) return true
-      if (key === "stage") return stage === value
-      if (key === "role") return nusData.roles.some((item) => item.customer_id === customer.id && item.type_code === value)
+      if (key === "category") return category === value
       if (key === "restriction") return restrictions[value]
       return (profile?.[key] || "unknown") === value
     })

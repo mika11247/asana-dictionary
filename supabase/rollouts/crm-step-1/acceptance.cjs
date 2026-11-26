@@ -55,7 +55,8 @@ async function rest(session, path, method = 'GET', body) {
   const headers = { 'content-type': 'application/json', prefer: 'return=representation' }
   if (session) headers.authorization = `Bearer ${session.access_token}`
   const response = await fetch(restOrigin + path, { headers, method, body: JSON.stringify(body) })
-  return { status: response.status, data: await response.json() }
+  const responseBody = await response.text()
+  return { status: response.status, data: responseBody ? JSON.parse(responseBody) : null }
 }
 
 async function verifyApi(sessions) {
@@ -255,6 +256,9 @@ async function verifyBrowser(sessions) {
           assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('form input[name]')).slice(0,3).map(input => input.name)"), ['nickname', 'name', 'name_yomi'])
           assert.equal(await evaluate("document.querySelector('input[name=nickname]').required"), true)
           await chooseGroup(group)
+          if (group === 'NUS') {
+            await select('form label:has(select option[value="candidate"]) select', 'candidate')
+          }
           await fill('input[name=nickname]', '共通テスト名')
           await click('顧客を登録')
           if (ids.length) {
@@ -299,6 +303,57 @@ async function verifyBrowser(sessions) {
           await waitFor(() => evaluate(`document.querySelectorAll('article').length === ${count}`), 'group search by display name')
         }
         console.log('PASS Common name: legacy save, all groups, duplicate IDs, optional fields, shared-name confirmation and 390px search')
+        const id = ids[2]
+        const categoryPath = '/crm_nus_categories?customer_id=eq.' + id + '&select=category,other_label'
+        const relationshipPath = '/crm_nus_customer_relationships?customer_id=eq.' + id + '&order=type_code'
+        const businessPath = '/crm_customer_businesses?customer_id=eq.' + id + '&business_code=eq.nus'
+        const consentPath = '/crm_contact_preference_events?customer_id=eq.' + id
+        assert.deepEqual((await rest(owner, categoryPath)).data, [{ category: 'candidate', other_label: null }])
+        assert.equal((await rest(owner, businessPath, 'PATCH', { stage: 'prospect' })).status, 200)
+        const details = {
+          product_interest: 'interested', product_note: 'Synthetic product note', business_interest: 'considering',
+          disclosure_status: 'unknown', product_proposal_status: 'done', product_proposal_on: '2020-01-01',
+          business_proposal_status: 'unknown',
+        }
+        assert.ok((await rest(owner, '/rpc/crm_save_nus_profile', 'POST', {
+          target_customer_id: Number(id), details, relationship_types: [{ type_code: 'upline' }, { type_code: 'downline' }],
+        })).status < 300)
+        await send('Page.navigate', { url: appOrigin + '/admin/customers/' + id })
+        await waitFor(() => hasText('NUS情報を編集'), 'NUS detail loaded')
+        await click('連絡意思を記録')
+        await waitFor(() => hasText('本人の意思'), 'NUS preference input')
+        await select('section[aria-label="連絡意思"] select', 'global')
+        await evaluate("document.querySelector('section[aria-label=\"連絡意思\"] input[type=checkbox]').click()")
+        await click('連絡意思を保存')
+        await waitFor(async () => (await rest(owner, consentPath)).data.length === 1, 'global refusal saved')
+        const [oldRelations, oldBusiness, oldConsent] = await Promise.all([relationshipPath, businessPath, consentPath].map(path => rest(owner, path)))
+        for (const [code, label, memo] of [
+          ['user','愛用者'], ['downline','ダウンライン'], ['upline','アップライン'],
+          ['other','その他','合成メモ'], ['other','その他','編集後の合成メモ'], ['candidate','候補'], ['', '未設定'],
+        ]) {
+          await click('NUS情報を編集')
+          await waitFor(() => hasText('NUS情報を保存'), 'NUS classification edit')
+          await select('section[aria-label="NUS情報"] form select', code)
+          if (memo) await fill('section[aria-label="NUS情報"] input[maxlength="200"]', memo)
+          await click('NUS情報を保存')
+          await waitFor(() => hasText('NUS区分：' + label), 'saved NUS classification')
+          assert.deepEqual((await rest(owner, categoryPath)).data, [{ category: code || null, other_label: memo || null }])
+          await send('Page.navigate', { url: appOrigin + '/admin/customers' })
+          await waitFor(() => hasText('＋ 新規顧客'), 'NUS list')
+          await click('NUS')
+          await waitFor(() => evaluate("!!document.querySelector('#filters-nus select')"), 'NUS category filter')
+          await select('#filters-nus select', code || 'unset')
+          await waitFor(() => evaluate(`!!document.querySelector('article a[href="/admin/customers/${id}"]')`), 'NUS filter match')
+          await send('Page.navigate', { url: appOrigin + '/admin/customers/' + id })
+          await waitFor(() => hasText('NUS情報を編集'), 'reopen NUS profile')
+        }
+        assert.deepEqual(await rest(owner, relationshipPath), oldRelations)
+        assert.deepEqual(await rest(owner, businessPath), oldBusiness)
+        assert.deepEqual(await rest(owner, consentPath), oldConsent)
+        assert.ok(await hasText('Synthetic product note'))
+        assert.ok(await hasText('2020-01-01'))
+        assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'))
+        console.log('PASS NUS single category, legacy conflicts preserved, refusal preservation and 390px filters')
         continue
       }
       if (legacyAppDir) {
@@ -648,7 +703,8 @@ insert into public.crm_customer_services (customer_id, location_id, service_id, 
 values (1, 1, 2, '月謝');
 `
       if (withCommonName) migration += "update public.crm_customers set nickname=null where id=1;\n" +
-        readFileSync(join(__dirname, '../crm-common-name/01-common-name.sql'), 'utf8')
+        readFileSync(join(__dirname, '../crm-common-name/01-common-name.sql'), 'utf8') +
+        readFileSync(join(__dirname, '../crm-nus-category/01-category.sql'), 'utf8')
       dbInput(fixture + migration + "\nnotify pgrst, 'reload schema';\n", 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
     }
   }
@@ -673,6 +729,33 @@ values (1, 1, 2, '月謝');
       assert.equal(rejected.data.code, '23514')
     }
     console.log('PASS DB and RPC enforce a nonblank nickname for every new customer')
+    const input = { customer: { nickname: 'NUS atomic rollback' }, relations: [], selected_groups: ['nus'],
+      selected_brands: [], lilly_details: null, category_code: 'other', other_value: '  ' }
+    assert.equal((await rest(sessions[0], '/rpc/crm_create_customer_with_nus_category', 'POST', input)).data.code, '23514')
+    assert.deepEqual((await rest(sessions[0], '/crm_customers?nickname=eq.NUS%20atomic%20rollback')).data, [])
+    const mixed = await rest(sessions[0], '/rpc/crm_create_customer_with_nus_category', 'POST', {
+      ...input, customer: { nickname: 'NUS mixed membership fixture' }, selected_groups: ['mglitter', 'nus', 'lilly'],
+      selected_brands: ['moments'], lilly_details: { membership: 'ticket', services: ['yoga'] },
+      category_code: 'downline', other_value: null,
+    })
+    assert.equal(mixed.status, 200)
+    const mixedRecord = await rest(sessions[0], '/crm_customers?id=eq.' + mixed.data +
+      '&select=crm_customer_groups(group_code),crm_lilly_profiles(membership,service_codes),crm_nus_categories(category)')
+    assert.deepEqual(mixedRecord.data[0].crm_customer_groups.map(({ group_code }) => group_code).sort(), ['lilly', 'mglitter', 'nus'])
+    assert.deepEqual(mixedRecord.data[0].crm_lilly_profiles, { membership: 'ticket', service_codes: ['yoga'] })
+    assert.deepEqual(mixedRecord.data[0].crm_nus_categories, { category: 'downline' })
+    for (const session of [null, sessions[1], sessions[2]]) {
+      const read = await rest(session, '/crm_nus_categories')
+      if (session) assert.deepEqual(read, { status: 200, data: [] })
+      else assert.ok([401, 403].includes(read.status))
+      for (const [name, args] of [
+        ['crm_create_customer_with_nus_category', { ...input, category_code: 'candidate', other_value: null }],
+        ['crm_save_nus_profile_and_category', { target_customer_id: 1, details: {}, category_code: 'candidate', other_value: null }],
+      ]) {
+        assert.ok([401, 403].includes((await rest(session, '/rpc/' + name, 'POST', args)).status))
+      }
+    }
+    console.log('PASS NUS category RLS, RPC denial and atomic rollback')
   }
   if (withMemberships) {
     const tables = ['crm_groups', 'crm_customer_groups', 'crm_customer_group_brands', 'crm_lilly_profiles']
