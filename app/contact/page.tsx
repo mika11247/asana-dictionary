@@ -1,60 +1,62 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { categories, limits, validateContact } from '../../lib/contact-fields.mjs'
 
 export default function ContactPage() {
-  const [category, setCategory] = useState('不具合報告')
+  const [category, setCategory] = useState(categories[0])
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  const sending = useRef(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (sending.current) return
     setError('')
     setSent(false)
 
-    if (!email.trim() || !message.trim()) {
-      setError('メールアドレスとお問い合わせ内容を入力してください。')
+    const website = new FormData(e.currentTarget as HTMLFormElement).get('website') ?? ''
+    const input = { category, name, email, message, website }
+    const validation = validateContact(input)
+    if (validation.error) {
+      setError(validation.error)
       return
     }
 
+    const fallback = '送信を確認できませんでした。時間をおいて再度お試しください。'
+    sending.current = true
     try {
       setLoading(true)
 
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, email, message }),
+        body: JSON.stringify(input),
       })
 
-      const text = await res.text()
-
-let data: { error?: string } = {}
-
-try {
-  data = JSON.parse(text)
-} catch {
-  console.log('APIからJSON以外が返ってきました:', text)
-  throw new Error('送信先APIが見つかりません。/app/api/contact/route.js の場所を確認してください。')
-}
-
-if (!res.ok) {
-  throw new Error(data.error || '送信に失敗しました。')
-}
+      if (res.status === 429) {
+        setError('送信が短時間に集中しています。最大5分ほど待ってから再度お試しください。')
+        return
+      }
+      const data = await res.json().catch(() => null)
+      if (!res.ok || data?.ok !== true) {
+        setError(typeof data?.error === 'string' ? data.error : fallback)
+        return
+      }
 
       setSent(true)
-      setCategory('不具合報告')
+      setCategory(categories[0])
+      setName('')
       setEmail('')
       setMessage('')
-    } catch (err) {
-  setError(
-    err instanceof Error
-      ? err.message
-      : '送信に失敗しました。'
-  )
-} finally {
+    } catch {
+      setError(fallback)
+    } finally {
+      sending.current = false
       setLoading(false)
     }
   }
@@ -104,29 +106,43 @@ if (!res.ok) {
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
-              <label className="text-sm font-bold text-gray-700">
+              <label htmlFor="contact-category" className="text-sm font-bold text-gray-700">
                 お問い合わせ種別
               </label>
               <select
+                id="contact-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="mt-2 w-full rounded-2xl border border-sky-100 bg-white px-4 py-3 text-sm text-gray-700 outline-none focus:border-sky-300"
               >
-                <option>不具合報告</option>
-                <option>機能リクエスト</option>
-                <option>使い方について</option>
-                <option>アカウント関連</option>
-                <option>退会申請中アカウントの復旧</option>
-                <option>その他</option>
+                {categories.map(value => <option key={value}>{value}</option>)}
               </select>
             </div>
 
             <div>
-              <label className="text-sm font-bold text-gray-700">
+              <label htmlFor="contact-name" className="text-sm font-bold text-gray-700">
+                お名前（任意）
+              </label>
+              <input
+                id="contact-name"
+                autoComplete="name"
+                maxLength={limits.name}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-2 w-full rounded-2xl border border-sky-100 bg-white px-4 py-3 text-sm text-gray-700 outline-none focus:border-sky-300"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="contact-email" className="text-sm font-bold text-gray-700">
                 メールアドレス
               </label>
               <input
+                id="contact-email"
                 type="email"
+                autoComplete="email"
+                required
+                maxLength={limits.email}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="返信先のメールアドレス"
@@ -135,10 +151,13 @@ if (!res.ok) {
             </div>
 
             <div>
-              <label className="text-sm font-bold text-gray-700">
+              <label htmlFor="contact-message" className="text-sm font-bold text-gray-700">
                 お問い合わせ内容
               </label>
               <textarea
+                id="contact-message"
+                required
+                maxLength={limits.message}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={7}
@@ -147,14 +166,18 @@ if (!res.ok) {
               />
             </div>
 
+            <div hidden aria-hidden="true">
+              <input name="website" autoComplete="off" tabIndex={-1} maxLength={limits.website} />
+            </div>
+
             {error && (
-              <p className="rounded-2xl bg-red-50 p-3 text-sm font-bold text-red-500">
+              <p role="alert" className="rounded-2xl bg-red-50 p-3 text-sm font-bold text-red-500">
                 {error}
               </p>
             )}
 
             {sent && (
-              <p className="rounded-2xl bg-green-50 p-3 text-sm font-bold text-green-600">
+              <p role="status" className="rounded-2xl bg-green-50 p-3 text-sm font-bold text-green-600">
                 送信しました。お問い合わせありがとうございます。
               </p>
             )}

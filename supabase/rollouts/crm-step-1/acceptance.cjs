@@ -905,6 +905,30 @@ async function verifyBrowser(sessions) {
         console.log('PASS General user dictionary, sequence, preset reads, profile edit, deletion request and cancellation')
       }
     }
+    await send('Page.navigate', { url: appOrigin + '/contact' })
+    await waitFor(() => evaluate("Boolean(document.querySelector('#contact-email'))"), 'contact form')
+    await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true })
+    await evaluate(`(() => {
+      const originalFetch = window.fetch
+      window.contactMockRequests = 0
+      window.fetch = (url, options) => {
+        if (url !== '/api/contact') return originalFetch(url, options)
+        window.contactMockRequests += 1
+        return Promise.resolve(window.contactMockRequests === 1
+          ? new Response('Too Many Requests', { status: 429 })
+          : Response.json({ ok: true }))
+      }
+    })()`)
+    await fill('#contact-email', 'contact-fixture@example.com')
+    await fill('#contact-message', '合成お問い合わせ')
+    await click('送信する')
+    await waitFor(() => hasText('最大5分'), 'contact 429 response')
+    assert.equal(await evaluate("document.querySelector('#contact-message').value"), '合成お問い合わせ')
+    assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'))
+    await click('送信する')
+    await waitFor(() => hasText('お問い合わせありがとうございます'), 'contact success response')
+    assert.equal(await evaluate('window.contactMockRequests'), 2)
+    console.log('PASS Contact form at 390px, mocked edge 429, retained input and successful retry')
     await evaluate('localStorage.clear()')
     await send('Page.navigate', { url: appOrigin + '/admin/customers' })
     await waitFor(() => evaluate("location.pathname === '/login'"), 'anonymous redirect')

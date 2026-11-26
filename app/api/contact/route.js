@@ -1,49 +1,26 @@
-import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { handleContact } from '../../../lib/contact-handler.mjs'
 
 export async function GET() {
-  return NextResponse.json({ ok: true, message: 'contact api is working' })
+  return Response.json({ ok: true, message: 'contact api is working' })
 }
 
-export async function POST(req) {
-  try {
-    const { category, email, message } = await req.json()
-
-    if (!email || !message) {
-      return NextResponse.json(
-        { error: 'メールアドレスとお問い合わせ内容を入力してください。' },
-        { status: 400 }
-      )
-    }
-
-    await resend.emails.send({
+export async function POST(request) {
+  // Vercel WAF limits POST requests before they reach this handler.
+  return handleContact(request, ({ category, name, email, message }) => {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    return resend.emails.send({
       from: 'M.glitter <noreply@mglitter.net>',
       to: 'mglitter.info@gmail.com',
-      subject: `【Asana Dictionary】お問い合わせ：${category || '未選択'}`,
+      subject: `【Asana Dictionary】お問い合わせ：${category}`,
       replyTo: email,
-      text: `
-【Asana Dictionary】お問い合わせ
-
-■ 種別
-${category || '未選択'}
-
-■ 返信先メールアドレス
-${email}
-
-■ お問い合わせ内容
-${message}
-      `,
+      text: [
+        '【Asana Dictionary】お問い合わせ',
+        `■ 種別\n${category}`,
+        ...(name ? [`■ お名前\n${name}`] : []),
+        `■ 返信先メールアドレス\n${email}`,
+        `■ お問い合わせ内容\n${message}`,
+      ].join('\n\n'),
     })
-
-    return NextResponse.json({ ok: true })
-  } catch (error) {
-    console.error('contact api error:', error)
-
-    return NextResponse.json(
-      { error: '送信に失敗しました。時間をおいて再度お試しください。' },
-      { status: 500 }
-    )
-  }
+  })
 }
