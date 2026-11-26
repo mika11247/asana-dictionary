@@ -15,12 +15,14 @@ import RecordForm from "@/components/crm/RecordForm"
 import { formatDate, listCrmBusinesses, saveCrmBusinessRelationship, saveCrmRecord } from "@/lib/crm"
 import { groupLabels, saveCrmCustomerMemberships } from "@/lib/crmMemberships"
 import { emptyNusProfile } from "@/lib/crmNus"
+import { visibleCustomerBusinesses } from "@/lib/crmBusinessDisplay"
 
 export default function CustomerDetailPage() {
   const { id } = useParams()
   const router = useRouter()
   const [customer, setCustomer] = useState(null)
   const [records, setRecords] = useState([])
+  const [hasOwnService, setHasOwnService] = useState(null)
   const [businesses, setBusinesses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -33,15 +35,21 @@ export default function CustomerDetailPage() {
 
   async function load() {
     setLoading(true); setError("")
-    const [customerResult, recordResult, businessResult] = await Promise.all([
-      supabase.from("crm_customers").select("*, crm_customer_businesses(business_code, stage, business_note, archived_at), crm_customer_groups(group_code, archived_at), crm_customer_group_brands(business_code, archived_at), crm_lilly_profiles(membership, service_codes)").eq("id", id).maybeSingle(),
+    const [customerResult, recordResult, businessResult, ownService] = await Promise.all([
+      supabase.from("crm_customers").select("*, crm_customer_businesses(business_code, stage, business_note, source, archived_at), crm_customer_groups(group_code, archived_at), crm_customer_group_brands(business_code, archived_at), crm_lilly_profiles(membership, service_codes)").eq("id", id).maybeSingle(),
       supabase.from("crm_records").select("*").eq("customer_id", id).order("record_date", { ascending: false }).order("created_at", { ascending: false }),
       listCrmBusinesses(supabase),
+      supabase.from("crm_customer_services").select("id").eq("customer_id", id).eq("location_id", 2).limit(1),
     ])
     const firstError = customerResult.error || recordResult.error || businessResult.error
     if (firstError) { console.error("カルテの取得に失敗しました", firstError); setError("カルテを読み込めませんでした。") }
     else if (!customerResult.data) setError("顧客が見つかりません。")
-    else { setCustomer(customerResult.data); setRecords(recordResult.data || []); setBusinesses(businessResult.data || []) }
+    else {
+      setCustomer(customerResult.data)
+      setRecords(recordResult.data || [])
+      setBusinesses(businessResult.data || [])
+      setHasOwnService(ownService.error ? null : Boolean(ownService.data?.length))
+    }
     setLoading(false)
   }
   useEffect(() => { if (id) load() }, [id])
@@ -145,7 +153,7 @@ export default function CustomerDetailPage() {
       <p className="mt-5 text-sm text-gray-500">最終参加日：<strong className="text-gray-900">{formatDate(records.find(({ record_group_code }) => record_group_code !== "nus")?.record_date)}</strong></p>
     </section>
 
-    <CustomerBusinesses businesses={businesses} relationships={customer.crm_customer_businesses} onSave={async (code, values, existing) => {
+    <CustomerBusinesses businesses={businesses} relationships={visibleCustomerBusinesses(customer, records, hasOwnService)} onSave={async (code, values, existing) => {
       await saveCrmBusinessRelationship(supabase, id, code, values, existing)
       await load()
     }} />

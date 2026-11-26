@@ -489,6 +489,54 @@ async function verifyBrowser(sessions) {
           await click('保存')
           await waitFor(() => hasText('Synthetic historical note edit'), 'old record edited without remapping')
           console.log('PASS Three-group records, multiple affiliations, legacy rendering and NUS participation exclusion')
+          const lillyBusinessPath = '/crm_customer_businesses?customer_id=eq.' + lillyId + '&business_code=eq.third_place'
+          assert.equal((await rest(owner, '/crm_customer_businesses', 'POST', {
+            customer_id: Number(lillyId), business_code: 'third_place', source: 'service', stage: 'unconfirmed',
+          })).status, 201)
+          async function checkThirdPlace(customerId, visible) {
+            await send('Page.navigate', { url: appOrigin + '/admin/customers/' + customerId })
+            await waitFor(() => hasText('＋ 今日の記録'), 'business information loaded')
+            assert.equal(await evaluate("document.querySelector('section[aria-label=\"顧客の事業情報\"]').innerText.includes('3rd place')"), visible)
+            assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'))
+          }
+          for (const theme of ['light', 'dark']) {
+            await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: theme }] })
+            await checkThirdPlace(lillyId, false)
+            assert.equal(await evaluate("getComputedStyle(document.querySelector('.crm-theme')).colorScheme"), theme)
+          }
+          const oldBusinessRow = await rest(owner, lillyBusinessPath)
+          assert.equal(oldBusinessRow.data[0].source, 'service')
+          assert.equal(oldBusinessRow.data[0].stage, 'unconfirmed')
+          assert.equal((await rest(owner, lillyBusinessPath, 'PATCH', { business_note: 'Synthetic third place note' })).status, 200)
+          await checkThirdPlace(lillyId, true)
+          assert.ok(await hasText('Synthetic third place note'))
+          assert.equal((await rest(owner, lillyBusinessPath, 'PATCH', { business_note: null, stage: 'customer' })).status, 200)
+          await checkThirdPlace(lillyId, true)
+          assert.equal((await rest(owner, lillyBusinessPath, 'PATCH', { stage: 'unconfirmed' })).status, 200)
+          const setAffiliations = (groups, brands) => rest(owner, '/rpc/crm_save_customer_memberships', 'POST', {
+            target_customer_id: Number(lillyId), customer: { nickname: '共通テスト名' }, relations: [], selected_groups: groups, selected_brands: brands,
+          })
+          assert.equal((await setAffiliations(['mglitter', 'lilly', 'nus'], ['third_place'])).status, 200)
+          await checkThirdPlace(lillyId, true)
+          assert.equal((await rest(owner, '/crm_records', 'POST', {
+            customer_id: Number(lillyId), record_date: '2020-02-02', record_group_code: 'mglitter',
+            record_brand_code: 'third_place', service_label: 'ヨガ',
+          })).status, 201)
+          assert.equal((await setAffiliations(['lilly', 'nus'], [])).status, 200)
+          await checkThirdPlace(lillyId, true)
+          assert.equal((await rest(owner, '/crm_customer_businesses', 'POST', {
+            customer_id: Number(ids[0]), business_code: 'third_place', source: 'manual', stage: 'unconfirmed',
+          })).status, 201)
+          await checkThirdPlace(ids[0], true)
+          const ownServiceFixture = Number(ids[2])
+          assert.ok(Number.isSafeInteger(ownServiceFixture))
+          await dbInput(`
+            insert into public.crm_customer_groups(customer_id,group_code) values(${ownServiceFixture},'lilly');
+            insert into public.crm_customer_services(customer_id,location_id,service_id) values(${ownServiceFixture},2,1);
+          `, 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
+          await checkThirdPlace(ids[2], true)
+          await send('Emulation.setEmulatedMedia', { features: [] })
+          console.log('PASS Legacy Lilly display filter, explicit affiliation, notes, status, own attendance/service and 390px themes')
         }
         continue
       }
