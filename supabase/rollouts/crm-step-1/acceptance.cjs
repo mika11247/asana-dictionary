@@ -14,6 +14,8 @@ const withMemberships = process.argv.includes('--membership-a')
 const withCommonName = process.argv.includes('--common-name')
 const withRecordContext = process.argv.includes('--record-context')
 const withPrivateImages = process.argv.includes('--private-images')
+const imageRollbackDir = process.env.ASANA_ACCEPTANCE_ROLLBACK_DIR
+const imageBrowserOnly = withPrivateImages && process.argv.includes('--image-browser-only')
 const legacyAppDir = process.env.CRM_ACCEPTANCE_LEGACY_APP_DIR
 const withNus = withMemberships || process.argv.includes('--step2b')
 const withBusinesses = withNus || process.argv.includes('--step2a')
@@ -146,9 +148,11 @@ async function verifyRevocation(owner) {
   console.log('PASS Existing Auth session denied after scheduled deletion, admin removal, CRM permission removal')
 }
 
-function startGateway(nusFailure = () => 0) {
+function startGateway(nusFailure = () => 0, imageChecks = {}) {
   const server = createServer(async (request, response) => {
-    response.setHeader('access-control-allow-origin', appOrigin)
+    const rollbackOrigin = 'http://127.0.0.1:35436'
+    response.setHeader('access-control-allow-origin',
+      imageRollbackDir && request.headers.origin === rollbackOrigin ? rollbackOrigin : appOrigin)
     response.setHeader('access-control-allow-headers', '*')
     response.setHeader('access-control-allow-methods', 'GET,HEAD,POST,PATCH,DELETE,OPTIONS')
     response.setHeader('access-control-expose-headers', 'content-range')
@@ -157,6 +161,10 @@ function startGateway(nusFailure = () => 0) {
     if (!match) return response.writeHead(404).end()
     const failure = request.url.startsWith('/rest/v1/crm_nus_profiles?') && nusFailure()
     if (failure) return response.writeHead(failure, { 'content-type': 'application/json' }).end('{}')
+    if (request.method === 'PATCH' && request.url.startsWith('/rest/v1/asanas?') && imageChecks.failSave) {
+      imageChecks.failSave = false
+      return response.writeHead(503, { 'content-type': 'application/json' }).end('{}')
+    }
     const origin = { auth: authOrigin, rest: restOrigin, storage: 'http://127.0.0.1:35435' }[match[1]]
     const headers = { ...request.headers }
     delete headers.host
@@ -187,7 +195,8 @@ function startGateway(nusFailure = () => 0) {
 async function verifyBrowser(sessions) {
   const imageFixture = withPrivateImages ? await import('../asana-image-privacy/acceptance.mjs') : null
   let nusFailure = 0
-  const gateway = await startGateway(() => nusFailure)
+  const imageChecks = {}
+  const gateway = await startGateway(() => nusFailure, imageChecks)
   const chromeProfile = mkdtempSync(join(tmpdir(), 'crm-step1-chrome-'))
   const env = {
     ...process.env, NEXT_PUBLIC_SUPABASE_URL: gatewayOrigin,
@@ -196,7 +205,15 @@ async function verifyBrowser(sessions) {
     NEXT_PUBLIC_PRIVATE_ASANA_UPLOADS: imageFixture ? 'true' : 'false',
   }
   const app = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '-H', '127.0.0.1', '-p', '35430'],
-    { env, cwd: legacyAppDir || process.cwd(), stdio: 'inherit', windowsHide: true })
+    { env, cwd: legacyAppDir || process.cwd(), stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
+  let appLog = ''
+  for (const stream of [app.stdout, app.stderr]) {
+    stream.on('data', chunk => {
+      appLog += chunk.toString()
+      if (!imageFixture) process.stdout.write(chunk)
+    })
+  }
+  let rollbackApp
   const browser = spawn('C:/Program Files/Google/Chrome/Application/chrome.exe', [
     '--headless=new', '--disable-background-networking', '--no-first-run',
     '--remote-debugging-port=35434', `--user-data-dir=${chromeProfile}`, 'about:blank',
@@ -284,12 +301,152 @@ async function verifyBrowser(sessions) {
       const sequence = await rest(sessions[0], '/sequences?select=id')
       await send('Page.navigate', { url: appOrigin + '/sequences/' + sequence.data[0].id })
       await verifySignedImage()
+
+      const owner = sessions[0]
+      const getPose = async () => (await rest(owner, '/asanas?title=eq.Synthetic%20pose&select=id,image_url,private_image_path')).data[0]
+      const before = await getPose()
+      const row = '/asanas?id=eq.' + before.id
+      const edit = async () => {
+        await send('Page.navigate', { url: appOrigin + '/asanas/' + before.id + '/edit' })
+        await waitFor(() => hasText('変更を保存する'), 'asana edit form')
+        await evaluate(`(() => {
+          window.fixtureAlert = ''
+          window.alert = text => { window.fixtureAlert = text }
+          const canvas = document.createElement('canvas')
+          canvas.width = canvas.height = 8
+          canvas.getContext('2d').fillRect(0, 0, 8, 8)
+          canvas.toBlob(blob => {
+            const input = document.querySelector('input[type=file]')
+            const dt = new DataTransfer()
+            dt.items.add(new File([blob], 'synthetic.png', { type: 'image/png' }))
+            input.files = dt.files
+            input.dispatchEvent(new Event('change', { bubbles: true }))
+          })
+        })()`)
+        await waitFor(() => evaluate("[...document.images].some(i => i.alt === 'プレビュー' && i.src.startsWith('blob:'))"), 'new image preview')
+      }
+      assert.equal((await rest(owner, row, 'PATCH', { private_image_path: null })).status, 200)
+      await edit()
+      imageChecks.failSave = true
+      await click('変更を保存する')
+      await waitFor(() => evaluate("window.fixtureAlert.includes('保存できませんでした')"), 'failed dictionary save')
+      assert.deepEqual(await getPose(), { ...before, private_image_path: null })
+      await click('変更を保存する')
+      await waitFor(() => evaluate("location.pathname === '/asanas'"), 'successful dictionary save')
+      const replacement = await getPose()
+      assert.equal(replacement.image_url, before.image_url)
+      assert.ok(replacement.private_image_path && replacement.private_image_path !== before.private_image_path)
+      await edit()
+      const competing = await imageFixture.uploadFixtureImage(appOrigin, owner)
+      assert.equal((await rest(owner, row, 'PATCH', { private_image_path: competing })).status, 200)
+      await click('変更を保存する')
+      await waitFor(() => evaluate("window.fixtureAlert.includes('別の画面で画像が更新')"), 'conflicting dictionary edit')
+      assert.equal((await getPose()).private_image_path, competing)
+      console.log('PASS Browser image replacement, failed save keeps old link and concurrent edit wins')
+
+      const foreign = await imageFixture.uploadFixtureImage(appOrigin, sessions[1])
+      const escapedForeign = foreign.replaceAll("'", "''")
+      dbInput(`
+insert into public.initial_sequence_items (initial_sequence_id, position, type, preset_key, asana_title, image_url, private_image_path)
+select p.id, v.pos, 'asana', v.key, v.title, v.url, v.path
+from public.initial_sequences p cross join lateral (
+  select 1, 'public-image', 'Fixture public image', '/icon.png', null::text
+  union all select 2, 'legacy-image', 'Fixture legacy image', a.image_url, null from public.asanas a where a.id=${before.id}
+  union all select 3, 'own-private-image', 'Fixture own image', null, a.private_image_path from public.asanas a where a.id=${before.id}
+  union all select 4, 'foreign-image', 'Fixture foreign image', null, '${escapedForeign}'
+  union all select 5, 'no-image', 'Fixture no image', null, null
+) v(pos,key,title,url,path);
+`, 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
+      await send('Page.navigate', { url: appOrigin + '/presets' })
+      await waitFor(() => hasText('Synthetic preset'), 'preset loaded for import')
+      await evaluate("window.alert = text => { window.fixtureAlert = text }")
+      await click('アーサナのみ追加')
+      await waitFor(() => evaluate("window.fixtureAlert?.includes('5件')"), '5 preset entries imported')
+      const imported = (await rest(owner, '/asanas?title=like.Fixture*&order=preset_key&select=preset_key,image_url,private_image_path')).data
+      const references = Object.fromEntries(imported.map(({ preset_key, ...reference }) => [preset_key, reference]))
+      assert.deepEqual(references, {
+        'public-image': { image_url: '/icon.png', private_image_path: null },
+        'legacy-image': { image_url: before.image_url, private_image_path: competing },
+        'own-private-image': { image_url: null, private_image_path: competing },
+        'foreign-image': { image_url: null, private_image_path: null },
+        'no-image': { image_url: null, private_image_path: null },
+      })
+      for (const file of ['02-stop-legacy-uploads.sql', '03-close-legacy-public.sql']) {
+        dbInput(readFileSync(join(__dirname, '../asana-image-privacy', file), 'utf8'), 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
+      }
+      assert.notEqual((await fetch(before.image_url)).status, 200)
+      await edit()
+      await click('変更を保存する')
+      await waitFor(() => evaluate("location.pathname === '/asanas'"), 'browser upload after legacy uploads stop')
+      assert.notEqual((await getPose()).private_image_path, competing)
+      await send('Page.navigate', { url: appOrigin + '/asanas' })
+      await openCategory()
+      await verifySignedImage()
+      for (const [title, expectedSrc] of [
+        ['Fixture public image', '/icon.png'],
+        ['Fixture legacy image', '/object/sign/'],
+        ['Fixture own image', '/object/sign/'],
+      ]) {
+        const needle = JSON.stringify(title)
+        await waitFor(() => evaluate(`[...document.images].some(i => i.alt === ${needle})`), 'imported preset image mounted')
+        await evaluate(`[...document.images].find(i => i.alt === ${needle})?.scrollIntoView()`)
+        await waitFor(() => evaluate(`[...document.images].some(i => i.alt === ${needle} && i.naturalWidth > 0 && i.src.includes(${JSON.stringify(expectedSrc)}))`), 'imported preset image rendered')
+      }
+      await delay(1100)
+      await evaluate(`(() => {
+        const image = [...document.images].find(i => i.alt === 'Synthetic pose')
+        window.fixturePreviousSrc = image.src
+        image.src = '/fixture-expired-image.webp'
+      })()`)
+      await waitFor(() => evaluate("[...document.images].some(i => i.alt === 'Synthetic pose' && i.naturalWidth && i.src.includes('/object/sign/') && i.src !== window.fixturePreviousSrc)"), 'automatic private image re-sign')
+      await delay(1100)
+      await evaluate(`(() => {
+        window.printForcedImageFailure = false
+        const observer = new MutationObserver(() => {
+          const image = document.querySelector('[data-asana-print-content] img')
+          if (!image?.src.includes('/object/sign/')) return
+          observer.disconnect()
+          window.printForcedImageFailure = true
+          image.src = '/fixture-expired-print-image.webp'
+        })
+        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] })
+        window.print = () => {
+          window.printImageReady = Boolean(document.querySelector('[data-asana-print-content] img')?.naturalWidth)
+          window.dispatchEvent(new Event('afterprint'))
+        }
+      })()`)
+      await evaluate(`document.querySelector('img[alt="Synthetic pose"]')?.closest('[role=button]')?.click()`)
+      await click('📄')
+      await waitFor(() => evaluate('window.printImageReady === true'), 'print after image re-sign and legacy closure')
+      assert.equal(await evaluate('window.printForcedImageFailure'), true)
+      console.log('PASS Browser preset import and private rendering after legacy bucket closure')
+      if (imageRollbackDir) {
+        const rollbackOrigin = 'http://127.0.0.1:35436'
+        rollbackApp = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '-H', '127.0.0.1', '-p', '35436'],
+          { env, cwd: imageRollbackDir, stdio: 'inherit', windowsHide: true })
+        await waitFor(async () => (await fetch(rollbackOrigin + '/login')).ok, 'prior private-capable app')
+        await send('Page.navigate', { url: rollbackOrigin + '/login' })
+        await waitFor(() => evaluate("location.port === '35436'"), 'rollback browser origin')
+        await evaluate(`localStorage.setItem('sb-127-auth-token', ${JSON.stringify(JSON.stringify(owner))})`)
+        await send('Page.navigate', { url: rollbackOrigin + '/asanas' })
+        await openCategory()
+        await verifySignedImage()
+        assert.notEqual((await fetch(before.image_url)).status, 200)
+        console.log('PASS Previous private-capable app uses same DB and Storage after legacy public URL is closed')
+      }
+
+      await send('Page.navigate', { url: appOrigin + '/login' })
+      await waitFor(() => evaluate("location.port === '35430'"), 'current browser origin')
       await evaluate(`localStorage.setItem('sb-127-auth-token', ${JSON.stringify(JSON.stringify(sessions[1]))})`)
       await send('Page.navigate', { url: appOrigin + '/asanas' })
       await openCategory()
       await waitFor(() => hasText('Synthetic pose'), 'second account dictionary')
       assert.equal(await evaluate("[...document.images].some(i => i.src.includes('/object/sign/'))"), false)
       console.log('PASS Dictionary private image at 390px in light and dark mode; account switch clears visible image')
+      assert.equal(appLog.includes(imageFixture.serviceToken), false)
+      assert.doesNotMatch(appLog, /\/object\/sign\/[^\s]*[?&]token=/)
+      console.log('PASS Server output contains neither the test service credential nor signed image URLs')
+      if (imageBrowserOnly) return
     }
     for (let index = 0; index < sessions.length; index++) {
       await evaluate(`localStorage.setItem('sb-127-auth-token', ${JSON.stringify(JSON.stringify(sessions[index]))})`)
@@ -986,6 +1143,7 @@ async function verifyBrowser(sessions) {
     socket?.close()
     browser.kill()
     app.kill()
+    rollbackApp?.kill()
     gateway.close()
     try { rmSync(chromeProfile, { recursive: true, force: true }) } catch { /* Chrome can briefly hold its files */ }
   }
@@ -994,6 +1152,10 @@ async function verifyBrowser(sessions) {
 async function main() {
   await waitFor(async () => (await fetch(authOrigin + '/health')).ok, 'local GoTrue')
   await waitFor(async () => (await fetch(restOrigin)).ok, 'local PostgREST')
+  if (withPrivateImages) {
+    await waitFor(() => dbInput("select to_regclass('storage.buckets') is not null;",
+      'psql', '-X', '-Atq').trim() === 't', 'local Storage database migrations')
+  }
   if (process.argv.includes('--seed')) {
     for (const account of accounts) await auth('/signup', account)
     const fixtureScript = readFileSync(join(__dirname, 'acceptance-fixture.sh'), 'utf8').replaceAll('\r\n', '\n')

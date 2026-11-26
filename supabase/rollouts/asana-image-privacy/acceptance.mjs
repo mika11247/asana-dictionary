@@ -12,6 +12,17 @@ function fixtureToken(role) {
 
 export const serviceToken = fixtureToken('service_role')
 
+export async function uploadFixtureImage(appOrigin, session) {
+  assert.equal(appOrigin, 'http://127.0.0.1:35430')
+  const image = await sharp({ create: { width: 16, height: 16, channels: 3, background: '#446688' } }).webp().toBuffer()
+  const response = await fetch(appOrigin + '/api/asana-images', {
+    method: 'POST', body: image,
+    headers: { 'content-type': 'image/webp', authorization: `Bearer ${session.access_token}` },
+  })
+  assert.equal(response.status, 201)
+  return (await response.json()).path
+}
+
 export async function verifyImages({ sessions, appOrigin, gatewayOrigin }) {
   assert.equal(gatewayOrigin, 'http://127.0.0.1:35433')
   assert.equal(appOrigin, 'http://127.0.0.1:35430')

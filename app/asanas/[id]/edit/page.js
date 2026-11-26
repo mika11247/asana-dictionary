@@ -212,7 +212,7 @@ export default function AsanaEditPage() {
         }
       }
 
-      const { error } = await supabase
+      let update = supabase
         .from('asanas')
         .update({
           title,
@@ -242,10 +242,15 @@ export default function AsanaEditPage() {
         })
         .eq('id', id)
 
-      if (error) {
-        alert(`更新エラー: ${error.message}`)
-        return
+      if (imageFile) {
+        update = imageUrl ? update.eq('image_url', imageUrl) : update.is('image_url', null)
+        update = privateImagePath
+          ? update.eq('private_image_path', privateImagePath)
+          : privateUploads ? update.is('private_image_path', null) : update
       }
+      const { data, error } = await update.select('id').maybeSingle()
+      if (error) throw new Error('辞書の変更を保存できませんでした。')
+      if (!data) throw new Error('別の画面で画像が更新されました。再読み込みしてからやり直してください。')
 
       alert('更新できたよ！')
       router.push('/asanas')

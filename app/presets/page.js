@@ -290,7 +290,7 @@ export default function PresetsPage() {
 
     const { data: currentAsanas, error: countError } = await supabase
       .from('asanas')
-      .select('id, preset_key')
+      .select('id, preset_key, image_url, private_image_path')
       .eq('user_id', user.id)
 
     if (countError) throw countError
@@ -341,39 +341,42 @@ export default function PresetsPage() {
       }
     }
 
-    const insertRows = uniqueItems.map((item) => ({
-  user_id: user.id,
-
-  title: item.asana_title || '',
-  sanskrit: item.asana_sanskrit || '',
-  yomi: item.yomi || '',
-  alias: item.alias || '',
-
-  types: item.types || [],
-  chakras: item.chakras || [],
-
-  main_category: preset.main_category || 'yoga',
-
-  strength: item.strength || '',
-  flexibility: item.flexibility || '',
-
-  target: item.target || null,
-  apparatus: item.apparatus || [],
-  equipment: item.equipment || null,
-  spring_setting: item.spring_setting || null,
-
-  howto: item.howto || '',
-  effect: item.effect || '',
-  caution: item.caution || '',
-
-  variation: item.variation || '',
-  modification: item.modification || '',
-  note: item.note || '',
-  image_url: item.image_url || null,
-
-  favorite: false,
-  preset_key: item.preset_key,
-}))
+    const ownPrivatePaths = new Set((currentAsanas || []).map(asana => asana.private_image_path).filter(Boolean))
+    const ownLegacyImages = new Map((currentAsanas || []).filter(asana => asana.image_url)
+      .map(asana => [asana.image_url, asana.private_image_path || null]))
+    const insertRows = uniqueItems.map((item) => {
+      const url = item.image_url || null
+      const legacy = url?.includes('/storage/v1/object/public/asana-images/')
+      const signed = url?.includes('/storage/v1/object/sign/')
+      const path = ownPrivatePaths.has(item.private_image_path)
+        ? item.private_image_path : legacy ? ownLegacyImages.get(url) : null
+      return {
+        user_id: user.id,
+        title: item.asana_title || '',
+        sanskrit: item.asana_sanskrit || '',
+        yomi: item.yomi || '',
+        alias: item.alias || '',
+        types: item.types || [],
+        chakras: item.chakras || [],
+        main_category: preset.main_category || 'yoga',
+        strength: item.strength || '',
+        flexibility: item.flexibility || '',
+        target: item.target || null,
+        apparatus: item.apparatus || [],
+        equipment: item.equipment || null,
+        spring_setting: item.spring_setting || null,
+        howto: item.howto || '',
+        effect: item.effect || '',
+        caution: item.caution || '',
+        variation: item.variation || '',
+        modification: item.modification || '',
+        note: item.note || '',
+        image_url: signed || (legacy && !ownLegacyImages.has(url)) ? null : url,
+        ...(path ? { private_image_path: path } : {}),
+        favorite: false,
+        preset_key: item.preset_key,
+      }
+    })
 
     const { error: insertError } = await supabase
       .from('asanas')
