@@ -2,16 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from './AuthProvider'
-import { signAsanaImage } from '../lib/asana-images'
+import { acquireAsanaImage } from '../lib/asana-images'
 
-export default function AsanaImage({ asana, force = false, ...props }) {
+export default function AsanaImage({ asana, alt = '', force = false, ...props }) {
   const { user } = useAuth()
   const element = useRef(null)
   const [visible, setVisible] = useState(false)
-  const [signed, setSigned] = useState(null)
-  const [attempt, setAttempt] = useState(0)
+  const [loaded, setLoaded] = useState(null)
+  const [retry, setRetry] = useState(null)
   const path = asana.private_image_path
   const ownerPath = user && path?.split('/')[0] === user.id ? path : null
+  const attempt = retry?.path === ownerPath ? retry.attempt : 0
 
   useEffect(() => {
     if (visible || !ownerPath || !element.current) return
@@ -32,22 +33,32 @@ export default function AsanaImage({ asana, force = false, ...props }) {
     if (!ownerPath || (!visible && !force)) return
     let mounted = true
     let timer
-    async function load(refresh) {
-      const url = await signAsanaImage(ownerPath, refresh)
-      if (!mounted) return
-      setSigned({ path: ownerPath, url })
-      if (url) timer = setTimeout(() => load(true), 270000)
+    const image = acquireAsanaImage(ownerPath, user.id)
+    const reconnect = () => {
+      void image.url.then(url => {
+        if (mounted && !url) setRetry({ path: ownerPath, attempt: 0 })
+      })
     }
-    void load(attempt > 0)
+    window.addEventListener('online', reconnect)
+    void image.url.then(url => {
+      if (!mounted) return
+      setLoaded({ path: ownerPath, url })
+      if (!url && attempt === 0) timer = setTimeout(() => setRetry({ path: ownerPath, attempt: 1 }), 500)
+    })
     return () => {
       mounted = false
       clearTimeout(timer)
+      window.removeEventListener('online', reconnect)
+      image.release()
     }
-  }, [ownerPath, visible, force, attempt])
+  }, [ownerPath, user?.id, visible, force, retry, attempt])
 
-  const src = path ? (ownerPath && signed?.path === ownerPath ? signed.url : undefined) : asana.image_url
+  const src = path ? (ownerPath && loaded?.path === ownerPath ? loaded.url : undefined) : asana.image_url
   if (!path && !src) return null
-  return <img {...props} ref={element} src={src || undefined} onError={() => {
-    if (ownerPath && attempt === 0) setAttempt(1)
+  return <img {...props} ref={element} alt={alt} src={src || undefined} onError={() => {
+    if (ownerPath && attempt === 0) {
+      setLoaded(null)
+      setRetry({ path: ownerPath, attempt: 1 })
+    }
   }} />
 }

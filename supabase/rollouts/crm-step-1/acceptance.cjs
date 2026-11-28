@@ -16,6 +16,7 @@ const withRecordContext = process.argv.includes('--record-context')
 const withPrivateImages = process.argv.includes('--private-images')
 const imageRollbackDir = process.env.ASANA_ACCEPTANCE_ROLLBACK_DIR
 const imageBrowserOnly = withPrivateImages && process.argv.includes('--image-browser-only')
+const imageCompatibility = withPrivateImages && process.argv.includes('--image-compatibility')
 const legacyAppDir = process.env.CRM_ACCEPTANCE_LEGACY_APP_DIR
 const withNus = withMemberships || process.argv.includes('--step2b')
 const withBusinesses = withNus || process.argv.includes('--step2a')
@@ -165,6 +166,13 @@ function startGateway(nusFailure = () => 0, imageChecks = {}) {
       imageChecks.failSave = false
       return response.writeHead(503, { 'content-type': 'application/json' }).end('{}')
     }
+    if (request.method === 'GET' && imageChecks.failDownload &&
+        /\/object\/(?:authenticated\/)?asana-images-private\//.test(request.url)) {
+      imageChecks.failedDownloads = (imageChecks.failedDownloads || 0) + 1
+      response.writeHead(503, { 'Content-Type': 'application/json' })
+      response.end('{}')
+      return
+    }
     const origin = { auth: authOrigin, rest: restOrigin, storage: 'http://127.0.0.1:35435' }[match[1]]
     const headers = { ...request.headers }
     delete headers.host
@@ -202,7 +210,7 @@ async function verifyBrowser(sessions) {
     ...process.env, NEXT_PUBLIC_SUPABASE_URL: gatewayOrigin,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: 'crm-acceptance-local-only',
     SUPABASE_SERVICE_ROLE_KEY: imageFixture?.serviceToken ?? '',
-    NEXT_PUBLIC_PRIVATE_ASANA_UPLOADS: imageFixture ? 'true' : 'false',
+    NEXT_PUBLIC_PRIVATE_ASANA_UPLOADS: imageFixture && !imageCompatibility ? 'true' : 'false',
   }
   const app = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '-H', '127.0.0.1', '-p', '35430'],
     { env, cwd: legacyAppDir || process.cwd(), stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
@@ -222,7 +230,7 @@ async function verifyBrowser(sessions) {
   let readBrowserState
   try {
     await waitFor(async () => (await fetch(appOrigin + '/login')).ok, 'loopback app')
-    if (imageFixture) await imageFixture.verifyImages({ sessions, appOrigin, gatewayOrigin })
+    if (imageFixture) await imageFixture.verifyImages({ sessions, appOrigin, gatewayOrigin, compatibility: imageCompatibility })
     const targets = await waitFor(async () => (await fetch('http://127.0.0.1:35434/json/list')).json(), 'Chrome')
     socket = new WebSocket(targets.find(target => target.type === 'page').webSocketDebuggerUrl)
     await new Promise((resolve, reject) => {
@@ -277,10 +285,10 @@ async function verifyBrowser(sessions) {
         await waitFor(() => evaluate("[...document.querySelectorAll('button')].some(b => b.textContent.includes('アーサナ') && b.textContent.includes('▶'))"), 'dictionary category')
         await evaluate("[...document.querySelectorAll('button')].find(b => b.textContent.includes('アーサナ') && b.textContent.includes('▶')).click()")
       }
-      const verifySignedImage = async () => {
+      const verifyPrivateImage = async () => {
         await waitFor(() => evaluate("[...document.images].some(i => i.alt === 'Synthetic pose')"), 'image mounted')
         await evaluate("[...document.images].find(i => i.alt === 'Synthetic pose').scrollIntoView()")
-        await waitFor(() => evaluate("[...document.images].some(i => i.alt === 'Synthetic pose' && i.naturalWidth > 0 && i.src.includes('/object/sign/'))"), 'signed image')
+        await waitFor(() => evaluate("[...document.images].some(i => i.alt === 'Synthetic pose' && i.naturalWidth > 0 && i.src.startsWith('blob:'))"), 'private Blob image')
       }
       await evaluate(`localStorage.setItem('sb-127-auth-token', ${JSON.stringify(JSON.stringify(sessions[0]))})`)
       await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true })
@@ -288,27 +296,28 @@ async function verifyBrowser(sessions) {
         await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: theme }] })
         await send('Page.navigate', { url: appOrigin + '/asanas' })
         await openCategory()
-        await verifySignedImage()
+        await verifyPrivateImage()
         assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'))
       }
       await evaluate("window.print = () => { window.printImageReady = Boolean(document.querySelector('[data-asana-print-content] img')?.naturalWidth); window.dispatchEvent(new Event('afterprint')) }")
       await evaluate("[...document.querySelectorAll('span')].find(span => span.textContent.trim() === '詳細')?.click()")
       await waitFor(() => evaluate("[...document.querySelectorAll('button')].some(b => b.textContent.trim() === '📄')"), 'dictionary print button')
       await click('📄')
-      await waitFor(() => evaluate('window.printImageReady === true'), 'dictionary print waits for signed image')
+      await waitFor(() => evaluate('window.printImageReady === true'), 'dictionary print waits for private Blob image')
       await send('Page.navigate', { url: appOrigin + '/today-asana' })
-      await verifySignedImage()
+      await verifyPrivateImage()
       const sequence = await rest(sessions[0], '/sequences?select=id')
       await send('Page.navigate', { url: appOrigin + '/sequences/' + sequence.data[0].id })
-      await verifySignedImage()
+      await verifyPrivateImage()
+      await evaluate("window.print = () => { window.sequencePrintImageReady = [...document.images].some(i => i.alt === 'Synthetic pose' && i.naturalWidth > 0 && i.src.startsWith('blob:')) }")
+      await click('📄 PDF出力')
+      await waitFor(() => evaluate('window.sequencePrintImageReady === true'), 'sequence print waits for private Blob image')
 
       const owner = sessions[0]
       const getPose = async () => (await rest(owner, '/asanas?title=eq.Synthetic%20pose&select=id,image_url,private_image_path')).data[0]
       const before = await getPose()
       const row = '/asanas?id=eq.' + before.id
-      const edit = async () => {
-        await send('Page.navigate', { url: appOrigin + '/asanas/' + before.id + '/edit' })
-        await waitFor(() => hasText('変更を保存する'), 'asana edit form')
+      const chooseImage = async () => {
         await evaluate(`(() => {
           window.fixtureAlert = ''
           window.alert = text => { window.fixtureAlert = text }
@@ -324,6 +333,105 @@ async function verifyBrowser(sessions) {
           })
         })()`)
         await waitFor(() => evaluate("[...document.images].some(i => i.alt === 'プレビュー' && i.src.startsWith('blob:'))"), 'new image preview')
+      }
+      const edit = async () => {
+        await send('Page.navigate', { url: appOrigin + '/asanas/' + before.id + '/edit' })
+        await waitFor(() => hasText('変更を保存する'), 'asana edit form')
+        await chooseImage()
+      }
+      if (imageCompatibility) {
+        const preview = async prefix => {
+          await send('Page.navigate', { url: appOrigin + '/asanas/' + before.id + '/edit' })
+          await waitFor(() => evaluate("[...document.images].some(i => i.alt === 'プレビュー')"), 'edit preview mounted')
+          await evaluate("[...document.images].find(i => i.alt === 'プレビュー').scrollIntoView()")
+          await waitFor(() => evaluate(`[...document.images].some(i => i.alt === 'プレビュー' && i.complete && i.naturalWidth > 0 && i.src.startsWith(${JSON.stringify(prefix)}))`), 'existing image in edit form')
+          await evaluate('window.alert = () => {}')
+        }
+        const localPreview = () => evaluate("[...document.images].find(i => i.alt === 'プレビュー' && i.src.startsWith('blob:'))?.src")
+        const assertReleased = url => waitFor(async () => (await send('Runtime.evaluate', {
+          expression: `fetch(${JSON.stringify(url)}).then(() => false, () => true)`,
+          awaitPromise: true, returnByValue: true,
+        })).result?.value, 'discarded preview Blob URL revoked')
+        await preview('blob:')
+        assert.equal(await evaluate("document.querySelector('input[type=file]').disabled"), true)
+        await click('変更を保存する')
+        await waitFor(() => evaluate("location.pathname === '/asanas'"), 'private reference preserved on save')
+        assert.deepEqual(await getPose(), before)
+        assert.equal((await rest(owner, row, 'PATCH', { private_image_path: null })).status, 200)
+        await preview(before.image_url)
+        assert.equal(await evaluate("document.querySelector('input[type=file]').disabled"), false)
+        await chooseImage()
+        const first = await localPreview()
+        await chooseImage()
+        await waitFor(async () => {
+          const current = await localPreview()
+          return current && current !== first
+        }, 'new local preview replaces first selection')
+        await assertReleased(first)
+        const discarded = await localPreview()
+        await click('🗑️ 画像を削除')
+        await assertReleased(discarded)
+        assert.deepEqual(await getPose(), { ...before, private_image_path: null })
+        await chooseImage()
+        const cancelledEdit = await localPreview()
+        await evaluate(`document.querySelector('a[href="/asanas"]').click()`)
+        await waitFor(() => evaluate("location.pathname === '/asanas'"), 'left editor without saving')
+        await assertReleased(cancelledEdit)
+        assert.deepEqual(await getPose(), { ...before, private_image_path: null })
+        await send('Page.navigate', { url: appOrigin + '/asanas' })
+        await openCategory()
+        await evaluate("window.print = () => { window.publicPrintReady = [...document.querySelectorAll('[data-asana-print-content] img')].some(i => i.naturalWidth && i.src.includes('/object/public/asana-images/')); window.dispatchEvent(new Event('afterprint')) }")
+        await evaluate("[...document.querySelectorAll('span')].find(span => span.textContent.trim() === '詳細')?.click()")
+        await waitFor(() => evaluate("[...document.querySelectorAll('button')].some(b => b.textContent.trim() === '📄')"), 'public dictionary print button')
+        await click('📄')
+        await waitFor(() => evaluate('window.publicPrintReady === true'), 'public image ready in print')
+        await edit()
+        const savedPreview = await localPreview()
+        await click('変更を保存する')
+        await waitFor(() => evaluate("location.pathname === '/asanas'"), 'public replacement saved')
+        await assertReleased(savedPreview)
+        const legacyReplacement = await getPose()
+        assert.notEqual(legacyReplacement.image_url, before.image_url)
+        assert.ok(legacyReplacement.image_url.includes('/object/public/asana-images/'))
+        assert.equal(legacyReplacement.private_image_path, null)
+        await send('Page.navigate', { url: appOrigin + '/asana-create' })
+        await waitFor(() => evaluate("!!document.querySelector('input[type=file]')"), 'new asana form')
+        await chooseImage()
+        const cancelled = await localPreview()
+        await click('🗑️ 画像を取り消す')
+        await assertReleased(cancelled)
+        await fill('input[placeholder="例：山のポーズ"]', 'Compatibility fixture')
+        await chooseImage()
+        const newPreview = await localPreview()
+        await click('登録する')
+        await waitFor(() => evaluate("location.pathname === '/asanas'"), 'new asana saved')
+        await assertReleased(newPreview)
+        const newPose = (await rest(owner, '/asanas?title=eq.Compatibility%20fixture&select=image_url,private_image_path')).data[0]
+        assert.ok(newPose.image_url.includes('/object/public/asana-images/'))
+        assert.equal(newPose.private_image_path, null)
+        assert.equal((await rest(owner, row, 'PATCH', { private_image_path: before.private_image_path })).status, 200)
+        imageChecks.failDownload = true
+        await send('Page.navigate', { url: appOrigin + '/asanas' })
+        await openCategory()
+        await waitFor(() => evaluate("[...document.images].some(i => i.alt === 'Synthetic pose')"), 'private row mounted alongside public row')
+        await evaluate("[...document.images].find(i => i.alt === 'Synthetic pose').scrollIntoView()")
+        await waitFor(() => imageChecks.failedDownloads >= 2, 'failed authenticated download retried')
+        assert.equal(await evaluate("[...document.images].find(i => i.alt === 'Synthetic pose').getAttribute('src')"), null)
+        imageChecks.failDownload = false
+        await send('Page.navigate', { url: appOrigin + '/asanas' })
+        await openCategory()
+        await verifyPrivateImage()
+        await waitFor(() => evaluate("[...document.images].some(i => i.alt === 'Compatibility fixture' && i.naturalWidth > 0 && i.src.includes('/object/public/asana-images/'))"), 'public and private images rendered together')
+        const signedInPreview = await evaluate("[...document.images].find(i => i.alt === 'Synthetic pose').src")
+        await click('🚪 ログアウト')
+        await waitFor(() => evaluate("!document.body.innerText.includes('owner 様')"), 'logged out')
+        await assertReleased(signedInPreview)
+        await evaluate(`localStorage.setItem('sb-127-auth-token', ${JSON.stringify(JSON.stringify(sessions[1]))})`)
+        await send('Page.navigate', { url: appOrigin + '/asanas' })
+        await openCategory()
+        assert.equal(await evaluate("[...document.images].some(i => i.src.startsWith('blob:'))"), false)
+        console.log('PASS Compatibility flag off: API disabled, both image formats, edit/create/print, preview release, failure without fallback and account switch')
+        return
       }
       assert.equal((await rest(owner, row, 'PATCH', { private_image_path: null })).status, 200)
       await edit()
@@ -381,11 +489,11 @@ from public.initial_sequences p cross join lateral (
       assert.notEqual((await getPose()).private_image_path, competing)
       await send('Page.navigate', { url: appOrigin + '/asanas' })
       await openCategory()
-      await verifySignedImage()
+      await verifyPrivateImage()
       for (const [title, expectedSrc] of [
         ['Fixture public image', '/icon.png'],
-        ['Fixture legacy image', '/object/sign/'],
-        ['Fixture own image', '/object/sign/'],
+        ['Fixture legacy image', 'blob:'],
+        ['Fixture own image', 'blob:'],
       ]) {
         const needle = JSON.stringify(title)
         await waitFor(() => evaluate(`[...document.images].some(i => i.alt === ${needle})`), 'imported preset image mounted')
@@ -398,13 +506,13 @@ from public.initial_sequences p cross join lateral (
         window.fixturePreviousSrc = image.src
         image.src = '/fixture-expired-image.webp'
       })()`)
-      await waitFor(() => evaluate("[...document.images].some(i => i.alt === 'Synthetic pose' && i.naturalWidth && i.src.includes('/object/sign/') && i.src !== window.fixturePreviousSrc)"), 'automatic private image re-sign')
+      await waitFor(() => evaluate("[...document.images].some(i => i.alt === 'Synthetic pose' && i.naturalWidth && i.src.startsWith('blob:') && i.src !== window.fixturePreviousSrc)"), 'automatic private image refetch')
       await delay(1100)
       await evaluate(`(() => {
         window.printForcedImageFailure = false
         const observer = new MutationObserver(() => {
           const image = document.querySelector('[data-asana-print-content] img')
-          if (!image?.src.includes('/object/sign/')) return
+          if (!image?.src.startsWith('blob:')) return
           observer.disconnect()
           window.printForcedImageFailure = true
           image.src = '/fixture-expired-print-image.webp'
@@ -417,7 +525,7 @@ from public.initial_sequences p cross join lateral (
       })()`)
       await evaluate(`document.querySelector('img[alt="Synthetic pose"]')?.closest('[role=button]')?.click()`)
       await click('📄')
-      await waitFor(() => evaluate('window.printImageReady === true'), 'print after image re-sign and legacy closure')
+      await waitFor(() => evaluate('window.printImageReady === true'), 'print after image refetch and legacy closure')
       assert.equal(await evaluate('window.printForcedImageFailure'), true)
       console.log('PASS Browser preset import and private rendering after legacy bucket closure')
       if (imageRollbackDir) {
@@ -430,7 +538,7 @@ from public.initial_sequences p cross join lateral (
         await evaluate(`localStorage.setItem('sb-127-auth-token', ${JSON.stringify(JSON.stringify(owner))})`)
         await send('Page.navigate', { url: rollbackOrigin + '/asanas' })
         await openCategory()
-        await verifySignedImage()
+        await verifyPrivateImage()
         assert.notEqual((await fetch(before.image_url)).status, 200)
         console.log('PASS Previous private-capable app uses same DB and Storage after legacy public URL is closed')
       }
@@ -441,11 +549,20 @@ from public.initial_sequences p cross join lateral (
       await send('Page.navigate', { url: appOrigin + '/asanas' })
       await openCategory()
       await waitFor(() => hasText('Synthetic pose'), 'second account dictionary')
-      assert.equal(await evaluate("[...document.images].some(i => i.src.includes('/object/sign/'))"), false)
+      assert.equal(await evaluate("[...document.images].some(i => i.src.startsWith('blob:'))"), false)
       console.log('PASS Dictionary private image at 390px in light and dark mode; account switch clears visible image')
       assert.equal(appLog.includes(imageFixture.serviceToken), false)
       assert.doesNotMatch(appLog, /\/object\/sign\/[^\s]*[?&]token=/)
-      console.log('PASS Server output contains neither the test service credential nor signed image URLs')
+      for (const session of sessions) assert.equal(appLog.includes(session.access_token), false)
+      console.log('PASS Application logs contain no fixture JWTs, service credential or signed image URLs')
+      const storageLog = execFileSync('docker', ['compose', '-p', 'crm-step1-acceptance',
+        '-f', 'supabase/rollouts/crm-step-1/acceptance.compose.yml',
+        '-f', 'supabase/rollouts/asana-image-privacy/storage.compose.yml',
+        'logs', '--no-color', 'storage'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+      assert.equal(/\/object\/(?:authenticated\/)?asana-images-private\//.test(storageLog), true)
+      for (const session of sessions) assert.equal(storageLog.includes(session.access_token), false)
+      assert.equal(storageLog.includes(imageFixture.serviceToken), false)
+      console.log('PASS Local Storage download logs contain no fixture JWTs or service credential')
       if (imageBrowserOnly) return
     }
     for (let index = 0; index < sessions.length; index++) {
@@ -1163,7 +1280,40 @@ async function main() {
     if (withPrivateImages) {
       const setup = readFileSync(join(__dirname, '../asana-image-privacy/fixture.sql'), 'utf8')
       const migration = readFileSync(join(__dirname, '../asana-image-privacy/01-private-images.sql'), 'utf8')
-      dbInput(setup + '\n' + migration + "\nnotify pgrst, 'reload schema';", 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
+      const rollback = readFileSync(join(__dirname, '../asana-image-privacy/01-rollback-empty-foundation.sql'), 'utf8')
+      const apply = sql => dbInput(sql, 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
+      apply(setup)
+      assert.throws(() => apply(migration), /Expected an empty private WebP bucket/)
+      const { serviceToken } = await import('../asana-image-privacy/acceptance.mjs')
+      const storageOrigin = 'http://127.0.0.1:35435'
+      const storageHeaders = { Authorization: 'Bearer ' + serviceToken, 'Content-Type': 'application/json' }
+      const createBucket = () => fetch(storageOrigin + '/bucket', {
+        method: 'POST',
+        headers: storageHeaders,
+        body: JSON.stringify({ id: 'asana-images-private', name: 'asana-images-private', public: false,
+          file_size_limit: 5242880, allowed_mime_types: ['image/webp'] }),
+      })
+      assert.equal((await createBucket()).ok, true)
+      apply(migration)
+      assert.throws(() => apply(migration), /already exists/)
+      apply(rollback)
+      assert.equal(dbInput("select count(*) from storage.buckets where id='asana-images-private';", 'psql', '-X', '-Atq').trim(), '1')
+      assert.equal(dbInput("select count(*) from pg_attribute where attrelid='public.asanas'::regclass and attname='private_image_path' and not attisdropped;", 'psql', '-X', '-Atq').trim(), '0')
+      assert.equal((await fetch(storageOrigin + '/bucket/asana-images-private', {
+        method: 'DELETE', headers: storageHeaders,
+      })).ok, true)
+      assert.equal((await createBucket()).ok, true)
+      apply(migration + "\nnotify pgrst, 'reload schema';")
+      if (process.argv.includes('--private-images-no-sign')) {
+        apply(`alter policy asana_private_read on storage.objects using (
+          bucket_id = 'asana-images-private'
+          and (storage.foldername(name))[1] = (select auth.uid())::text
+          and not coalesce((select auth.jwt())->>'is_anonymous' = 'true', false)
+          and storage.allow_any_operation(array['object.get_authenticated',
+            'object.get_authenticated_info', 'object.delete', 'object.delete_many'])
+        );`)
+      }
+      console.log('PASS Storage API bucket, missing bucket guard, collision rollback and reapply after empty foundation rollback')
     }
     if (withBusinesses) {
       const fixture = `

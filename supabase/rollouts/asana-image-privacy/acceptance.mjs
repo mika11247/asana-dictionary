@@ -4,9 +4,9 @@ import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 import { migrateBatch } from './migrate.mjs'
 
-function fixtureToken(role) {
+function fixtureToken(role, claims = {}) {
   const part = data => Buffer.from(JSON.stringify(data)).toString('base64url')
-  const body = `${part({ typ: 'JWT', alg: 'HS256' })}.${part({ role, exp: 4102444800 })}`
+  const body = `${part({ typ: 'JWT', alg: 'HS256' })}.${part({ role, exp: 4102444800, ...claims })}`
   return body + '.' + createHmac('sha256', 'crm-acceptance-local-only-signing-secret').update(body).digest('base64url')
 }
 
@@ -23,7 +23,7 @@ export async function uploadFixtureImage(appOrigin, session) {
   return (await response.json()).path
 }
 
-export async function verifyImages({ sessions, appOrigin, gatewayOrigin }) {
+export async function verifyImages({ sessions, appOrigin, gatewayOrigin, compatibility = false }) {
   assert.equal(gatewayOrigin, 'http://127.0.0.1:35433')
   assert.equal(appOrigin, 'http://127.0.0.1:35430')
   const [a, b] = sessions
@@ -43,6 +43,19 @@ export async function verifyImages({ sessions, appOrigin, gatewayOrigin }) {
   const upload = (body, contentType = 'image/webp', token = a.access_token) => fetch(appOrigin + '/api/asana-images', {
     method: 'POST', body, headers: { 'content-type': contentType, ...(token ? { authorization: `Bearer ${token}` } : {}) },
   })
+  if (compatibility) {
+    assert.equal((await upload(image)).status, 404)
+    const path = a.user.id + '/00000000-0000-4000-8000-000000000001.webp'
+    assert.equal((await admin.storage.from(bucket).upload(path, image, mime)).error, null)
+    const legacy = owner.storage.from('asana-images')
+    assert.equal((await legacy.upload('fixture.webp', image, mime)).error, null)
+    assert.equal((await owner.from('asanas').update({
+      image_url: legacy.getPublicUrl('fixture.webp').data.publicUrl, private_image_path: path,
+    }).eq('user_id', a.user.id)).error, null)
+    assert.ok((await other.storage.from(bucket).download(path)).error)
+    assert.ok((await anon.storage.from(bucket).download(path)).error)
+    return
+  }
   assert.equal((await upload(image, 'image/webp', null)).status, 401)
   assert.equal((await upload(png, 'image/png')).status, 415)
   assert.equal((await upload(png)).status, 415)
@@ -51,7 +64,15 @@ export async function verifyImages({ sessions, appOrigin, gatewayOrigin }) {
   assert.equal(response.status, 201)
   const { path } = await response.json()
   assert.equal(path.split('/')[0], a.user.id)
-  assert.equal((await owner.storage.from(bucket).download(path)).error, null)
+  const initialDownload = await owner.storage.from(bucket).download(path)
+  assert.equal(initialDownload.error, null)
+  const uploadedBytes = Buffer.from(await initialDownload.data.arrayBuffer())
+  if (process.argv.includes('--private-images-no-sign')) {
+    const single = await owner.storage.from(bucket).createSignedUrl(path, 30)
+    assert.ok(single.error)
+    const multiple = await owner.storage.from(bucket).createSignedUrls([path], 30)
+    assert.ok(multiple.error || (multiple.data?.length === 1 && !multiple.data[0].signedUrl))
+  }
   for (const denied of [other, anon]) {
     assert.ok((await denied.storage.from(bucket).download(path)).error)
     assert.ok((await denied.storage.from(bucket).createSignedUrl(path, 300)).error)
@@ -64,13 +85,11 @@ export async function verifyImages({ sessions, appOrigin, gatewayOrigin }) {
   assert.ok((await admin.storage.from(bucket).upload(a.user.id + '/large.webp', Buffer.alloc(5 * 1024 * 1024 + 1), mime)).error)
   assert.ok((await other.from('asanas').update({ private_image_path: path }).eq('user_id', b.user.id)).error)
 
-  const short = await owner.storage.from(bucket).createSignedUrl(path, 1)
-  assert.equal(short.error, null)
-  assert.equal((await fetch(short.data.signedUrl)).status, 200)
-  await new Promise(resolve => setTimeout(resolve, 2100))
-  assert.notEqual((await fetch(short.data.signedUrl)).status, 200)
-  const refreshed = await owner.storage.from(bucket).createSignedUrl(path, 300)
-  assert.equal((await fetch(refreshed.data.signedUrl)).status, 200)
+  const expired = client(fixtureToken('authenticated', { sub: a.user.id, exp: 1 }))
+  assert.ok((await expired.storage.from(bucket).download(path, {}, { cache: 'no-store' })).error)
+  const retried = await owner.storage.from(bucket).download(path, {}, { cache: 'no-store' })
+  assert.equal(retried.error, null)
+  assert.deepEqual(Buffer.from(await retried.data.arrayBuffer()), uploadedBytes)
   assert.equal((await owner.storage.from(bucket).remove([path])).error, null)
   assert.ok((await owner.storage.from(bucket).download(path)).error)
 
@@ -92,5 +111,5 @@ export async function verifyImages({ sessions, appOrigin, gatewayOrigin }) {
   assert.equal((await owner.storage.from(bucket).download(migrated.data.private_image_path)).error, null)
   // Remove the cross-owner fixture reference before exercising the normal member UI.
   assert.equal((await other.from('asanas').update({ image_url: null }).eq('user_id', b.user.id)).error, null)
-  console.log('PASS private Storage, upload validation, limits, authorization, signed URL expiry and idempotent migration')
+  console.log('PASS private Storage, upload validation, limits, authorization, expired JWT denial and idempotent migration')
 }

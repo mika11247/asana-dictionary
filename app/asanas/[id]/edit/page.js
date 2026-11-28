@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { privateUploads, uploadPrivateAsanaImage } from '@/lib/asana-images'
+import { useLocalImagePreview } from '@/lib/use-local-image-preview'
 import AsanaImage from '@/components/AsanaImage'
 import {
   ASANA_TYPES,
@@ -55,6 +56,7 @@ export default function AsanaEditPage() {
 
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
+  const localImagePreview = useLocalImagePreview(imageFile)
   const [privateImagePath, setPrivateImagePath] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -138,12 +140,7 @@ export default function AsanaEditPage() {
   }
 
   function handleImageChange(e) {
-    const file = e.target.files?.[0] || null
-    setImageFile(file)
-
-    if (file) {
-      setImagePreview(URL.createObjectURL(file))
-    }
+    setImageFile(e.target.files?.[0] || null)
   }
 
   async function compressImage(file) {
@@ -196,11 +193,13 @@ export default function AsanaEditPage() {
 
     let uploadedImageUrl = imageUrl
     let uploadedPrivatePath
+    const removePublicImage = !imageFile && !privateImagePath && Boolean(imageUrl) && !imagePreview
 
     try {
       if (imageFile) {
         const compressedFile = await compressImage(imageFile)
-        if (privateUploads || privateImagePath) {
+        if (!privateUploads && privateImagePath) throw new Error('非公開画像の差し替えはまだ利用できません。')
+        if (privateUploads) {
           uploadedPrivatePath = await uploadPrivateAsanaImage(compressedFile)
         } else {
           const fileExt = compressedFile.name.split('.').pop()
@@ -226,7 +225,7 @@ export default function AsanaEditPage() {
           adjustment,
           note,
           ...(uploadedPrivatePath ? { private_image_path: uploadedPrivatePath } :
-            imageFile ? { image_url: uploadedImageUrl || null } : {}),
+            imageFile || removePublicImage ? { image_url: removePublicImage ? null : uploadedImageUrl } : {}),
           strength,
           flexibility,
           modification,
@@ -242,11 +241,11 @@ export default function AsanaEditPage() {
         })
         .eq('id', id)
 
-      if (imageFile) {
+      if (imageFile || removePublicImage) {
         update = imageUrl ? update.eq('image_url', imageUrl) : update.is('image_url', null)
         update = privateImagePath
           ? update.eq('private_image_path', privateImagePath)
-          : privateUploads ? update.is('private_image_path', null) : update
+          : update.is('private_image_path', null)
       }
       const { data, error } = await update.select('id').maybeSingle()
       if (error) throw new Error('辞書の変更を保存できませんでした。')
@@ -679,29 +678,29 @@ export default function AsanaEditPage() {
               <input
                 type="file"
                 accept="image/*"
+                disabled={Boolean(privateImagePath) && !privateUploads}
                 onChange={handleImageChange}
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
               />
 
-              {(imagePreview || privateImagePath) && (
+              {(localImagePreview || imagePreview || privateImagePath) && (
                 <div className="mt-4 rounded-3xl bg-gray-50 p-4">
                   <AsanaImage
-                    asana={{ image_url: imagePreview, private_image_path: imageFile ? null : privateImagePath }}
+                    asana={{ image_url: imageFile ? localImagePreview : imagePreview, private_image_path: imageFile ? null : privateImagePath }}
                     alt="プレビュー"
                     className="h-56 w-full rounded-2xl object-contain"
                   />
 
-                  <button
+                  {!privateImagePath && <button
                     type="button"
                     onClick={() => {
                       setImageFile(null)
                       setImagePreview('')
-                      setImageUrl('')
                     }}
                     className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-100"
                   >
                     🗑️ 画像を削除
-                  </button>
+                  </button>}
                 </div>
               )}
             </div>

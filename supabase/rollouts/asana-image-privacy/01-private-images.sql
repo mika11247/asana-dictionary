@@ -1,7 +1,23 @@
 begin;
+set local lock_timeout = '5s';
 
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('asana-images-private', 'asana-images-private', false, 5242880, array['image/webp']);
+-- The operator provisions the bucket through the Storage API before applying this SQL.
+do $$
+begin
+  if not exists (
+    select 1 from storage.buckets
+    where id = 'asana-images-private' and name = id and public is false
+      and file_size_limit = 5242880 and allowed_mime_types = array['image/webp']
+  ) or exists (
+    select 1 from storage.objects where bucket_id = 'asana-images-private'
+  ) then
+    raise exception 'Expected an empty private WebP bucket provisioned through the Storage API';
+  end if;
+end;
+$$;
+
+-- Plain CREATE/ADD intentionally rejects existing definitions, including a replay.
+-- A conflict rolls back the whole transaction instead of accepting a mismatched object.
 
 alter table public.asanas add column private_image_path text;
 

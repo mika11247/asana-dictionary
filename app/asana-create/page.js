@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { privateUploads, uploadPrivateAsanaImage } from '@/lib/asana-images'
+import { useLocalImagePreview } from '@/lib/use-local-image-preview'
 import {
   ASANA_TYPES,
   TYPE_LABELS,
@@ -56,7 +57,7 @@ export default function AsanaCreatePage() {
   const [springSetting, setSpringSetting] = useState('')
 
   const [imageFile, setImageFile] = useState(null)
-  const [imagePreview, setImagePreview] = useState('')
+  const imagePreview = useLocalImagePreview(imageFile)
   const [loading, setLoading] = useState(false)
 
   const inputClass =
@@ -68,14 +69,7 @@ export default function AsanaCreatePage() {
   const labelClass = 'mb-2 block text-sm font-bold text-gray-700'
 
   function handleImageChange(e) {
-    const file = e.target.files?.[0] || null
-    setImageFile(file)
-
-    if (file) {
-      setImagePreview(URL.createObjectURL(file))
-    } else {
-      setImagePreview('')
-    }
+    setImageFile(e.target.files?.[0] || null)
   }
 
   async function compressImage(file) {
@@ -374,7 +368,6 @@ export default function AsanaCreatePage() {
                     type="button"
                     onClick={() => {
                       setImageFile(null)
-                      setImagePreview('')
                     }}
                     className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-600"
                   >
