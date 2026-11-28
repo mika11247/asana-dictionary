@@ -22,6 +22,7 @@ export async function POST(request) {
   if (error || !user || user.is_anonymous) return reply(401, {})
   if (request.headers.get('content-type') !== 'image/webp') return reply(415, {})
   if (!request.body) return reply(400, {})
+  if (Number(request.headers.get('content-length')) > uploadImageLimit) return reply(413, {})
 
   const reader = request.body.getReader()
   const chunks = []
@@ -43,15 +44,67 @@ export async function POST(request) {
     reader.releaseLock()
   }
 
+  const requestId = randomUUID()
+  const path = `${user.id}/${requestId}.webp`
+  const admin = createClient(url, serviceKey, options)
+  const { data: reservation, error: reserveError } = await admin.rpc('asana_image_reserve', {
+    p_owner: user.id, p_request: requestId,
+  })
+  if (reserveError || !reservation) return reply(503, {})
+  if (['rate_minute', 'rate_day', 'in_flight'].includes(reservation.status)) {
+    return reply(429, { code: reservation.status })
+  }
+  if (['user_capacity', 'project_capacity'].includes(reservation.status)) {
+    return reply(409, { code: reservation.status })
+  }
+  if (reservation.status === 'account_unavailable') return reply(403, {})
+  if (reservation.status !== 'held' || reservation.path !== path || reservation.replayed) return reply(503, {})
+
+  async function settle(action) {
+    try {
+      const { data, error } = await admin.rpc('asana_image_settle', {
+        p_owner: user.id, p_request: requestId, p_path: path, p_action: action,
+      })
+      return error ? null : data
+    } catch {
+      return null
+    }
+  }
+
+  if (size > reservation.request_bytes) {
+    await settle('release')
+    return reply(413, {})
+  }
   let image
   try {
     image = await normalizeWebp(Buffer.concat(chunks))
   } catch {
+    await settle('release')
     return reply(415, {})
   }
-  if (image.length > storageImageLimit) return reply(413, {})
-  const path = `${user.id}/${randomUUID()}.webp`
-  const storage = createClient(url, serviceKey, options).storage.from(privateBucket)
-  const result = await storage.upload(path, image, { contentType: 'image/webp', upsert: false, cacheControl: '0' })
-  return result.error ? reply(503, {}) : reply(201, { path })
+  if (image.length > storageImageLimit) {
+    await settle('release')
+    return reply(413, {})
+  }
+  // An unconfirmed start must never trigger a Storage write.
+  if (await settle('start') !== 'writing') return reply(503, {})
+  const storage = admin.storage.from(privateBucket)
+  try {
+    const { error: uploadError } = await storage.upload(path, image, {
+      contentType: 'image/webp', upsert: false, cacheControl: '0',
+    })
+    if (uploadError) {
+      const status = Number(uploadError.statusCode ?? uploadError.status)
+      await settle([413, 415].includes(status) ? 'failed' : 'uncertain')
+      return reply(status === 413 ? 413 : status === 415 ? 415 : 503, {})
+    }
+  } catch {
+    await settle('uncertain')
+    return reply(503, {})
+  }
+  if (await settle('confirm') !== 'confirmed') {
+    await settle('uncertain')
+    return reply(503, {})
+  }
+  return reply(201, { path })
 }

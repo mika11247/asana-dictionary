@@ -369,7 +369,7 @@ async function verifyBrowser(sessions) {
         }, 'new local preview replaces first selection')
         await assertReleased(first)
         const discarded = await localPreview()
-        await click('🗑️ 画像を削除')
+        await click('画像を外す')
         await assertReleased(discarded)
         assert.deepEqual(await getPose(), { ...before, private_image_path: null })
         await chooseImage()
@@ -442,7 +442,7 @@ async function verifyBrowser(sessions) {
       await click('変更を保存する')
       await waitFor(() => evaluate("location.pathname === '/asanas'"), 'successful dictionary save')
       const replacement = await getPose()
-      assert.equal(replacement.image_url, before.image_url)
+      assert.equal(replacement.image_url, null)
       assert.ok(replacement.private_image_path && replacement.private_image_path !== before.private_image_path)
       await edit()
       const competing = await imageFixture.uploadFixtureImage(appOrigin, owner)
@@ -455,11 +455,14 @@ async function verifyBrowser(sessions) {
       const foreign = await imageFixture.uploadFixtureImage(appOrigin, sessions[1])
       const escapedForeign = foreign.replaceAll("'", "''")
       dbInput(`
+insert into public.asanas (user_id,title,image_url,private_image_path)
+select user_id,'Fixture migrated legacy source','${before.image_url.replaceAll("'", "''")}',private_image_path
+from public.asanas where id=${before.id};
 insert into public.initial_sequence_items (initial_sequence_id, position, type, preset_key, asana_title, image_url, private_image_path)
 select p.id, v.pos, 'asana', v.key, v.title, v.url, v.path
 from public.initial_sequences p cross join lateral (
   select 1, 'public-image', 'Fixture public image', '/icon.png', null::text
-  union all select 2, 'legacy-image', 'Fixture legacy image', a.image_url, null from public.asanas a where a.id=${before.id}
+  union all select 2, 'legacy-image', 'Fixture legacy image', '${before.image_url.replaceAll("'", "''")}', null
   union all select 3, 'own-private-image', 'Fixture own image', null, a.private_image_path from public.asanas a where a.id=${before.id}
   union all select 4, 'foreign-image', 'Fixture foreign image', null, '${escapedForeign}'
   union all select 5, 'no-image', 'Fixture no image', null, null
@@ -470,7 +473,7 @@ from public.initial_sequences p cross join lateral (
       await evaluate("window.alert = text => { window.fixtureAlert = text }")
       await click('アーサナのみ追加')
       await waitFor(() => evaluate("window.fixtureAlert?.includes('5件')"), '5 preset entries imported')
-      const imported = (await rest(owner, '/asanas?title=like.Fixture*&order=preset_key&select=preset_key,image_url,private_image_path')).data
+      const imported = (await rest(owner, '/asanas?title=like.Fixture*&preset_key=not.is.null&order=preset_key&select=preset_key,image_url,private_image_path')).data
       const references = Object.fromEntries(imported.map(({ preset_key, ...reference }) => [preset_key, reference]))
       assert.deepEqual(references, {
         'public-image': { image_url: '/icon.png', private_image_path: null },
@@ -483,6 +486,9 @@ from public.initial_sequences p cross join lateral (
         dbInput(readFileSync(join(__dirname, '../asana-image-privacy', file), 'utf8'), 'psql', '-X', '-v', 'ON_ERROR_STOP=1')
       }
       assert.notEqual((await fetch(before.image_url)).status, 200)
+      // Keep this Storage-compatibility case independent of earlier rate-limit attempts.
+      dbInput("update asana_image_private.attempts set attempted_at=least(attempted_at,now()-interval '61 seconds');",
+        'psql', '-X', '-v', 'ON_ERROR_STOP=1')
       await edit()
       await click('変更を保存する')
       await waitFor(() => evaluate("location.pathname === '/asanas'"), 'browser upload after legacy uploads stop')
@@ -542,6 +548,34 @@ from public.initial_sequences p cross join lateral (
         assert.notEqual((await fetch(before.image_url)).status, 200)
         console.log('PASS Previous private-capable app uses same DB and Storage after legacy public URL is closed')
       }
+
+      await send('Page.navigate', { url: appOrigin + '/asanas/' + before.id + '/edit' })
+      await waitFor(() => hasText('画像を外す'), 'private image detach control')
+      const attached = await getPose()
+      await click('画像を外す')
+      await waitFor(() => hasText('保存すると画像が外れます。'), 'staged detach')
+      assert.deepEqual(await getPose(), attached)
+      await click('元に戻す')
+      await waitFor(() => hasText('画像を外す'), 'undo staged detach')
+      await click('画像を外す')
+      await evaluate('window.alert = () => {}')
+      await click('変更を保存する')
+      await waitFor(() => evaluate("location.pathname === '/asanas'"), 'saved detach')
+      assert.deepEqual(await getPose(), { ...attached, image_url: null, private_image_path: null })
+      assert.equal(dbInput(`select count(*) from storage.objects o join asana_image_private.reservations r
+        on r.object_path=o.name where o.bucket_id='asana-images-private' and r.unreferenced_since is not null;`,
+      'psql', '-X', '-Atq').trim(), '2')
+
+      await send('Page.navigate', { url: appOrigin + '/asana-create' })
+      await waitFor(() => evaluate("!!document.querySelector('input[type=file]')"), 'private create form')
+      await fill('input[placeholder="例：山のポーズ"]', 'Private upload fixture')
+      await chooseImage()
+      await click('登録する')
+      await waitFor(() => evaluate("location.pathname === '/asanas'"), 'new private asana saved')
+      const created = (await rest(owner, '/asanas?title=eq.Private%20upload%20fixture&select=image_url,private_image_path')).data[0]
+      assert.equal(created.image_url, null)
+      assert.ok(created.private_image_path?.startsWith(owner.user.id + '/'))
+      console.log('PASS Browser staged detach, file retention and reservation-backed private creation')
 
       await send('Page.navigate', { url: appOrigin + '/login' })
       await waitFor(() => evaluate("location.port === '35430'"), 'current browser origin')
@@ -1312,6 +1346,12 @@ async function main() {
           and storage.allow_any_operation(array['object.get_authenticated',
             'object.get_authenticated_info', 'object.delete', 'object.delete_many'])
         );`)
+      }
+      if (!imageCompatibility) {
+        for (const file of ['04-upload-reservations.sql', '05-upload-image-references.sql']) {
+          apply(readFileSync(join(__dirname, '../asana-image-privacy', file), 'utf8'))
+        }
+        apply("notify pgrst, 'reload schema';")
       }
       console.log('PASS Storage API bucket, missing bucket guard, collision rollback and reapply after empty foundation rollback')
     }

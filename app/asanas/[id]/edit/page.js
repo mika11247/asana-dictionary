@@ -40,7 +40,7 @@ export default function AsanaEditPage() {
   const [variation, setVariation] = useState('')
   const [adjustment, setAdjustment] = useState('')
   const [note, setNote] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
+  const [imageUrl, setImageUrl] = useState(null)
   const [strength, setStrength] = useState('')
   const [flexibility, setFlexibility] = useState('')
   const [modification, setModification] = useState('')
@@ -55,7 +55,7 @@ export default function AsanaEditPage() {
   const [springSetting, setSpringSetting] = useState('')
 
   const [imageFile, setImageFile] = useState(null)
-  const [imagePreview, setImagePreview] = useState('')
+  const [removeImage, setRemoveImage] = useState(false)
   const localImagePreview = useLocalImagePreview(imageFile)
   const [privateImagePath, setPrivateImagePath] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -96,8 +96,8 @@ export default function AsanaEditPage() {
     setVariation(data.variation || '')
     setAdjustment(data.adjustment || '')
     setNote(data.note || '')
-    setImageUrl(data.image_url || '')
-    setImagePreview(data.image_url || '')
+    setImageUrl(data.image_url ?? null)
+    setRemoveImage(false)
     setPrivateImagePath(data.private_image_path ?? null)
     setStrength(data.strength || '')
     setFlexibility(data.flexibility || '')
@@ -140,7 +140,11 @@ export default function AsanaEditPage() {
   }
 
   function handleImageChange(e) {
-    setImageFile(e.target.files?.[0] || null)
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    setRemoveImage(false)
+    e.target.value = ''
   }
 
   async function compressImage(file) {
@@ -193,7 +197,6 @@ export default function AsanaEditPage() {
 
     let uploadedImageUrl = imageUrl
     let uploadedPrivatePath
-    const removePublicImage = !imageFile && !privateImagePath && Boolean(imageUrl) && !imagePreview
 
     try {
       if (imageFile) {
@@ -224,8 +227,9 @@ export default function AsanaEditPage() {
           variation,
           adjustment,
           note,
-          ...(uploadedPrivatePath ? { private_image_path: uploadedPrivatePath } :
-            imageFile || removePublicImage ? { image_url: removePublicImage ? null : uploadedImageUrl } : {}),
+          ...(uploadedPrivatePath ? { private_image_path: uploadedPrivatePath, image_url: null } :
+            removeImage ? { private_image_path: null, image_url: null } :
+              imageFile ? { image_url: uploadedImageUrl } : {}),
           strength,
           flexibility,
           modification,
@@ -241,8 +245,8 @@ export default function AsanaEditPage() {
         })
         .eq('id', id)
 
-      if (imageFile || removePublicImage) {
-        update = imageUrl ? update.eq('image_url', imageUrl) : update.is('image_url', null)
+      if (imageFile || removeImage) {
+        update = imageUrl === null ? update.is('image_url', null) : update.eq('image_url', imageUrl)
         update = privateImagePath
           ? update.eq('private_image_path', privateImagePath)
           : update.is('private_image_path', null)
@@ -678,30 +682,39 @@ export default function AsanaEditPage() {
               <input
                 type="file"
                 accept="image/*"
-                disabled={Boolean(privateImagePath) && !privateUploads}
+                disabled={saving || (Boolean(privateImagePath) && !privateUploads)}
                 onChange={handleImageChange}
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
               />
 
-              {(localImagePreview || imagePreview || privateImagePath) && (
+              {!removeImage && (localImagePreview || imageUrl || privateImagePath) && (
                 <div className="mt-4 rounded-3xl bg-gray-50 p-4">
                   <AsanaImage
-                    asana={{ image_url: imageFile ? localImagePreview : imagePreview, private_image_path: imageFile ? null : privateImagePath }}
+                    asana={{ image_url: imageFile ? localImagePreview : imageUrl, private_image_path: imageFile ? null : privateImagePath }}
                     alt="プレビュー"
                     className="h-56 w-full rounded-2xl object-contain"
                   />
 
-                  {!privateImagePath && <button
+                  <button
                     type="button"
+                    disabled={saving}
                     onClick={() => {
                       setImageFile(null)
-                      setImagePreview('')
+                      setRemoveImage(Boolean(imageUrl || privateImagePath))
                     }}
                     className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-100"
                   >
-                    🗑️ 画像を削除
-                  </button>}
+                    画像を外す
+                  </button>
                 </div>
+              )}
+              {removeImage && (
+                <p className="mt-3 text-sm text-gray-700">
+                  保存すると画像が外れます。
+                  <button type="button" disabled={saving} onClick={() => setRemoveImage(false)} className="ml-2 underline">
+                    元に戻す
+                  </button>
+                </p>
               )}
             </div>
 

@@ -90,8 +90,8 @@ export async function verifyImages({ sessions, appOrigin, gatewayOrigin, compati
   const retried = await owner.storage.from(bucket).download(path, {}, { cache: 'no-store' })
   assert.equal(retried.error, null)
   assert.deepEqual(Buffer.from(await retried.data.arrayBuffer()), uploadedBytes)
-  assert.equal((await owner.storage.from(bucket).remove([path])).error, null)
-  assert.ok((await owner.storage.from(bucket).download(path)).error)
+  await owner.storage.from(bucket).remove([path])
+  assert.equal((await owner.storage.from(bucket).download(path)).error, null)
 
   const old = owner.storage.from('asana-images')
   assert.equal((await old.upload('fixture.webp', image, mime)).error, null)
